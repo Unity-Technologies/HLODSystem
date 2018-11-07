@@ -4,6 +4,7 @@ using System.Linq;
 using ProBuilder.EditorCore;
 using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace Unity.HLODSystem
@@ -29,14 +30,16 @@ namespace Unity.HLODSystem
                 return;
             }
 
-            GameObject low = CreateLow(root);
-            GameObject high = CreateHigh(low);
-            low.transform.SetParent(root.transform);
+            GameObject high = CreateHigh(root);
+            GameObject low = CreateLow(high);
             high.transform.SetParent(root.transform);
+            low.transform.SetParent(root.transform);
 
             HLOD hlod = root.AddComponent<HLOD>();
-            hlod.LowRoot = low;
             hlod.HighRoot = high;
+            hlod.LowRoot = low;
+
+            EditorSceneManager.MarkSceneDirty(root.scene);
         }
 
         [MenuItem(k_SetupPath, true)]
@@ -49,9 +52,9 @@ namespace Unity.HLODSystem
             return PrefabStageUtility.GetCurrentPrefabStage().prefabContentsRoot.GetComponent<HLOD>() == null;
         }
 
-        static GameObject CreateLow(GameObject root)
+        static GameObject CreateHigh(GameObject root)
         {
-            GameObject low = new GameObject("Low");
+            GameObject low = new GameObject("High");
 
             while (root.transform.childCount > 0)
             {
@@ -62,9 +65,9 @@ namespace Unity.HLODSystem
             return low;
         }
 
-        static GameObject CreateHigh(GameObject lowGameObject)
+        static GameObject CreateLow(GameObject lowGameObject)
         {
-            GameObject high = new GameObject("High");
+            GameObject high = new GameObject("Low");
 
             var lodGroups = lowGameObject.GetComponentsInChildren<LODGroup>();
             List<Renderer> lodRenderers = new List<Renderer>();
