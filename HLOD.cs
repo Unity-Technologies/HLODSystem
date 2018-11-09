@@ -69,6 +69,11 @@ namespace Unity.HLODSystem
         void OnDisable()
         {
             s_ActiveHLODs.Remove(this);
+
+            if (LowRoot != null)
+                LowRoot.SetActive(false);
+            if (HighRoot != null)
+                HighRoot.SetActive(true);
         }
 
 #if UNITY_EDITOR
@@ -130,24 +135,29 @@ namespace Unity.HLODSystem
             for (int i = 0; i < s_ActiveHLODs.Count; ++i)
             {
                 float distance = 1.0f;
-                if (cam.orthographic == false)
-                    distance = Vector3.Distance(s_ActiveHLODs[i].m_Bounds.center, cameraPosition);
-                float relativeHeight = s_ActiveHLODs[i].m_Bounds.size.x * preRelative / distance;
+                HLOD curHlod = s_ActiveHLODs[i];
 
-                if (relativeHeight > s_ActiveHLODs[i].m_LODDistance)
+                if (curHlod.HighRoot == null || curHlod.LowRoot == null)
+                    continue;
+
+                if (cam.orthographic == false)
+                    distance = Vector3.Distance(curHlod.m_Bounds.center, cameraPosition);
+                float relativeHeight = curHlod.m_Bounds.size.x * preRelative / distance;
+
+                if (relativeHeight > curHlod.m_LODDistance)
                 {
-                    s_ActiveHLODs[i].m_HighRoot.SetActive(true);
-                    s_ActiveHLODs[i].m_LowRoot.SetActive(false);
+                    curHlod.HighRoot.SetActive(true);
+                    curHlod.LowRoot.SetActive(false);
                 }
-                else if (relativeHeight > s_ActiveHLODs[i].m_CullDistance)
+                else if (relativeHeight > curHlod.m_CullDistance)
                 {
-                    s_ActiveHLODs[i].m_HighRoot.SetActive(false);
-                    s_ActiveHLODs[i].m_LowRoot.SetActive(true);
+                    curHlod.HighRoot.SetActive(false);
+                    curHlod.LowRoot.SetActive(true);
                 }
                 else
                 {
-                    s_ActiveHLODs[i].m_HighRoot.SetActive(false);
-                    s_ActiveHLODs[i].m_LowRoot.SetActive(false);
+                    curHlod.HighRoot.SetActive(false);
+                    curHlod.LowRoot.SetActive(false);
                 }
             }
         }
