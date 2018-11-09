@@ -8,17 +8,13 @@ namespace Unity.HLODSystem
     [ExecuteInEditMode]
     public class HLOD : MonoBehaviour
     {
-        [Serializable]
-        public struct Bounds
-        {
-            public Vector3 Center;
-            public float Size;
-        }
         [SerializeField]
         private Bounds m_Bounds;
 
         [SerializeField]
-        private float m_MinSize;
+        private bool m_RecursiveGeneration = true;
+        [SerializeField]
+        private float m_MinSize = 30.0f;
         [SerializeField]
         private float m_LODDistance = 0.3f;
         [SerializeField]
@@ -31,13 +27,18 @@ namespace Unity.HLODSystem
         [SerializeField]
         private GameObject m_LowRoot;
 
+        public bool RecursiveGeneration
+        {
+            get{ return m_RecursiveGeneration; }
+        }
+        public float MinSize
+        {
+            get{ return m_MinSize; }
+        }
+
         public GameObject HighRoot
         {
-            set
-            {
-                m_HighRoot = value;
-                CalcBounds();
-            }
+            set{ m_HighRoot = value; }
             get { return m_HighRoot; }
         }
 
@@ -47,6 +48,11 @@ namespace Unity.HLODSystem
             get { return m_LowRoot; }
         }
 
+        public Bounds Bounds
+        {
+            set{ m_Bounds = value; }
+            get{ return m_Bounds; }
+        }
 
         void OnEnable()
         {
@@ -65,8 +71,18 @@ namespace Unity.HLODSystem
             s_ActiveHLODs.Remove(this);
         }
 
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            if (UnityEditor.Selection.activeGameObject == gameObject)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireCube(m_Bounds.center, m_Bounds.size);
+            }
+        }
+#endif
 
-        void CalcBounds()
+        public void CalcBounds()
         {
             if (m_HighRoot == null)
                 return;
@@ -74,8 +90,8 @@ namespace Unity.HLODSystem
             var renderers = m_HighRoot.GetComponentsInChildren<Renderer>();
             if (renderers.Length == 0)
             {
-                m_Bounds.Center = Vector3.zero;
-                m_Bounds.Size = 0.0f;
+                m_Bounds.center = Vector3.zero;
+                m_Bounds.size = Vector3.zero;
                 return;
             }
 
@@ -85,8 +101,9 @@ namespace Unity.HLODSystem
                 bounds.Encapsulate(renderers[i].bounds);
             }
 
-            m_Bounds.Center = bounds.center;
-            m_Bounds.Size = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
+            m_Bounds.center = bounds.center;
+            float max = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
+            m_Bounds.size = new Vector3(max, max, max);
         }
 
         private static List<HLOD> s_ActiveHLODs;
@@ -114,8 +131,8 @@ namespace Unity.HLODSystem
             {
                 float distance = 1.0f;
                 if (cam.orthographic == false)
-                    distance = Vector3.Distance(s_ActiveHLODs[i].m_Bounds.Center, cameraPosition);
-                float relativeHeight = s_ActiveHLODs[i].m_Bounds.Size * preRelative / distance;
+                    distance = Vector3.Distance(s_ActiveHLODs[i].m_Bounds.center, cameraPosition);
+                float relativeHeight = s_ActiveHLODs[i].m_Bounds.size.x * preRelative / distance;
 
                 if (relativeHeight > s_ActiveHLODs[i].m_LODDistance)
                 {
@@ -126,7 +143,6 @@ namespace Unity.HLODSystem
                 {
                     s_ActiveHLODs[i].m_HighRoot.SetActive(false);
                     s_ActiveHLODs[i].m_LowRoot.SetActive(true);
-                    
                 }
                 else
                 {

@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using ProBuilder.EditorCore;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -24,20 +20,10 @@ namespace Unity.HLODSystem
             }
 
             GameObject root = PrefabStageUtility.GetCurrentPrefabStage().prefabContentsRoot;
-            if (root.GetComponent<HLOD>() != null)
-            {
-                Debug.LogWarning("It has already been set.");
-                return;
-            }
+            HLOD hlod = HLODCreator.Setup(root);
 
-            GameObject high = CreateHigh(root);
-            GameObject low = CreateLow(high);
-            high.transform.SetParent(root.transform);
-            low.transform.SetParent(root.transform);
-
-            HLOD hlod = root.AddComponent<HLOD>();
-            hlod.HighRoot = high;
-            hlod.LowRoot = low;
+            if (hlod != null)
+                hlod.CalcBounds();
 
             EditorSceneManager.MarkSceneDirty(root.scene);
         }
@@ -52,52 +38,6 @@ namespace Unity.HLODSystem
             return PrefabStageUtility.GetCurrentPrefabStage().prefabContentsRoot.GetComponent<HLOD>() == null;
         }
 
-        static GameObject CreateHigh(GameObject root)
-        {
-            GameObject low = new GameObject("High");
-
-            while (root.transform.childCount > 0)
-            {
-                Transform child = root.transform.GetChild(0);
-                child.SetParent(low.transform);
-            }
-
-            return low;
-        }
-
-        static GameObject CreateLow(GameObject lowGameObject)
-        {
-            GameObject high = new GameObject("Low");
-
-            var lodGroups = lowGameObject.GetComponentsInChildren<LODGroup>();
-            List<Renderer> lodRenderers = new List<Renderer>();
-
-            for (int i = 0; i < lodGroups.Length; ++i)
-            {
-                LOD[] lods = lodGroups[i].GetLODs();
-                Renderer[] renderers = lods.Last().renderers;
-                lodRenderers.AddRange(renderers);
-            }
-
-            for (int i = 0; i < lodRenderers.Count; ++i)
-            {
-                Renderer renderer = lodRenderers[i];
-                if (renderer == null)
-                    continue;
-
-                MeshFilter filter = renderer.GetComponent<MeshFilter>();
-                GameObject rendererObject = new GameObject(lodRenderers[i].name, typeof(MeshFilter), typeof(MeshRenderer));
-
-                EditorUtility.CopySerialized(filter, rendererObject.GetComponent<MeshFilter>());
-                EditorUtility.CopySerialized(renderer, rendererObject.GetComponent<MeshRenderer>());
-
-                rendererObject.transform.SetParent(high.transform);
-                rendererObject.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);
-                rendererObject.transform.localScale = renderer.transform.lossyScale;
-            }
-
-            return high;
-        }
     }
 
 }

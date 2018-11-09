@@ -8,6 +8,8 @@ namespace Unity.HLODSystem
     [CustomEditor(typeof(HLOD))]
     public class HLODEditor : Editor
     {
+        private SerializedProperty m_RecursiveGenerationProperty;
+        private SerializedProperty m_MinSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
         private SerializedProperty m_CullDistanceProperty;
 
@@ -15,6 +17,8 @@ namespace Unity.HLODSystem
 
         void OnEnable()
         {
+            m_RecursiveGenerationProperty = serializedObject.FindProperty("m_RecursiveGeneration");
+            m_MinSizeProperty = serializedObject.FindProperty("m_MinSize");
             m_LODDistanceProperty = serializedObject.FindProperty("m_LODDistance");
             m_CullDistanceProperty = serializedObject.FindProperty("m_CullDistance");
 
@@ -25,14 +29,27 @@ namespace Unity.HLODSystem
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
+
+            EditorGUILayout.PropertyField(m_RecursiveGenerationProperty);
+            if ( m_RecursiveGenerationProperty.boolValue )
+            {
+                EditorGUI.indentLevel += 1;
+                EditorGUILayout.PropertyField(m_MinSizeProperty);
+                EditorGUI.indentLevel -= 1;
+            }
+
             m_LODSlider.Draw();
+
+            HLOD hlod = target as HLOD;
+            if (hlod == null)
+                GUI.enabled = false;
 
             if (GUILayout.Button("Generate"))
             {
-                MaterialPreservingBatcher batcher = new MaterialPreservingBatcher();
-                batcher.Batch(((HLOD) target).LowRoot);
+                HLODCreator.Create(hlod);
             }
 
+            GUI.enabled = true;
             serializedObject.ApplyModifiedProperties();
         }
     }
