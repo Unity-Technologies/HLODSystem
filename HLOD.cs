@@ -76,6 +76,24 @@ namespace Unity.HLODSystem
                 HighRoot.SetActive(true);
         }
 
+        public void EnableAll()
+        {
+            var hlods = GetComponentsInChildren<HLOD>(true);
+            for (int i = 0; i < hlods.Length; ++i)
+            {
+                hlods[i].enabled = true;
+            }
+        }
+
+        public void DisableAll()
+        {
+            var hlods = GetComponentsInChildren<HLOD>(true);
+            for (int i = 0; i < hlods.Length; ++i)
+            {
+                hlods[i].enabled = false;
+            }
+        }
+
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {

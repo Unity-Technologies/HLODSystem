@@ -49,6 +49,17 @@ namespace Unity.HLODSystem
                 HLODCreator.Create(hlod);
             }
 
+            EditorGUILayout.Space();
+            if (GUILayout.Button("Enable All"))
+            {
+                hlod.EnableAll();
+            }
+
+            if (GUILayout.Button("Disable All"))
+            {
+                hlod.DisableAll();
+            }
+
             GUI.enabled = true;
             serializedObject.ApplyModifiedProperties();
         }
