@@ -37,7 +37,7 @@ namespace Unity.HLODSystem
             {
                 if (hlod.Bounds.size.x > hlod.MinSize)
                 {
-                    ISplitter splitter = new QuadSplitter();
+                    ISplitter splitter = new OctSplitter();
                     splitter.Split(hlod);
                 }
             }
