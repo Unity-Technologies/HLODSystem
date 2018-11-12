@@ -42,21 +42,27 @@ namespace Unity.HLODSystem
 
             for (int c = 0; c < data.Length; ++c)
             {
-                data[c].GameObject.transform.SetParent(highRoot.transform);
+                if (data[c].GameObject.transform.childCount == 0)
+                {
+                    Object.DestroyImmediate(data[c].GameObject);
+                }
+                else
+                {
+                    data[c].GameObject.transform.SetParent(highRoot.transform);
 
-                HLODCreator.Setup(data[c].GameObject);
-                HLOD childHLOD = data[c].GameObject.GetComponent<HLOD>();
-                GameObject low = childHLOD.LowRoot;
-                GameObject high = childHLOD.HighRoot;
+                    HLODCreator.Setup(data[c].GameObject);
+                    HLOD childHLOD = data[c].GameObject.GetComponent<HLOD>();
+                    GameObject low = childHLOD.LowRoot;
+                    GameObject high = childHLOD.HighRoot;
 
-                EditorUtility.CopySerialized(hlod, childHLOD);
+                    EditorUtility.CopySerialized(hlod, childHLOD);
 
-                childHLOD.Bounds = data[c].Bounds;
-                childHLOD.LowRoot = low;
-                childHLOD.HighRoot = high;
+                    childHLOD.Bounds = data[c].Bounds;
+                    childHLOD.LowRoot = low;
+                    childHLOD.HighRoot = high;
 
-                HLODCreator.Create(childHLOD);
-
+                    HLODCreator.Create(childHLOD);
+                }
             }
         }
     }
