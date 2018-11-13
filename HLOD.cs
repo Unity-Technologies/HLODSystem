@@ -27,6 +27,9 @@ namespace Unity.HLODSystem
         [SerializeField]
         private GameObject m_LowRoot;
 
+        [SerializeField]
+        private SerializableDynamicObject m_BatcherOptions = new SerializableDynamicObject();
+
         public bool RecursiveGeneration
         {
             get{ return m_RecursiveGeneration; }
@@ -46,6 +49,11 @@ namespace Unity.HLODSystem
         {
             set { m_LowRoot = value; }
             get { return m_LowRoot; }
+        }
+
+        public SerializableDynamicObject BatcherOptions
+        {
+            get { return m_BatcherOptions; }
         }
 
         public Bounds Bounds
