@@ -54,6 +54,7 @@ namespace Unity.HLODSystem
                 PrefabUtility.SaveAsPrefabAssetAndConnect(hlod.gameObject, path,
                     InteractionMode.AutomatedAction);
             }
+            AssetDatabase.Refresh();
 
             //store low lod meshes
             var meshFilters = hlod.LowRoot.GetComponentsInChildren<MeshFilter>();
@@ -112,19 +113,6 @@ namespace Unity.HLODSystem
             }
 
             return high;
-        }
-
-        static void StoreLowMesh(string prefabPath, GameObject lowGameObject)
-        {
-            foreach (Transform child in lowGameObject.transform)
-            {
-                var filter = child.GetComponent<MeshFilter>();
-                if (filter == null || filter.sharedMesh == null)
-                    continue;
-
-                var mesh = filter.sharedMesh;
-                AssetDatabase.AddObjectToAsset(mesh, prefabPath);
-            }
         }
 
     }

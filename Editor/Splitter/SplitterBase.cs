@@ -36,12 +36,12 @@ namespace Unity.HLODSystem
                         continue;
                     }
 
-                    childGroups[i].transform.SetParent(data[c].GameObject.transform);
+                    ChildMove(childGroups[i].gameObject, highRoot, data[c].GameObject);
                 }
             }
 
             for (int c = 0; c < data.Length; ++c)
-            {
+            {                
                 if (data[c].GameObject.transform.childCount == 0)
                 {
                     Object.DestroyImmediate(data[c].GameObject);
@@ -63,6 +63,67 @@ namespace Unity.HLODSystem
 
                     HLODCreator.Create(childHLOD);
                 }
+            }
+        }
+
+
+        private Dictionary<GameObject, Dictionary<Transform, GameObject>> m_LinkObjectCache =new Dictionary<GameObject, Dictionary<Transform, GameObject>>();
+
+        private void ChildMove(GameObject child, GameObject originRoot, GameObject targetRoot)
+        {
+            if (m_LinkObjectCache.ContainsKey(targetRoot) == false)
+            {
+                m_LinkObjectCache.Add(targetRoot, new Dictionary<Transform, GameObject>());
+            }
+
+
+            Stack<Transform> traceStack = new Stack<Transform>();
+            Dictionary<Transform, GameObject> cache = m_LinkObjectCache[targetRoot];
+            traceStack.Push(child.transform);
+
+            while (traceStack.Peek().parent != originRoot.transform)
+            {
+                traceStack.Push(traceStack.Peek().parent);
+            }
+
+            Transform parent = targetRoot.transform;
+            //last is child
+            //we don't need to process last one.
+            while (traceStack.Count > 1)
+            {
+                Transform curTransform = traceStack.Pop();
+                if (cache.ContainsKey(curTransform) == false)
+                {
+                    GameObject go = new GameObject(curTransform.name);
+                    go.transform.SetParent(parent);
+
+                    var allComponents = curTransform.GetComponents<Component>();
+                    for (int i = 0; i < allComponents.Length; ++i)
+                    {
+                        System.Type type = allComponents[i].GetType();
+                        Component component = go.GetComponent(type);
+                        if (component == null)
+                        {
+                            component = go.AddComponent(type);
+                        }
+
+                        EditorUtility.CopySerialized(allComponents[i], component);
+                    }
+
+                    cache.Add(curTransform, go);
+                }
+
+                GameObject linkGO = cache[curTransform];
+                parent = linkGO.transform;
+            }
+
+            Transform oldParent = child.transform.parent;
+            child.transform.SetParent(parent);
+
+            //remove the object if empty because moves object.
+            if (oldParent.childCount == 0)
+            {
+                Object.DestroyImmediate(oldParent.gameObject);
             }
         }
     }
