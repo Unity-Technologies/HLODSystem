@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Unity.HLODSystem
 {
     [ExecuteInEditMode]
-    public class HLOD : MonoBehaviour
+    public class HLOD : MonoBehaviour, ISerializationCallbackReceiver
     {
         [SerializeField]
         private Bounds m_Bounds;
@@ -26,6 +26,12 @@ namespace Unity.HLODSystem
         private GameObject m_HighRoot;
         [SerializeField]
         private GameObject m_LowRoot;
+
+        private Type m_BatcherType;
+
+        [SerializeField]
+        private string m_BatcherTypeStr;        //< unity serializer is not support serialization with System.Type
+                                                //< So, we should convert to string to store value.
 
         [SerializeField]
         private SerializableDynamicObject m_BatcherOptions = new SerializableDynamicObject();
@@ -49,6 +55,12 @@ namespace Unity.HLODSystem
         {
             set { m_LowRoot = value; }
             get { return m_LowRoot; }
+        }
+
+        public Type BatcherType
+        {
+            set { m_BatcherType = value; }
+            get { return m_BatcherType; }
         }
 
         public SerializableDynamicObject BatcherOptions
@@ -186,6 +198,26 @@ namespace Unity.HLODSystem
                     curHlod.LowRoot.SetActive(false);
                 }
             }
+        }
+
+        public void OnBeforeSerialize()
+        {
+            if ( m_BatcherType != null )
+                m_BatcherTypeStr = m_BatcherType.AssemblyQualifiedName;
+        }
+
+        public void OnAfterDeserialize()
+        {
+            if (string.IsNullOrEmpty(m_BatcherTypeStr))
+            {
+                m_BatcherType = null;
+            }
+            else
+            {
+                m_BatcherType = Type.GetType(m_BatcherTypeStr);
+            }
+
+            
         }
     }
 

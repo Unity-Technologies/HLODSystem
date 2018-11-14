@@ -1,6 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
+using UnityEditor.Experimental.SceneManagement;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace Unity.HLODSystem
@@ -15,6 +19,9 @@ namespace Unity.HLODSystem
 
         private LODSlider m_LODSlider;
 
+        private System.Type[] m_BatcherTypes;
+        private string[] m_BatcherNames;
+
         void OnEnable()
         {
             m_RecursiveGenerationProperty = serializedObject.FindProperty("m_RecursiveGeneration");
@@ -25,10 +32,23 @@ namespace Unity.HLODSystem
             m_LODSlider = new LODSlider(true, "Cull");
             m_LODSlider.InsertRange("High", m_LODDistanceProperty);
             m_LODSlider.InsertRange("Low", m_CullDistanceProperty);
+
+            m_BatcherTypes = BatcherTypes.GetTypes();
+            m_BatcherNames = m_BatcherTypes.Select(t => t.Name).ToArray();
+
         }
+
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
+            EditorGUI.BeginChangeCheck();
+
+            HLOD hlod = target as HLOD;
+            if (hlod == null)
+            {
+                EditorGUILayout.LabelField("HLOD is null.");
+                return;
+            }
 
             EditorGUILayout.PropertyField(m_RecursiveGenerationProperty);
             if ( m_RecursiveGenerationProperty.boolValue )
@@ -40,9 +60,19 @@ namespace Unity.HLODSystem
 
             m_LODSlider.Draw();
 
-            HLOD hlod = target as HLOD;
-            if (hlod == null)
-                GUI.enabled = false;
+            int batcherIndex = Math.Max(Array.IndexOf(m_BatcherTypes, hlod.BatcherType), 0);
+            batcherIndex = EditorGUILayout.Popup("Batcher", batcherIndex, m_BatcherNames);
+            hlod.BatcherType = m_BatcherTypes[batcherIndex];
+
+            var info = m_BatcherTypes[batcherIndex].GetMethod("OnGUI");
+            if (info != null)
+            {
+                if (info.IsStatic == true)
+                {
+                    info.Invoke(null, new object[] { hlod });
+                }
+            }
+
 
             if (GUILayout.Button("Generate"))
             {
@@ -59,9 +89,12 @@ namespace Unity.HLODSystem
             {
                 hlod.DisableAll();
             }
-
-            GUI.enabled = true;
+            
             serializedObject.ApplyModifiedProperties();
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorSceneManager.MarkSceneDirty(PrefabStageUtility.GetCurrentPrefabStage().scene);
+            }
         }
     }
 

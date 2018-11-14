@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Unity.HLODSystem
@@ -8,6 +9,12 @@ namespace Unity.HLODSystem
     /// </summary>
     class MaterialPreservingBatcher : IBatcher
     {
+        [InitializeOnLoadMethod]
+        static void RegisterType()
+        {
+            BatcherTypes.RegisterBatcherType(typeof(MaterialPreservingBatcher));
+        }
+
         public MaterialPreservingBatcher()
         {
             
@@ -61,6 +68,11 @@ namespace Unity.HLODSystem
 
                 go.transform.SetParent(root.transform);
             }
+
+        }
+
+        static void OnGUI(HLOD hlod)
+        {
 
         }
 
