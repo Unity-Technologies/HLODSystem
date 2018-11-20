@@ -61,7 +61,14 @@ namespace Unity.HLODSystem
                     childHLOD.LowRoot = low;
                     childHLOD.HighRoot = high;
 
-                    HLODCreator.Create(childHLOD);
+                    if (childHLOD.RecursiveGeneration == true)
+                    {
+                        if (childHLOD.Bounds.size.x > childHLOD.MinSize)
+                        {
+                            ISplitter splitter = new OctSplitter();
+                            splitter.Split(childHLOD);
+                        }
+                    }
                 }
             }
         }

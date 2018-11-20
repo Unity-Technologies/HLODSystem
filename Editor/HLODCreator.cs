@@ -30,9 +30,8 @@ namespace Unity.HLODSystem
         }
         public static void Create(HLOD hlod)
         {
-            MaterialPreservingBatcher batcher = new MaterialPreservingBatcher();
-            batcher.Batch(hlod.LowRoot);
-
+            List<HLOD> targetHlods = new List<HLOD>();
+           
             if (hlod.RecursiveGeneration == true)
             {
                 if (hlod.Bounds.size.x > hlod.MinSize)
@@ -40,9 +39,52 @@ namespace Unity.HLODSystem
                     ISplitter splitter = new OctSplitter();
                     splitter.Split(hlod);
                 }
+
+                //GetComponentsInChildren is not working.
+                //so, I made it manually.
+                targetHlods.AddRange(FindChildComponents<HLOD>(hlod.gameObject));
+            }
+            else
+            {
+                targetHlods.Add(hlod);
             }
 
+            MaterialPreservingBatcher batcher = new MaterialPreservingBatcher();
+            batcher.Batch(targetHlods.Select(h=>h.LowRoot).ToArray());
 
+            for (int i = 0; i < targetHlods.Count; ++i)
+            {
+                SavePrefab(targetHlods[i]);
+            }
+            
+        }
+
+        //It must order by child first.
+        //Because we need to make child prefab first.
+        static T[] FindChildComponents<T>(GameObject root) where T : Component
+        {
+            LinkedList<T> result = new LinkedList<T>();
+            Queue<GameObject> queue = new Queue<GameObject>();
+            queue.Enqueue(root);
+
+            while (queue.Count > 0)
+            {
+                GameObject go = queue.Dequeue();
+                T component = go.GetComponent<T>();
+                if ( component != null )
+                    result.AddFirst(component);
+
+                foreach (Transform child in go.transform)
+                {
+                    queue.Enqueue(child.gameObject);
+                }
+            }
+
+            return result.ToArray();
+        }
+
+        static void SavePrefab(HLOD hlod)
+        {
             string path = "";
             PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
             path = stage.prefabAssetPath;

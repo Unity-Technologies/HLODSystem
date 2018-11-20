@@ -19,9 +19,18 @@ namespace Unity.HLODSystem
         {
             
         }
-        public void Batch(GameObject root)
+        public void Batch(GameObject[] roots)
         {
 
+            for (int i = 0; i < roots.Length; ++i)
+            {
+                Combine(roots[i]);
+            }
+
+        }
+
+        private void Combine(GameObject root)
+        {
             var instancesTable = new Dictionary<Material, List<CombineInstance>>();
 
             for(int i = root.transform.childCount - 1; i >= 0; --i)
@@ -68,7 +77,6 @@ namespace Unity.HLODSystem
 
                 go.transform.SetParent(root.transform);
             }
-
         }
 
         static void OnGUI(HLOD hlod)

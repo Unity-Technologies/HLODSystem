@@ -4,7 +4,7 @@ namespace Unity.HLODSystem
 {
     public interface IBatcher
     {
-        void Batch(GameObject root);
+        void Batch(GameObject[] roots);
 
     }
 }
