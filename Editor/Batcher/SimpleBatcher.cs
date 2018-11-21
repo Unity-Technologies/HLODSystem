@@ -55,15 +55,29 @@ namespace Unity.HLODSystem
                 batcherOptions.PackTextureSize = 1024;
             if (batcherOptions.LimitTextureSize == null)
                 batcherOptions.LimitTextureSize = 128;
-            if (batcherOptions.Material == null)
-                batcherOptions.Material = (Material) null;
+            if (batcherOptions.MaterialGUID == null)
+                batcherOptions.MaterialGUID = "";
 
             batcherOptions.PackTextureSize = EditorGUILayout.IntPopup("Pack texture size", batcherOptions.PackTextureSize, Styles.PackTextureSizeNames, Styles.PackTextureSizes);
             batcherOptions.LimitTextureSize = EditorGUILayout.IntPopup("Limit texture size", batcherOptions.LimitTextureSize, Styles.LimitTextureSizeNames, Styles.LimitTextureSizes);
-            
-            batcherOptions.Material = EditorGUILayout.ObjectField("Material", batcherOptions.Material, typeof(Material), false) as Material;
+
+            Material mat = null;
+
+            string matGUID = batcherOptions.MaterialGUID;
+            string path = "";
+            if (string.IsNullOrEmpty(matGUID) == false)
+            {
+                path = AssetDatabase.GUIDToAssetPath(matGUID);
+                mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            }
+            mat = EditorGUILayout.ObjectField("Material", mat, typeof(Material), false) as Material;
+            path = AssetDatabase.GetAssetPath(mat);
+            batcherOptions.MaterialGUID = AssetDatabase.AssetPathToGUID(path);
+
             EditorGUI.indentLevel -= 1;
         }
+
+        
     }
 
 }
