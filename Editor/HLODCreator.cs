@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -49,8 +50,8 @@ namespace Unity.HLODSystem
                 targetHlods.Add(hlod);
             }
 
-            MaterialPreservingBatcher batcher = new MaterialPreservingBatcher();
-            batcher.Batch(targetHlods.Select(h=>h.LowRoot).ToArray());
+            IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
+            batcher.Batch(targetHlods.Last(), targetHlods.Select(h=>h.LowRoot).ToArray());
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
@@ -91,19 +92,33 @@ namespace Unity.HLODSystem
             path = System.IO.Path.GetDirectoryName(path) + "/";
             path = path + hlod.name + ".prefab";
 
+            AssetDatabase.Refresh();
+            AssetDatabase.SaveAssets();
             if (PrefabUtility.IsAnyPrefabInstanceRoot(hlod.gameObject) == false)
             {
                 PrefabUtility.SaveAsPrefabAssetAndConnect(hlod.gameObject, path,
                     InteractionMode.AutomatedAction);
             }
             AssetDatabase.Refresh();
+            
 
             //store low lod meshes
             var meshFilters = hlod.LowRoot.GetComponentsInChildren<MeshFilter>();
             for (int f = 0; f < meshFilters.Length; ++f)
             {
                 AssetDatabase.AddObjectToAsset(meshFilters[f].sharedMesh, path);
+                var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
+                foreach (var material in meshRenderer.sharedMaterials)
+                {
+                    string materialPath = AssetDatabase.GetAssetPath(material);
+                    if (string.IsNullOrEmpty(materialPath))
+                    {
+                        AssetDatabase.AddObjectToAsset(material, path);
+                    }
+                }
+
                 AssetDatabase.Refresh();
+                
             }
 
             PrefabUtility.ApplyPrefabInstance(hlod.gameObject, InteractionMode.AutomatedAction);

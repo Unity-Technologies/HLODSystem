@@ -19,12 +19,12 @@ namespace Unity.HLODSystem
         {
             
         }
-        public void Batch(GameObject[] roots)
+        public void Batch(HLOD rootHlod, GameObject[] targets)
         {
 
-            for (int i = 0; i < roots.Length; ++i)
+            for (int i = 0; i < targets.Length; ++i)
             {
-                Combine(roots[i]);
+                Combine(targets[i]);
             }
 
         }
