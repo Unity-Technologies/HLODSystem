@@ -1,12 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Unity.HLODSystem
 {
     public interface IBatcher
     {
-        void Batch(GameObject root);
+        void Batch(HLOD rootHlod, GameObject[] targets);
 
     }
 }

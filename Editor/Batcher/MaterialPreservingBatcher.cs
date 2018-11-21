@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Unity.HLODSystem
@@ -8,13 +9,28 @@ namespace Unity.HLODSystem
     /// </summary>
     class MaterialPreservingBatcher : IBatcher
     {
+        [InitializeOnLoadMethod]
+        static void RegisterType()
+        {
+            BatcherTypes.RegisterBatcherType(typeof(MaterialPreservingBatcher));
+        }
+
         public MaterialPreservingBatcher()
         {
             
         }
-        public void Batch(GameObject root)
+        public void Batch(HLOD rootHlod, GameObject[] targets)
         {
 
+            for (int i = 0; i < targets.Length; ++i)
+            {
+                Combine(targets[i]);
+            }
+
+        }
+
+        private void Combine(GameObject root)
+        {
             var instancesTable = new Dictionary<Material, List<CombineInstance>>();
 
             for(int i = root.transform.childCount - 1; i >= 0; --i)
@@ -61,6 +77,10 @@ namespace Unity.HLODSystem
 
                 go.transform.SetParent(root.transform);
             }
+        }
+
+        static void OnGUI(HLOD hlod)
+        {
 
         }
 
