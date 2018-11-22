@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using Unity.HLODSystem.Simplifier;
+using Unity.HLODSystem.Utils;
 using UnityEditor.Experimental.SceneManagement;
 
 namespace Unity.HLODSystem
@@ -50,6 +52,13 @@ namespace Unity.HLODSystem
                 targetHlods.Add(hlod);
             }
 
+            ISimplifier simplifier = (ISimplifier) Activator.CreateInstance(hlod.SimplifierType);
+            for (int i = 0; i < targetHlods.Count; ++i)
+            {
+                simplifier.Simplify(targetHlods[i]);
+            }
+            
+
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
             batcher.Batch(targetHlods.Last(), targetHlods.Select(h=>h.LowRoot).ToArray());
 
@@ -57,7 +66,7 @@ namespace Unity.HLODSystem
             {
                 SavePrefab(targetHlods[i]);
             }
-            
+
         }
 
         //It must order by child first.
@@ -138,11 +147,11 @@ namespace Unity.HLODSystem
             return low;
         }
 
-        static GameObject CreateLow(GameObject lowGameObject)
+        static GameObject CreateLow(GameObject highGameObject)
         {
             GameObject high = new GameObject("Low");
 
-            var lodGroups = lowGameObject.GetComponentsInChildren<LODGroup>();
+            var lodGroups = highGameObject.GetComponentsInChildren<LODGroup>();
             List<Renderer> lodRenderers = new List<Renderer>();
 
             for (int i = 0; i < lodGroups.Length; ++i)
@@ -163,6 +172,8 @@ namespace Unity.HLODSystem
 
                 EditorUtility.CopySerialized(filter, rendererObject.GetComponent<MeshFilter>());
                 EditorUtility.CopySerialized(renderer, rendererObject.GetComponent<MeshRenderer>());
+                var holder = rendererObject.AddComponent<Utils.SimplificationDistanceHolder>();
+                holder.OriginGameObject = renderer.gameObject;
 
                 rendererObject.transform.SetParent(high.transform);
                 rendererObject.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);

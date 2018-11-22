@@ -28,13 +28,28 @@ namespace Unity.HLODSystem
         private GameObject m_LowRoot;
 
         private Type m_BatcherType;
+        private Type m_SimplifierType;
 
         [SerializeField]
         private string m_BatcherTypeStr;        //< unity serializer is not support serialization with System.Type
                                                 //< So, we should convert to string to store value.
+        [SerializeField]
+        private string m_SimplifierTypeStr;
 
         [SerializeField]
         private SerializableDynamicObject m_BatcherOptions = new SerializableDynamicObject();
+
+        [SerializeField]
+        private float m_SimplifyPolygonRatio = 0.8f;
+
+        [SerializeField]
+        private int m_SimplifyMinPolygonCount = 10;
+        [SerializeField]
+        private int m_SimplifyMaxPolygonCount = 500;
+
+        [SerializeField]
+        private float m_SimplifyThresholdSize = 5.0f;
+
 
         public bool RecursiveGeneration
         {
@@ -63,9 +78,39 @@ namespace Unity.HLODSystem
             get { return m_BatcherType; }
         }
 
+        public Type SimplifierType
+        {
+            set { m_SimplifierType = value; }
+            get { return m_SimplifierType; }
+        }
+
         public SerializableDynamicObject BatcherOptions
         {
             get { return m_BatcherOptions; }
+        }
+
+        public float SimplifyPolygonRatio
+        {
+            set { m_SimplifyPolygonRatio = value; }
+            get { return m_SimplifyPolygonRatio; }
+        }
+
+        public int SimplifyMinPolygonCount
+        {
+            set { m_SimplifyMinPolygonCount = value; }
+            get { return m_SimplifyMinPolygonCount; }
+        }
+
+        public int SimplifyMaxPolygonCount
+        {
+            set { m_SimplifyMaxPolygonCount = value; }
+            get { return m_SimplifyMaxPolygonCount; }
+        }
+
+        public float SimplifyThresholdSize
+        {
+            set { m_SimplifyThresholdSize = value; }
+            get { return m_SimplifyThresholdSize; }
         }
 
         public Bounds Bounds
@@ -204,6 +249,8 @@ namespace Unity.HLODSystem
         {
             if ( m_BatcherType != null )
                 m_BatcherTypeStr = m_BatcherType.AssemblyQualifiedName;
+            if (m_SimplifierType != null)
+                m_SimplifierTypeStr = m_SimplifierType.AssemblyQualifiedName;
         }
 
         public void OnAfterDeserialize()
@@ -217,6 +264,14 @@ namespace Unity.HLODSystem
                 m_BatcherType = Type.GetType(m_BatcherTypeStr);
             }
 
+            if (string.IsNullOrEmpty(m_SimplifierTypeStr))
+            {
+                m_SimplifierType = null;
+            }
+            else
+            {
+                m_SimplifierType = Type.GetType(m_SimplifierTypeStr);
+            }
             
         }
     }
