@@ -16,6 +16,7 @@ namespace Unity.HLODSystem
         private SerializedProperty m_MinSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
         private SerializedProperty m_CullDistanceProperty;
+        private SerializedProperty m_ThresholdSizeProperty;
 
         private LODSlider m_LODSlider;
 
@@ -31,6 +32,7 @@ namespace Unity.HLODSystem
             m_MinSizeProperty = serializedObject.FindProperty("m_MinSize");
             m_LODDistanceProperty = serializedObject.FindProperty("m_LODDistance");
             m_CullDistanceProperty = serializedObject.FindProperty("m_CullDistance");
+            m_ThresholdSizeProperty = serializedObject.FindProperty("m_ThresholdSize");
 
             m_LODSlider = new LODSlider(true, "Cull");
             m_LODSlider.InsertRange("High", m_LODDistanceProperty);
@@ -64,6 +66,7 @@ namespace Unity.HLODSystem
             }
 
             m_LODSlider.Draw();
+            EditorGUILayout.PropertyField(m_ThresholdSizeProperty);
 
             if (m_BatcherTypes.Length > 0)
             {

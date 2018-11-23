@@ -73,7 +73,6 @@ namespace Unity.HLODSystem.Simplifier
             hlod.SimplifyMinPolygonCount = EditorGUILayout.IntSlider("Min", hlod.SimplifyMinPolygonCount, 10, 100);
             hlod.SimplifyMaxPolygonCount = EditorGUILayout.IntSlider("Max", hlod.SimplifyMaxPolygonCount, 10, 5000);
             EditorGUI.indentLevel -= 1;
-            hlod.SimplifyThresholdSize = EditorGUILayout.FloatField("Threshold size", hlod.SimplifyThresholdSize);
 
             EditorGUI.indentLevel -= 1;
         }

@@ -20,12 +20,16 @@ namespace Unity.HLODSystem
 
         public void Split(HLOD hlod)
         {
-            if (hlod == null || hlod.HighRoot == null)
+            if (hlod == null)
                 return;
 
-            GameObject highRoot = hlod.HighRoot;
-            var childGroups = highRoot.GetComponentsInChildren<LODGroup>();
+            var childGroups = hlod.GetComponentsInChildren<LODGroup>();
             var data = GetData(hlod);
+
+            for (int c = 0; c < data.Length; ++c)
+            {
+                data[c].GameObject.transform.SetParent(hlod.transform);
+            }
 
             for (int i = 0; i < childGroups.Length; ++i)
             {
@@ -36,7 +40,7 @@ namespace Unity.HLODSystem
                         continue;
                     }
 
-                    ChildMove(childGroups[i].gameObject, highRoot, data[c].GameObject);
+                    ChildMove(childGroups[i].gameObject, hlod.gameObject, data[c].GameObject);
                 }
             }
 
@@ -48,18 +52,11 @@ namespace Unity.HLODSystem
                 }
                 else
                 {
-                    data[c].GameObject.transform.SetParent(highRoot.transform);
-
                     HLODCreator.Setup(data[c].GameObject);
                     HLOD childHLOD = data[c].GameObject.GetComponent<HLOD>();
-                    GameObject low = childHLOD.LowRoot;
-                    GameObject high = childHLOD.HighRoot;
-
                     EditorUtility.CopySerialized(hlod, childHLOD);
 
                     childHLOD.Bounds = data[c].Bounds;
-                    childHLOD.LowRoot = low;
-                    childHLOD.HighRoot = high;
 
                     if (childHLOD.RecursiveGeneration == true)
                     {

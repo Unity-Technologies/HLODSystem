@@ -20,7 +20,7 @@ namespace Unity.HLODSystem
         [SerializeField]
         private float m_CullDistance = 0.01f;
         [SerializeField]
-        private float m_ThresholdSize;
+        private float m_ThresholdSize = 5.0f;
 
         [SerializeField]
         private GameObject m_HighRoot;
@@ -107,10 +107,10 @@ namespace Unity.HLODSystem
             get { return m_SimplifyMaxPolygonCount; }
         }
 
-        public float SimplifyThresholdSize
+        public float ThresholdSize
         {
-            set { m_SimplifyThresholdSize = value; }
-            get { return m_SimplifyThresholdSize; }
+            set { m_ThresholdSize = value; }
+            get { return m_ThresholdSize; }
         }
 
         public Bounds Bounds
@@ -172,10 +172,7 @@ namespace Unity.HLODSystem
 
         public void CalcBounds()
         {
-            if (m_HighRoot == null)
-                return;
-
-            var renderers = m_HighRoot.GetComponentsInChildren<Renderer>();
+            var renderers = GetComponentsInChildren<Renderer>();
             if (renderers.Length == 0)
             {
                 m_Bounds.center = Vector3.zero;

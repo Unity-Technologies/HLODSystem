@@ -20,21 +20,14 @@ namespace Unity.HLODSystem
                 return null;
             }
 
-            GameObject high = CreateHigh(root);
-            GameObject low = CreateLow(high);
-            high.transform.SetParent(root.transform);
-            low.transform.SetParent(root.transform);
-
             HLOD hlod = root.AddComponent<HLOD>();
-            hlod.HighRoot = high;
-            hlod.LowRoot = low;
-
-            return hlod;
+            return hlod;           
         }
         public static void Create(HLOD hlod)
         {
             List<HLOD> targetHlods = new List<HLOD>();
            
+            hlod.CalcBounds();
             if (hlod.RecursiveGeneration == true)
             {
                 if (hlod.Bounds.size.x > hlod.MinSize)
@@ -52,12 +45,22 @@ namespace Unity.HLODSystem
                 targetHlods.Add(hlod);
             }
 
-            ISimplifier simplifier = (ISimplifier) Activator.CreateInstance(hlod.SimplifierType);
+            for (int i = 0; i < targetHlods.Count; ++i)
+            {
+                var curHlod = targetHlods[i];
+                curHlod.HighRoot = CreateHigh(curHlod.gameObject);
+                curHlod.LowRoot = CreateLow(curHlod, curHlod.HighRoot);
+
+                curHlod.HighRoot.transform.SetParent(curHlod.transform);
+                curHlod.LowRoot.transform.SetParent(curHlod.transform);
+            }
+
+            ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType);
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 simplifier.Simplify(targetHlods[i]);
             }
-            
+
 
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
             batcher.Batch(targetHlods.Last(), targetHlods.Select(h=>h.LowRoot).ToArray());
@@ -147,7 +150,7 @@ namespace Unity.HLODSystem
             return low;
         }
 
-        static GameObject CreateLow(GameObject highGameObject)
+        static GameObject CreateLow(HLOD hlod, GameObject highGameObject)
         {
             GameObject high = new GameObject("Low");
 
@@ -165,6 +168,10 @@ namespace Unity.HLODSystem
             {
                 Renderer renderer = lodRenderers[i];
                 if (renderer == null)
+                    continue;
+
+                float max = Mathf.Max(renderer.bounds.size.x, renderer.bounds.size.y, renderer.bounds.size.z);
+                if (max < hlod.ThresholdSize)
                     continue;
 
                 MeshFilter filter = renderer.GetComponent<MeshFilter>();
