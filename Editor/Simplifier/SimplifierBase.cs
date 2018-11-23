@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.XR.WSA;
 
 namespace Unity.HLODSystem.Simplifier
@@ -16,21 +17,29 @@ namespace Unity.HLODSystem.Simplifier
                 if (meshFilter == null)
                     continue;
 
-                var ratio = CalcRatio(holder, hlod);
-                var mesh = GetSimplifiedMesh(meshFilter.sharedMesh, ratio);
+                var mesh = meshFilter.sharedMesh;
 
-                meshFilter.sharedMesh = mesh;
+                int triangleCount = mesh.triangles.Length / 3;
+                float maxQuality = Mathf.Min((float)hlod.SimplifyMaxPolygonCount / (float)triangleCount, hlod.SimplifyPolygonRatio);
+                float minQuality = Mathf.Max((float)hlod.SimplifyMinPolygonCount / (float)triangleCount, 0.0f);
+
+                var ratio = CalcRatio(maxQuality, holder, hlod);
+                ratio = Mathf.Max(ratio, minQuality);
+
+                meshFilter.sharedMesh = GetSimplifiedMesh(mesh, ratio);
             }
         }
 
         protected abstract Mesh GetSimplifiedMesh(Mesh origin, float quality);
-        private float CalcRatio(Utils.SimplificationDistanceHolder holder, HLOD hlod)
+        private float CalcRatio(float initRatio, Utils.SimplificationDistanceHolder holder, HLOD hlod)
         {
+            float ratio = initRatio;
+
             if (holder == null || holder.OriginGameObject == null)
-                return hlod.SimplifyPolygonRatio;
+                return ratio;
 
             var transform = holder.OriginGameObject.transform;
-            float ratio = hlod.SimplifyPolygonRatio;
+            
             while (transform.gameObject != hlod.gameObject)
             {
                 var curHlod = transform.GetComponent<HLOD>();
