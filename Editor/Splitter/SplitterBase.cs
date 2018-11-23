@@ -27,6 +27,11 @@ namespace Unity.HLODSystem
             var childGroups = highRoot.GetComponentsInChildren<LODGroup>();
             var data = GetData(hlod);
 
+            for (int c = 0; c < data.Length; ++c)
+            {
+                data[c].GameObject.transform.SetParent(highRoot.transform);
+            }
+
             for (int i = 0; i < childGroups.Length; ++i)
             {
                 for (int c = 0; c < data.Length; ++c)
@@ -48,8 +53,6 @@ namespace Unity.HLODSystem
                 }
                 else
                 {
-                    data[c].GameObject.transform.SetParent(highRoot.transform);
-
                     HLODCreator.Setup(data[c].GameObject);
                     HLOD childHLOD = data[c].GameObject.GetComponent<HLOD>();
                     GameObject low = childHLOD.LowRoot;
