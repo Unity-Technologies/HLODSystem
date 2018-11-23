@@ -26,7 +26,14 @@ namespace Unity.HLODSystem.Simplifier
                 var ratio = CalcRatio(maxQuality, holder, hlod);
                 ratio = Mathf.Max(ratio, minQuality);
 
-                meshFilter.sharedMesh = GetSimplifiedMesh(mesh, ratio);
+                Mesh simplifiedMesh = Cache.SimplifiedCache.Get(GetType(), mesh, ratio);
+                if (simplifiedMesh == null)
+                {
+                    simplifiedMesh = GetSimplifiedMesh(mesh, ratio);
+                    Cache.SimplifiedCache.Update(GetType(), mesh, simplifiedMesh, ratio);
+                }
+
+                meshFilter.sharedMesh = simplifiedMesh;
             }
         }
 
