@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
 [assembly:Unity.HLODSystem.OptionalDependency("UnityMeshSimplifier.MeshSimplifier", "ENABLE_UNITYMESHSIMPLIFIER")]
@@ -22,6 +17,10 @@ namespace Unity.HLODSystem.Simplifier
 
         protected override Mesh GetSimplifiedMesh(Mesh origin, float quality)
         {
+            Mesh cachedMesh = Cache.SimplifiedCache.Get(GetType(), origin, quality);
+            if (cachedMesh != null)
+                return cachedMesh;
+
             var meshSimplifier = new global::UnityMeshSimplifier.MeshSimplifier();
             meshSimplifier.Vertices = origin.vertices;
             meshSimplifier.Normals = origin.normals;
@@ -56,6 +55,9 @@ namespace Unity.HLODSystem.Simplifier
             {
                 resultMesh.SetTriangles(meshSimplifier.GetSubMeshTriangles(submesh), submesh);
             }
+
+            Cache.SimplifiedCache.Update(GetType(), origin, resultMesh, quality);
+
             return resultMesh;
         }
 
