@@ -1,4 +1,6 @@
-﻿using UnityEditor;
+﻿using System;
+using System.Collections;
+using UnityEditor;
 using UnityEngine;
 
 [assembly:Unity.HLODSystem.OptionalDependency("UnityMeshSimplifier.MeshSimplifier", "ENABLE_UNITYMESHSIMPLIFIER")]
@@ -15,7 +17,7 @@ namespace Unity.HLODSystem.Simplifier
             SimplifierTypes.RegisterType(typeof(UnityMeshSimplifier));
         }
 
-        protected override Mesh GetSimplifiedMesh(Mesh origin, float quality)
+        protected override IEnumerator GetSimplifiedMesh(Mesh origin, float quality, Action<Mesh> resultCallback)
         {
             var meshSimplifier = new global::UnityMeshSimplifier.MeshSimplifier();
             meshSimplifier.Vertices = origin.vertices;
@@ -52,23 +54,18 @@ namespace Unity.HLODSystem.Simplifier
                 resultMesh.SetTriangles(meshSimplifier.GetSubMeshTriangles(submesh), submesh);
             }
 
-            return resultMesh;
+            if (resultCallback != null)
+            {
+                resultCallback(resultMesh);
+            }
+            yield break;
         }
 
         
 
         public static void OnGUI(HLOD hlod)
         {
-            EditorGUI.indentLevel += 1;
-
-            hlod.SimplifyPolygonRatio = EditorGUILayout.Slider("Polygon Ratio", hlod.SimplifyPolygonRatio, 0.0f, 1.0f);
-            EditorGUILayout.LabelField("Triangle Range");
-            EditorGUI.indentLevel += 1;
-            hlod.SimplifyMinPolygonCount = EditorGUILayout.IntSlider("Min", hlod.SimplifyMinPolygonCount, 10, 100);
-            hlod.SimplifyMaxPolygonCount = EditorGUILayout.IntSlider("Max", hlod.SimplifyMaxPolygonCount, 10, 5000);
-            EditorGUI.indentLevel -= 1;
-
-            EditorGUI.indentLevel -= 1;
+            OnGUIBase(hlod);
         }
     }
 }

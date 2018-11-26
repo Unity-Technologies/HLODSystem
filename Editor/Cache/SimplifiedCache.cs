@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,10 +10,42 @@ namespace Unity.HLODSystem.Cache
     {
         private const string k_CachePath = "Assets/HLODSystem/Cache/";
 
+        struct GeneratingInfo
+        {
+            public Type Type;
+            public Mesh Mesh;
+            public float Quality;
+        };
+
+        List<GeneratingInfo> m_GeneratingInfos = new List<GeneratingInfo>();
+
         #region Interface
         public static void Clear()
         {
             Instance.ClearImpl();
+        }
+
+        public static void MarkGenerating(Type type, Mesh mesh, float quality)
+        {
+            Instance.m_GeneratingInfos.Add(new GeneratingInfo()
+            {
+                Type = type,
+                Mesh = mesh,
+                Quality = quality,
+            });
+        }
+
+        public static bool IsGenerating(Type type, Mesh mesh, float quality)
+        {
+            for (int i = 0; i < Instance.m_GeneratingInfos.Count; ++i)
+            {
+                if (Instance.m_GeneratingInfos[i].Type == type &&
+                    Instance.m_GeneratingInfos[i].Mesh == mesh &&
+                    Mathf.Abs(Instance.m_GeneratingInfos[i].Quality - quality) < 0.0001f )
+                    return true;
+            }
+
+            return false;
         }
 
         public static void Update(Type simplifierType, Mesh originalMesh, Mesh simplifiedMesh, float qualtiy)
@@ -64,8 +97,18 @@ namespace Unity.HLODSystem.Cache
             }
 
             AssetDatabase.AddObjectToAsset(simplifiedMesh, meshList);
-
             EditorUtility.SetDirty(meshList);
+
+            for (int i = 0; i < m_GeneratingInfos.Count; ++i)
+            {
+                if (m_GeneratingInfos[i].Type == simplifiedType &&
+                    m_GeneratingInfos[i].Mesh == originalMesh &&
+                    Mathf.Abs(Instance.m_GeneratingInfos[i].Quality - quality) < 0.0001f)
+                {
+                    m_GeneratingInfos.RemoveAt(i);
+                    return;
+                }
+            }
         }
         private Mesh GetImpl(Type simplifierType, Mesh mesh, float quality)
         {

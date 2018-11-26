@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System.Collections;
+using UnityEditor;
 
 namespace Unity.HLODSystem.Simplifier
 {
@@ -11,8 +12,9 @@ namespace Unity.HLODSystem.Simplifier
             SimplifierTypes.RegisterType(typeof(NotUseSimplifier), -1);
         }
 
-        public void Simplify(HLOD hlod)
+        public IEnumerator Simplify(HLOD hlod)
         {
+            yield break;
         }
     }
 }

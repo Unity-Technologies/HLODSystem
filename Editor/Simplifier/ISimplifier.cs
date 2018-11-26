@@ -1,9 +1,9 @@
-﻿using UnityEngine;
+﻿using System.Collections;
 
 namespace Unity.HLODSystem.Simplifier
 {
     public interface ISimplifier
     {
-        void Simplify(HLOD hlod);
+        IEnumerator Simplify(HLOD hlod);
     }
 }
