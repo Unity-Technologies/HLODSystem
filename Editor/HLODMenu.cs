@@ -22,9 +22,6 @@ namespace Unity.HLODSystem
             GameObject root = PrefabStageUtility.GetCurrentPrefabStage().prefabContentsRoot;
             HLOD hlod = HLODCreator.Setup(root);
 
-            if (hlod != null)
-                hlod.CalcBounds();
-
             EditorSceneManager.MarkSceneDirty(root.scene);
         }
 

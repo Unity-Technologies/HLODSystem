@@ -16,11 +16,15 @@ namespace Unity.HLODSystem
         private SerializedProperty m_MinSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
         private SerializedProperty m_CullDistanceProperty;
+        private SerializedProperty m_ThresholdSizeProperty;
 
         private LODSlider m_LODSlider;
 
-        private System.Type[] m_BatcherTypes;
+        private Type[] m_BatcherTypes;
         private string[] m_BatcherNames;
+
+        private Type[] m_SimplifierTypes;
+        private string[] m_SimplifierNames;
 
         void OnEnable()
         {
@@ -28,6 +32,7 @@ namespace Unity.HLODSystem
             m_MinSizeProperty = serializedObject.FindProperty("m_MinSize");
             m_LODDistanceProperty = serializedObject.FindProperty("m_LODDistance");
             m_CullDistanceProperty = serializedObject.FindProperty("m_CullDistance");
+            m_ThresholdSizeProperty = serializedObject.FindProperty("m_ThresholdSize");
 
             m_LODSlider = new LODSlider(true, "Cull");
             m_LODSlider.InsertRange("High", m_LODDistanceProperty);
@@ -36,6 +41,8 @@ namespace Unity.HLODSystem
             m_BatcherTypes = BatcherTypes.GetTypes();
             m_BatcherNames = m_BatcherTypes.Select(t => t.Name).ToArray();
 
+            m_SimplifierTypes = Simplifier.SimplifierTypes.GetTypes();
+            m_SimplifierNames = m_SimplifierTypes.Select(t => t.Name).ToArray();
         }
 
         public override void OnInspectorGUI()
@@ -59,24 +66,52 @@ namespace Unity.HLODSystem
             }
 
             m_LODSlider.Draw();
+            EditorGUILayout.PropertyField(m_ThresholdSizeProperty);
 
-            int batcherIndex = Math.Max(Array.IndexOf(m_BatcherTypes, hlod.BatcherType), 0);
-            batcherIndex = EditorGUILayout.Popup("Batcher", batcherIndex, m_BatcherNames);
-            hlod.BatcherType = m_BatcherTypes[batcherIndex];
-
-            var info = m_BatcherTypes[batcherIndex].GetMethod("OnGUI");
-            if (info != null)
+            if (m_BatcherTypes.Length > 0)
             {
-                if (info.IsStatic == true)
+                int batcherIndex = Math.Max(Array.IndexOf(m_BatcherTypes, hlod.BatcherType), 0);
+                batcherIndex = EditorGUILayout.Popup("Batcher", batcherIndex, m_BatcherNames);
+                hlod.BatcherType = m_BatcherTypes[batcherIndex];
+
+                var info = m_BatcherTypes[batcherIndex].GetMethod("OnGUI");
+                if (info != null)
                 {
-                    info.Invoke(null, new object[] { hlod });
+                    if (info.IsStatic == true)
+                    {
+                        info.Invoke(null, new object[] {hlod});
+                    }
                 }
+            }
+            else
+            {
+                EditorGUILayout.LabelField("Can not find Batchers.");
+            }
+
+            if (m_SimplifierTypes.Length > 0)
+            {
+                int simplifierIndex = Math.Max(Array.IndexOf(m_SimplifierTypes, hlod.SimplifierType), 0);
+                simplifierIndex = EditorGUILayout.Popup("Simplifier", simplifierIndex, m_SimplifierNames);
+                hlod.SimplifierType = m_SimplifierTypes[simplifierIndex];
+
+                var info = m_SimplifierTypes[simplifierIndex].GetMethod("OnGUI");
+                if (info != null)
+                {
+                    if (info.IsStatic == true)
+                    {
+                        info.Invoke(null, new object[] {hlod});
+                    }
+                }
+            }
+            else
+            {
+                EditorGUILayout.LabelField("Can not find Simplifiers.");
             }
 
 
             if (GUILayout.Button("Generate"))
             {
-                HLODCreator.Create(hlod);
+                Create(hlod);
             }
 
             EditorGUILayout.Space();
@@ -95,6 +130,17 @@ namespace Unity.HLODSystem
             {
                 EditorSceneManager.MarkSceneDirty(PrefabStageUtility.GetCurrentPrefabStage().scene);
             }
+        }
+
+        private void Create(HLOD hlod)
+        {
+            
+            GameObject go = new GameObject("Runner");
+            var runner = go.AddComponent<Utils.CoroutineRunner>();
+            go.hideFlags = HideFlags.HideAndDontSave;
+
+            runner.RunCoroutine(HLODCreator.Create(hlod));
+
         }
     }
 

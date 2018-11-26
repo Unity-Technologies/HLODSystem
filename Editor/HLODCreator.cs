@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using Unity.HLODSystem.Simplifier;
+using Unity.HLODSystem.Utils;
 using UnityEditor.Experimental.SceneManagement;
 
 namespace Unity.HLODSystem
@@ -18,21 +20,14 @@ namespace Unity.HLODSystem
                 return null;
             }
 
-            GameObject high = CreateHigh(root);
-            GameObject low = CreateLow(high);
-            high.transform.SetParent(root.transform);
-            low.transform.SetParent(root.transform);
-
             HLOD hlod = root.AddComponent<HLOD>();
-            hlod.HighRoot = high;
-            hlod.LowRoot = low;
-
-            return hlod;
+            return hlod;           
         }
-        public static void Create(HLOD hlod)
+        public static IEnumerator Create(HLOD hlod)
         {
             List<HLOD> targetHlods = new List<HLOD>();
            
+            hlod.CalcBounds();
             if (hlod.RecursiveGeneration == true)
             {
                 if (hlod.Bounds.size.x > hlod.MinSize)
@@ -50,6 +45,24 @@ namespace Unity.HLODSystem
                 targetHlods.Add(hlod);
             }
 
+            for (int i = 0; i < targetHlods.Count; ++i)
+            {
+                var curHlod = targetHlods[i];
+                curHlod.HighRoot = CreateHigh(curHlod.gameObject);
+                curHlod.LowRoot = CreateLow(curHlod, curHlod.HighRoot);
+
+                curHlod.HighRoot.transform.SetParent(curHlod.transform);
+                curHlod.LowRoot.transform.SetParent(curHlod.transform);
+            }
+
+            ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType);
+            for (int i = 0; i < targetHlods.Count; ++i)
+            {
+                yield return new BranchCoroutine(simplifier.Simplify(targetHlods[i]));
+            }
+
+            yield return new WaitForBranches();
+
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
             batcher.Batch(targetHlods.Last(), targetHlods.Select(h=>h.LowRoot).ToArray());
 
@@ -57,7 +70,7 @@ namespace Unity.HLODSystem
             {
                 SavePrefab(targetHlods[i]);
             }
-            
+
         }
 
         //It must order by child first.
@@ -138,11 +151,11 @@ namespace Unity.HLODSystem
             return low;
         }
 
-        static GameObject CreateLow(GameObject lowGameObject)
+        static GameObject CreateLow(HLOD hlod, GameObject highGameObject)
         {
             GameObject high = new GameObject("Low");
 
-            var lodGroups = lowGameObject.GetComponentsInChildren<LODGroup>();
+            var lodGroups = highGameObject.GetComponentsInChildren<LODGroup>();
             List<Renderer> lodRenderers = new List<Renderer>();
 
             for (int i = 0; i < lodGroups.Length; ++i)
@@ -158,11 +171,17 @@ namespace Unity.HLODSystem
                 if (renderer == null)
                     continue;
 
+                float max = Mathf.Max(renderer.bounds.size.x, renderer.bounds.size.y, renderer.bounds.size.z);
+                if (max < hlod.ThresholdSize)
+                    continue;
+
                 MeshFilter filter = renderer.GetComponent<MeshFilter>();
                 GameObject rendererObject = new GameObject(lodRenderers[i].name, typeof(MeshFilter), typeof(MeshRenderer));
 
                 EditorUtility.CopySerialized(filter, rendererObject.GetComponent<MeshFilter>());
                 EditorUtility.CopySerialized(renderer, rendererObject.GetComponent<MeshRenderer>());
+                var holder = rendererObject.AddComponent<Utils.SimplificationDistanceHolder>();
+                holder.OriginGameObject = renderer.gameObject;
 
                 rendererObject.transform.SetParent(high.transform);
                 rendererObject.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);
