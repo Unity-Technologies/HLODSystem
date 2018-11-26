@@ -111,7 +111,7 @@ namespace Unity.HLODSystem
 
             if (GUILayout.Button("Generate"))
             {
-                HLODCreator.Create(hlod);
+                Create(hlod);
             }
 
             EditorGUILayout.Space();
@@ -130,6 +130,17 @@ namespace Unity.HLODSystem
             {
                 EditorSceneManager.MarkSceneDirty(PrefabStageUtility.GetCurrentPrefabStage().scene);
             }
+        }
+
+        private void Create(HLOD hlod)
+        {
+            
+            GameObject go = new GameObject("Runner");
+            var runner = go.AddComponent<Utils.CoroutineRunner>();
+            go.hideFlags = HideFlags.HideAndDontSave;
+
+            runner.RunCoroutine(HLODCreator.Create(hlod));
+
         }
     }
 

@@ -23,7 +23,7 @@ namespace Unity.HLODSystem
             HLOD hlod = root.AddComponent<HLOD>();
             return hlod;           
         }
-        public static void Create(HLOD hlod)
+        public static IEnumerator Create(HLOD hlod)
         {
             List<HLOD> targetHlods = new List<HLOD>();
            
@@ -58,9 +58,10 @@ namespace Unity.HLODSystem
             ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType);
             for (int i = 0; i < targetHlods.Count; ++i)
             {
-                simplifier.Simplify(targetHlods[i]);
+                yield return new BranchCoroutine(simplifier.Simplify(targetHlods[i]));
             }
 
+            yield return new WaitForBranches();
 
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
             batcher.Batch(targetHlods.Last(), targetHlods.Select(h=>h.LowRoot).ToArray());
