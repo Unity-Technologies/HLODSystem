@@ -1,0 +1,11 @@
+{
+	"name": "com.unity.hlod",
+	"displayName": "HLOD System",
+	"version": "0.0.1-preview",
+	"unity": "2018.3",
+	"description": "",
+	"keywords": ["HLOD"],
+	"category": "",
+	"dependencies": {
+	}
+}
