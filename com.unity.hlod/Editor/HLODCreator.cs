@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using System.Linq;
 using Unity.HLODSystem.Simplifier;
+using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor.Experimental.SceneManagement;
 
@@ -55,9 +56,13 @@ namespace Unity.HLODSystem
                 curHlod.LowRoot.transform.SetParent(curHlod.transform);
             }
 
-            ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType);
+            AssetDatabase.Refresh();
+
+
+            
             for (int i = 0; i < targetHlods.Count; ++i)
             {
+                ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(targetHlods[i].SimplifierType);
                 yield return new BranchCoroutine(simplifier.Simplify(targetHlods[i]));
             }
 
@@ -65,6 +70,12 @@ namespace Unity.HLODSystem
 
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
             batcher.Batch(targetHlods.Last(), targetHlods.Select(h=>h.LowRoot).ToArray());
+
+            for (int i = 0; i < targetHlods.Count; ++i)
+            {
+                IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
+                builder.Build(targetHlods[i]);
+            }
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
@@ -107,19 +118,25 @@ namespace Unity.HLODSystem
 
             AssetDatabase.Refresh();
             AssetDatabase.SaveAssets();
+
             if (PrefabUtility.IsAnyPrefabInstanceRoot(hlod.gameObject) == false)
             {
                 PrefabUtility.SaveAsPrefabAssetAndConnect(hlod.gameObject, path,
                     InteractionMode.AutomatedAction);
             }
             AssetDatabase.Refresh();
-            
+
 
             //store low lod meshes
             var meshFilters = hlod.LowRoot.GetComponentsInChildren<MeshFilter>();
             for (int f = 0; f < meshFilters.Length; ++f)
             {
-                AssetDatabase.AddObjectToAsset(meshFilters[f].sharedMesh, path);
+                string meshPath = AssetDatabase.GetAssetPath(meshFilters[f].sharedMesh);
+                if (string.IsNullOrEmpty(meshPath))
+                {
+                    AssetDatabase.AddObjectToAsset(meshFilters[f].sharedMesh, path);
+                }
+
                 var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
                 foreach (var material in meshRenderer.sharedMaterials)
                 {

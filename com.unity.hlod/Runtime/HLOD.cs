@@ -27,14 +27,21 @@ namespace Unity.HLODSystem
         [SerializeField]
         private GameObject m_LowRoot;
 
+        private Streaming.ControllerBase m_HighController;
+        private Streaming.ControllerBase m_LowController;
+
         private Type m_BatcherType;
         private Type m_SimplifierType;
+        private Type m_StreamingType;
 
         [SerializeField]
         private string m_BatcherTypeStr;        //< unity serializer is not support serialization with System.Type
                                                 //< So, we should convert to string to store value.
         [SerializeField]
         private string m_SimplifierTypeStr;
+
+        [SerializeField]
+        private string m_StreamingTypeStr;
 
         [SerializeField]
         private SerializableDynamicObject m_BatcherOptions = new SerializableDynamicObject();
@@ -62,13 +69,23 @@ namespace Unity.HLODSystem
 
         public GameObject HighRoot
         {
-            set{ m_HighRoot = value; }
+            set
+            {
+                m_HighRoot = value;
+                if (m_HighRoot != null)
+                    m_HighController = m_HighRoot.GetComponent<Streaming.ControllerBase>();
+            }
             get { return m_HighRoot; }
         }
 
         public GameObject LowRoot
         {
-            set { m_LowRoot = value; }
+            set
+            {
+                m_LowRoot = value;
+                if (m_LowRoot != null)
+                    m_LowController = m_LowRoot.GetComponent<Streaming.ControllerBase>();
+            }
             get { return m_LowRoot; }
         }
 
@@ -82,6 +99,12 @@ namespace Unity.HLODSystem
         {
             set { m_SimplifierType = value; }
             get { return m_SimplifierType; }
+        }
+
+        public Type StreamingType
+        {
+            set { m_StreamingType = value; }
+            get { return m_StreamingType; }
         }
 
         public SerializableDynamicObject BatcherOptions
@@ -128,17 +151,16 @@ namespace Unity.HLODSystem
             }
 
             s_ActiveHLODs.Add(this);
-
         }
 
         void OnDisable()
         {
             s_ActiveHLODs.Remove(this);
 
-            if (LowRoot != null)
-                LowRoot.SetActive(false);
-            if (HighRoot != null)
-                HighRoot.SetActive(true);
+            if ( m_LowController != null)
+                m_LowController.Hide();
+            if (m_HighController != null)
+                m_HighController.Show();
         }
 
         public void EnableAll()
@@ -217,8 +239,28 @@ namespace Unity.HLODSystem
                 float distance = 1.0f;
                 HLOD curHlod = s_ActiveHLODs[i];
 
-                if (curHlod.HighRoot == null || curHlod.LowRoot == null)
-                    continue;
+                if (curHlod.m_HighController == null)
+                {
+                    if (curHlod.m_HighRoot != null)
+                    {
+                        curHlod.m_HighController = curHlod.m_HighRoot.GetComponent<Streaming.DefaultController>();
+                    }
+
+                    if ( curHlod.m_HighController == null )
+                        continue;
+                    
+                }
+
+                if (curHlod.m_LowController == null)
+                {
+                    if (curHlod.m_LowRoot != null)
+                    {
+                        curHlod.m_LowController = curHlod.m_LowRoot.GetComponent<Streaming.DefaultController>();
+                    }
+
+                    if (curHlod.m_LowController == null)
+                        continue;
+                }
 
                 if (cam.orthographic == false)
                     distance = Vector3.Distance(curHlod.m_Bounds.center, cameraPosition);
@@ -226,18 +268,30 @@ namespace Unity.HLODSystem
 
                 if (relativeHeight > curHlod.m_LODDistance)
                 {
-                    curHlod.HighRoot.SetActive(true);
-                    curHlod.LowRoot.SetActive(false);
+                    if (curHlod.m_HighController.IsShow() == false)
+                    {
+                        if (curHlod.m_HighController.IsReady())
+                        {
+                            curHlod.m_HighController.Show();
+                            curHlod.m_LowController.Hide();
+                        }
+                    }
                 }
                 else if (relativeHeight > curHlod.m_CullDistance)
                 {
-                    curHlod.HighRoot.SetActive(false);
-                    curHlod.LowRoot.SetActive(true);
+                    if (curHlod.m_LowController.IsShow() == false)
+                    {
+                        if (curHlod.m_LowController.IsReady())
+                        {
+                            curHlod.m_LowController.Show();
+                            curHlod.m_HighController.Hide();
+                        }
+                    }
                 }
                 else
                 {
-                    curHlod.HighRoot.SetActive(false);
-                    curHlod.LowRoot.SetActive(false);
+                    curHlod.m_LowController.Hide();
+                    curHlod.m_HighController.Hide();
                 }
             }
         }
@@ -248,6 +302,8 @@ namespace Unity.HLODSystem
                 m_BatcherTypeStr = m_BatcherType.AssemblyQualifiedName;
             if (m_SimplifierType != null)
                 m_SimplifierTypeStr = m_SimplifierType.AssemblyQualifiedName;
+            if (m_StreamingType != null)
+                m_StreamingTypeStr = m_StreamingType.AssemblyQualifiedName;
         }
 
         public void OnAfterDeserialize()
@@ -268,6 +324,15 @@ namespace Unity.HLODSystem
             else
             {
                 m_SimplifierType = Type.GetType(m_SimplifierTypeStr);
+            }
+
+            if (string.IsNullOrEmpty(m_StreamingTypeStr))
+            {
+                m_StreamingType = null;
+            }
+            else
+            {
+                m_StreamingType = Type.GetType(m_StreamingTypeStr);
             }
             
         }
