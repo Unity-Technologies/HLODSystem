@@ -5,7 +5,6 @@ using UnityEngine;
 
 namespace Unity.HLODSystem
 {
-    [ExecuteInEditMode]
     public class HLOD : MonoBehaviour, ISerializationCallbackReceiver
     {
         [SerializeField]
@@ -142,6 +141,16 @@ namespace Unity.HLODSystem
             get{ return m_Bounds; }
         }
 
+        void Awake()
+        {
+            //Set default state
+            if (m_LowRoot != null)
+                m_LowRoot.SetActive(true);
+
+            if (m_HighRoot != null)
+                m_HighRoot.SetActive(false);
+        }
+
         void OnEnable()
         {
             if (s_ActiveHLODs == null)
@@ -151,6 +160,12 @@ namespace Unity.HLODSystem
             }
 
             s_ActiveHLODs.Add(this);
+            UpdateController();
+
+            if (m_LowController != null)
+            {
+                m_LowController.Prepare();
+            }
         }
 
         void OnDisable()
@@ -169,6 +184,17 @@ namespace Unity.HLODSystem
             for (int i = 0; i < hlods.Length; ++i)
             {
                 hlods[i].enabled = true;
+                hlods[i].UpdateController();
+
+                if ( hlods[i].m_LowRoot != null )
+                    hlods[i].m_LowRoot.SetActive(true);
+                if ( hlods[i].m_HighRoot != null )
+                    hlods[i].m_HighRoot.SetActive(false);
+
+                if ( hlods[i].m_LowController != null )
+                    hlods[i].m_LowController.Enable();
+                if (hlods[i].m_HighController != null)
+                    hlods[i].m_HighController.Enable();
             }
         }
 
@@ -178,6 +204,17 @@ namespace Unity.HLODSystem
             for (int i = 0; i < hlods.Length; ++i)
             {
                 hlods[i].enabled = false;
+                hlods[i].UpdateController();
+
+                if ( hlods[i].m_LowRoot != null )
+                    hlods[i].m_LowRoot.SetActive(false);
+                if ( hlods[i].m_HighRoot != null )
+                    hlods[i].m_HighRoot.SetActive(true);
+
+                if ( hlods[i].m_LowController != null )
+                    hlods[i].m_LowController.Disable();
+                if (hlods[i].m_HighController != null)
+                    hlods[i].m_HighController.Disable();
             }
         }
 
@@ -216,6 +253,9 @@ namespace Unity.HLODSystem
         private static List<HLOD> s_ActiveHLODs;
         private static void OnPreCull(Camera cam)
         {
+            if (cam != Camera.main)
+                return;
+
             if (s_ActiveHLODs == null)
                 return;
 
@@ -239,28 +279,7 @@ namespace Unity.HLODSystem
                 float distance = 1.0f;
                 HLOD curHlod = s_ActiveHLODs[i];
 
-                if (curHlod.m_HighController == null)
-                {
-                    if (curHlod.m_HighRoot != null)
-                    {
-                        curHlod.m_HighController = curHlod.m_HighRoot.GetComponent<Streaming.DefaultController>();
-                    }
-
-                    if ( curHlod.m_HighController == null )
-                        continue;
-                    
-                }
-
-                if (curHlod.m_LowController == null)
-                {
-                    if (curHlod.m_LowRoot != null)
-                    {
-                        curHlod.m_LowController = curHlod.m_LowRoot.GetComponent<Streaming.DefaultController>();
-                    }
-
-                    if (curHlod.m_LowController == null)
-                        continue;
-                }
+                curHlod.UpdateController();
 
                 if (cam.orthographic == false)
                     distance = Vector3.Distance(curHlod.m_Bounds.center, cameraPosition);
@@ -275,6 +294,14 @@ namespace Unity.HLODSystem
                             curHlod.m_HighController.Show();
                             curHlod.m_LowController.Hide();
                         }
+                        else
+                        {
+                            curHlod.m_HighController.Prepare();
+                        }
+                    }
+                    else if (curHlod.m_LowController.IsShow() == true)
+                    {
+                        curHlod.m_LowController.Hide();
                     }
                 }
                 else if (relativeHeight > curHlod.m_CullDistance)
@@ -286,6 +313,14 @@ namespace Unity.HLODSystem
                             curHlod.m_LowController.Show();
                             curHlod.m_HighController.Hide();
                         }
+                        else
+                        {
+                            curHlod.m_LowController.Prepare();
+                        }
+                    }
+                    else if (curHlod.m_HighController.IsShow() == true)
+                    {
+                        curHlod.m_HighController.Hide();
                     }
                 }
                 else
@@ -336,6 +371,33 @@ namespace Unity.HLODSystem
             }
             
         }
+
+        private void UpdateController()
+        {
+            
+            if (m_HighController == null)
+            {
+                if (m_HighRoot != null)
+                {
+                    m_HighController = m_HighRoot.GetComponent<Streaming.ControllerBase>();
+                }
+
+                if ( m_HighController != null )
+                    m_HighController.Hide();
+            }
+
+            if (m_LowController == null)
+            {
+                if (m_LowRoot != null)
+                {
+                    m_LowController = m_LowRoot.GetComponent<Streaming.ControllerBase>();
+                }
+
+                if (m_LowController != null)
+                    m_LowController.Show();
+            }
+        }
+
     }
 
 }

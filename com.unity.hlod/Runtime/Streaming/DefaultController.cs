@@ -17,7 +17,10 @@ namespace Unity.HLODSystem.Streaming
         {
             return m_IsShow;
         }
+        public override void Prepare()
+        {
 
+        }
         public override void Show()
         {
             m_IsShow = true;
@@ -28,6 +31,15 @@ namespace Unity.HLODSystem.Streaming
         {
             m_IsShow = false;
             gameObject.SetActive(false);            
+        }
+
+        public override void Enable()
+        {
+            enabled = true;
+        }
+        public override void Disable()
+        {
+            enabled = false;
         }
     }
 

@@ -151,26 +151,28 @@ namespace Unity.HLODSystem
                 
             }
 
+            
+
             PrefabUtility.ApplyPrefabInstance(hlod.gameObject, InteractionMode.AutomatedAction);
         }
 
         
         static GameObject CreateHigh(GameObject root)
         {
-            GameObject low = new GameObject("High");
+            GameObject high = new GameObject("High");
 
             while (root.transform.childCount > 0)
             {
                 Transform child = root.transform.GetChild(0);
-                child.SetParent(low.transform);
+                child.SetParent(high.transform);
             }
 
-            return low;
+            return high;
         }
 
         static GameObject CreateLow(HLOD hlod, GameObject highGameObject)
         {
-            GameObject high = new GameObject("Low");
+            GameObject low = new GameObject("Low");
 
             var lodGroups = highGameObject.GetComponentsInChildren<LODGroup>();
             List<Renderer> lodRenderers = new List<Renderer>();
@@ -200,12 +202,13 @@ namespace Unity.HLODSystem
                 var holder = rendererObject.AddComponent<Utils.SimplificationDistanceHolder>();
                 holder.OriginGameObject = renderer.gameObject;
 
-                rendererObject.transform.SetParent(high.transform);
+                rendererObject.transform.SetParent(low.transform);
                 rendererObject.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);
                 rendererObject.transform.localScale = renderer.transform.lossyScale;
             }
 
-            return high;
+            
+            return low;
         }
 
     }

@@ -1,0 +1,16 @@
+{
+    "name": "HLOD.Addressable",
+    "references": [
+        "HLOD",
+      "Unity.Addressables",
+      "Unity.ResourceManager"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": []
+}
