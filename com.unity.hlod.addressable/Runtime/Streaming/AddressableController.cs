@@ -33,9 +33,6 @@ namespace Unity.HLODSystem.Streaming
         [SerializeField]
         private List<GameObject> m_instantitedObjects = new List<GameObject>();
 
-        private bool isShow = true;
-        private bool needPrepare = true;
-
         public void AddHLOD(HLOD hlod)
         {
             m_childHlods.Add(hlod);
@@ -56,35 +53,11 @@ namespace Unity.HLODSystem.Streaming
             m_childObjects.Add(obj);
         }
 
-        public override bool IsReady()
+
+        public override IEnumerator Load()
         {
-            for (int i = 0; i < m_childHlods.Count; ++i)
-            {
-                var lowRoot = m_childHlods[i].LowRoot;
-                if ( lowRoot == null )
-                    continue;
-
-                var controller = lowRoot.GetComponent<ControllerBase>();
-                if (controller == null)
-                    continue;
-
-                if (controller.IsReady() == false)
-                    return false;
-            }
-
-
-            return m_childObjects.Count == m_instantitedObjects.Count;
-        }
-
-        public override bool IsShow()
-        {
-            return isShow;
-        }
-
-        public override void Prepare()
-        {
-            if (needPrepare == false)
-                return;
+            if (m_instantitedObjects.Count > 0)
+                yield break;
 
             for (int i = 0; i < m_childHlods.Count; ++i)
             {
@@ -95,16 +68,25 @@ namespace Unity.HLODSystem.Streaming
                 if (controller == null)
                     continue;
 
-                controller.Prepare();
+                yield return controller.Load();
             }
 
-            CreateChildObjects(false);
-            needPrepare = false;
+            yield return CreateChildObjects(false);
         }
 
         public override void Show()
         {
-            isShow = true;
+            for (int i = 0; i < m_childHlods.Count; ++i)
+            {
+                var lowRoot = m_childHlods[i].LowRoot;
+                if (lowRoot == null)
+                    continue;
+                var controller = lowRoot.GetComponent<ControllerBase>();
+                if (controller == null)
+                    continue;
+
+                controller.Show();
+            }
 
             for (int i = 0; i < m_instantitedObjects.Count; ++i)
             {
@@ -116,7 +98,17 @@ namespace Unity.HLODSystem.Streaming
 
         public override void Hide()
         {
-            isShow = false;
+            for (int i = 0; i < m_childHlods.Count; ++i)
+            {
+                var lowRoot = m_childHlods[i].LowRoot;
+                if (lowRoot == null)
+                    continue;
+                var controller = lowRoot.GetComponent<ControllerBase>();
+                if (controller == null)
+                    continue;
+
+                controller.Hide();
+            }
 
             for (int i = 0; i < m_instantitedObjects.Count; ++i)
             {
@@ -141,14 +133,13 @@ namespace Unity.HLODSystem.Streaming
             }
             m_instantitedObjects.Clear();
             enabled = true;
-            needPrepare = true;
         }
         public override void Disable()
         {
             if (enabled == false)
                 return;
 
-            CreateChildObjects(true);
+            CreateChildObjectsByCallback(true);
             enabled = false;
         }
 
@@ -166,7 +157,28 @@ namespace Unity.HLODSystem.Streaming
             m_instantitedObjects.Add(instance);
         }
 
-        private void CreateChildObjects(bool active)
+        private IEnumerator CreateChildObjects(bool active)
+        {
+            for (int i = 0; i < m_childObjects.Count; ++i)
+            {
+#if UNITY_EDITOR
+                if (EditorApplication.isPlaying == false)
+                {
+                    GameObject prefab = (GameObject) m_childObjects[i].Reference.editorAsset;
+                    LoadDoneObject(prefab, m_childObjects[i], active);
+                    continue;
+                }
+#endif
+                var objectInfo = m_childObjects[i];
+
+                var ao = Addressables.LoadAsset<UnityEngine.Object>(objectInfo.Reference);
+                yield return ao;
+                LoadDoneObject((GameObject)ao.Result, objectInfo, active);
+
+            }
+        }
+
+        private void CreateChildObjectsByCallback(bool active)
         {
             for (int i = 0; i < m_childObjects.Count; ++i)
             {
@@ -181,11 +193,7 @@ namespace Unity.HLODSystem.Streaming
                 var objectInfo = m_childObjects[i];
                 Addressables.LoadAsset<UnityEngine.Object>(objectInfo.Reference).Completed += o =>
                 {
-                    
-                    if ( o.OperationException != null)
-                        Debug.Log(o.OperationException.Message);
-                    var result = o.Result;
-                    LoadDoneObject((GameObject)result, objectInfo, active);
+                    LoadDoneObject((GameObject)o.Result, objectInfo, active);
                 };
             }
         }

@@ -7,6 +7,83 @@ namespace Unity.HLODSystem
 {
     public class HLOD : MonoBehaviour, ISerializationCallbackReceiver
     {
+        class ControllerManager
+        {
+            enum CurrentShow
+            {
+                High,
+                Low,
+                Cull,
+            }
+            private CurrentShow m_currentShow = CurrentShow.Cull;
+
+            private HLOD m_outer;
+            private Streaming.ControllerBase m_highController;
+            private Streaming.ControllerBase m_lowController;
+
+            private Coroutine m_lastRunner = null;
+
+            public ControllerManager(HLOD outer, Streaming.ControllerBase highController, Streaming.ControllerBase lowController)
+            {
+                m_outer = outer;
+                m_highController = highController;
+                m_lowController = lowController;
+
+                ShowLow();
+            }
+
+            public void Enable()
+            {
+                m_highController.Enable();
+                m_lowController.Enable();
+            }
+
+            public void Disable()
+            {
+                m_highController.Disable();
+                m_lowController.Disable();
+            }
+
+            public void ShowHigh()
+            {
+                if (m_currentShow == CurrentShow.High)
+                    return;
+
+                m_currentShow = CurrentShow.High;
+                IEnumerator coroutine = SwitchShow(m_lastRunner, m_highController, m_lowController);
+                m_lastRunner = m_outer.StartCoroutine(coroutine);
+            }
+
+            public void ShowLow()
+            {
+                if (m_currentShow == CurrentShow.Low)
+                    return;
+
+                m_currentShow = CurrentShow.Low;
+                IEnumerator coroutine = SwitchShow(m_lastRunner, m_lowController, m_highController);
+                m_lastRunner = m_outer.StartCoroutine(coroutine);
+            }
+
+            public void Hide()
+            {
+                if (m_currentShow == CurrentShow.Cull)
+                    return;
+
+                m_highController.Hide();
+                m_lowController.Hide();
+            }
+
+            private IEnumerator SwitchShow(Coroutine lastRunner, Streaming.ControllerBase show, Streaming.ControllerBase hide)
+            {
+                //wait for finish to last coroutine
+                //for synchronize active state. 
+                yield return lastRunner;
+
+                yield return show.Load();
+                show.Show();
+                hide.Hide();
+            }
+        }
         [SerializeField]
         private Bounds m_Bounds;
 
@@ -26,8 +103,7 @@ namespace Unity.HLODSystem
         [SerializeField]
         private GameObject m_LowRoot;
 
-        private Streaming.ControllerBase m_HighController;
-        private Streaming.ControllerBase m_LowController;
+        private ControllerManager m_controllerManager;
 
         private Type m_BatcherType;
         private Type m_SimplifierType;
@@ -59,32 +135,22 @@ namespace Unity.HLODSystem
 
         public bool RecursiveGeneration
         {
-            get{ return m_RecursiveGeneration; }
+            get { return m_RecursiveGeneration; }
         }
         public float MinSize
         {
-            get{ return m_MinSize; }
+            get { return m_MinSize; }
         }
 
         public GameObject HighRoot
         {
-            set
-            {
-                m_HighRoot = value;
-                if (m_HighRoot != null)
-                    m_HighController = m_HighRoot.GetComponent<Streaming.ControllerBase>();
-            }
+            set { m_HighRoot = value; }
             get { return m_HighRoot; }
         }
 
         public GameObject LowRoot
         {
-            set
-            {
-                m_LowRoot = value;
-                if (m_LowRoot != null)
-                    m_LowController = m_LowRoot.GetComponent<Streaming.ControllerBase>();
-            }
+            set { m_LowRoot = value; }
             get { return m_LowRoot; }
         }
 
@@ -160,22 +226,11 @@ namespace Unity.HLODSystem
             }
 
             s_ActiveHLODs.Add(this);
-            UpdateController();
-
-            if (m_LowController != null)
-            {
-                m_LowController.Prepare();
-            }
         }
 
         void OnDisable()
         {
             s_ActiveHLODs.Remove(this);
-
-            if ( m_LowController != null)
-                m_LowController.Hide();
-            if (m_HighController != null)
-                m_HighController.Show();
         }
 
         public void EnableAll()
@@ -191,10 +246,8 @@ namespace Unity.HLODSystem
                 if ( hlods[i].m_HighRoot != null )
                     hlods[i].m_HighRoot.SetActive(false);
 
-                if ( hlods[i].m_LowController != null )
-                    hlods[i].m_LowController.Enable();
-                if (hlods[i].m_HighController != null)
-                    hlods[i].m_HighController.Enable();
+                hlods[i].UpdateController();
+                hlods[i].m_controllerManager?.Enable();
             }
         }
 
@@ -210,11 +263,9 @@ namespace Unity.HLODSystem
                     hlods[i].m_LowRoot.SetActive(false);
                 if ( hlods[i].m_HighRoot != null )
                     hlods[i].m_HighRoot.SetActive(true);
-
-                if ( hlods[i].m_LowController != null )
-                    hlods[i].m_LowController.Disable();
-                if (hlods[i].m_HighController != null)
-                    hlods[i].m_HighController.Disable();
+                
+                hlods[i].UpdateController();
+                hlods[i].m_controllerManager?.Disable();
             }
         }
 
@@ -280,6 +331,8 @@ namespace Unity.HLODSystem
                 HLOD curHlod = s_ActiveHLODs[i];
 
                 curHlod.UpdateController();
+                if (curHlod.m_controllerManager == null)
+                    continue;
 
                 if (cam.orthographic == false)
                     distance = Vector3.Distance(curHlod.m_Bounds.center, cameraPosition);
@@ -287,46 +340,15 @@ namespace Unity.HLODSystem
 
                 if (relativeHeight > curHlod.m_LODDistance)
                 {
-                    if (curHlod.m_HighController.IsShow() == false)
-                    {
-                        if (curHlod.m_HighController.IsReady())
-                        {
-                            curHlod.m_HighController.Show();
-                            curHlod.m_LowController.Hide();
-                        }
-                        else
-                        {
-                            curHlod.m_HighController.Prepare();
-                        }
-                    }
-                    else if (curHlod.m_LowController.IsShow() == true)
-                    {
-                        curHlod.m_LowController.Hide();
-                    }
+                    curHlod.m_controllerManager.ShowHigh();
                 }
                 else if (relativeHeight > curHlod.m_CullDistance)
                 {
-                    if (curHlod.m_LowController.IsShow() == false)
-                    {
-                        if (curHlod.m_LowController.IsReady())
-                        {
-                            curHlod.m_LowController.Show();
-                            curHlod.m_HighController.Hide();
-                        }
-                        else
-                        {
-                            curHlod.m_LowController.Prepare();
-                        }
-                    }
-                    else if (curHlod.m_HighController.IsShow() == true)
-                    {
-                        curHlod.m_HighController.Hide();
-                    }
+                    curHlod.m_controllerManager.ShowLow();
                 }
                 else
                 {
-                    curHlod.m_LowController.Hide();
-                    curHlod.m_HighController.Hide();
+                    curHlod.m_controllerManager.Hide();
                 }
             }
         }
@@ -374,28 +396,26 @@ namespace Unity.HLODSystem
 
         private void UpdateController()
         {
-            
-            if (m_HighController == null)
-            {
-                if (m_HighRoot != null)
-                {
-                    m_HighController = m_HighRoot.GetComponent<Streaming.ControllerBase>();
-                }
+            if (m_controllerManager != null)
+                return;
 
-                if ( m_HighController != null )
-                    m_HighController.Hide();
+            Streaming.ControllerBase highController = null;
+            Streaming.ControllerBase lowController = null;
+
+            if (m_HighRoot != null)
+            {
+                highController = m_HighRoot.GetComponent<Streaming.ControllerBase>();
             }
 
-            if (m_LowController == null)
+            if (m_LowRoot != null)
             {
-                if (m_LowRoot != null)
-                {
-                    m_LowController = m_LowRoot.GetComponent<Streaming.ControllerBase>();
-                }
-
-                if (m_LowController != null)
-                    m_LowController.Show();
+                lowController = m_LowRoot.GetComponent<Streaming.ControllerBase>();
             }
+
+            if (highController == null || lowController == null)
+                return;
+
+            m_controllerManager = new ControllerManager(this, highController, lowController);
         }
 
     }

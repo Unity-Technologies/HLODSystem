@@ -156,7 +156,10 @@ namespace Unity.HLODSystem
             serializedObject.ApplyModifiedProperties();
             if (EditorGUI.EndChangeCheck())
             {
-                EditorSceneManager.MarkSceneDirty(PrefabStageUtility.GetCurrentPrefabStage().scene);
+                if (PrefabStageUtility.GetCurrentPrefabStage() != null)
+                {
+                    EditorSceneManager.MarkSceneDirty(PrefabStageUtility.GetCurrentPrefabStage().scene);
+                }
             }
         }
 

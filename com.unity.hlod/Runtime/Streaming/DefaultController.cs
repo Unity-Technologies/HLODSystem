@@ -6,30 +6,17 @@ namespace Unity.HLODSystem.Streaming
 {
     public class DefaultController : ControllerBase
     {
-        private bool m_IsShow = false;
-
-        public override bool IsReady()
+        public override IEnumerator Load()
         {
-            return true;
-        }
-
-        public override bool IsShow()
-        {
-            return m_IsShow;
-        }
-        public override void Prepare()
-        {
-
+            yield break;
         }
         public override void Show()
         {
-            m_IsShow = true;
             gameObject.SetActive(true);            
         }
 
         public override void Hide()
         {
-            m_IsShow = false;
             gameObject.SetActive(false);            
         }
 
