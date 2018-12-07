@@ -28,26 +28,32 @@ namespace Unity.HLODSystem
                 m_outer = outer;
                 m_highController = highController;
                 m_lowController = lowController;
-
-                ShowLow();
             }
 
             public void Enable()
             {
                 m_highController.Enable();
                 m_lowController.Enable();
+
+                m_highController.gameObject.SetActive(false);
+                m_lowController.gameObject.SetActive(true);
             }
 
             public void Disable()
             {
                 m_highController.Disable();
                 m_lowController.Disable();
+
+                m_highController.gameObject.SetActive(true);
+                m_lowController.gameObject.SetActive(false);
             }
 
             public void ShowHigh()
             {
                 if (m_currentShow == CurrentShow.High)
                     return;
+
+                int a = 0;
 
                 m_currentShow = CurrentShow.High;
                 IEnumerator coroutine = SwitchShow(m_lastRunner, m_highController, m_lowController);
@@ -240,13 +246,6 @@ namespace Unity.HLODSystem
             {
                 hlods[i].enabled = true;
                 hlods[i].UpdateController();
-
-                if ( hlods[i].m_LowRoot != null )
-                    hlods[i].m_LowRoot.SetActive(true);
-                if ( hlods[i].m_HighRoot != null )
-                    hlods[i].m_HighRoot.SetActive(false);
-
-                hlods[i].UpdateController();
                 hlods[i].m_controllerManager?.Enable();
             }
         }
@@ -257,14 +256,7 @@ namespace Unity.HLODSystem
             for (int i = 0; i < hlods.Length; ++i)
             {
                 hlods[i].enabled = false;
-                hlods[i].UpdateController();
-
-                if ( hlods[i].m_LowRoot != null )
-                    hlods[i].m_LowRoot.SetActive(false);
-                if ( hlods[i].m_HighRoot != null )
-                    hlods[i].m_HighRoot.SetActive(true);
-                
-                hlods[i].UpdateController();
+                hlods[i].UpdateController();                
                 hlods[i].m_controllerManager?.Disable();
             }
         }

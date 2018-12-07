@@ -114,7 +114,12 @@ namespace Unity.HLODSystem.Streaming
 
             for (int i = 0; i < m_instantitedObjects.Count; ++i)
             {
+#if UNITY_EDITOR
+                DestroyImmediate(m_instantitedObjects[i]);
+#else
+
                 Destroy(m_instantitedObjects[i]);
+#endif
             }
 
             m_instantitedObjects.Clear();
