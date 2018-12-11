@@ -53,7 +53,8 @@ namespace Unity.HLODSystem
                 if (m_currentShow == CurrentShow.High)
                     return;
 
-                int a = 0;
+                if ( m_currentShow != CurrentShow.Low )
+                    ShowLow();
 
                 m_currentShow = CurrentShow.High;
                 IEnumerator coroutine = SwitchShow(m_lastRunner, m_highController, m_lowController);
