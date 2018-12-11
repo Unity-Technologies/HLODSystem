@@ -240,6 +240,16 @@ namespace Unity.HLODSystem
             s_ActiveHLODs.Remove(this);
         }
 
+        public void Enable()
+        {
+
+        }
+
+        public void Disable()
+        {
+
+        }
+
         public void EnableAll()
         {
             var hlods = GetComponentsInChildren<HLOD>(true);

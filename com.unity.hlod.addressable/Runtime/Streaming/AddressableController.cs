@@ -32,8 +32,6 @@ namespace Unity.HLODSystem.Streaming
 
         [SerializeField]
         private List<GameObject> m_instantitedObjects = new List<GameObject>();
-        [SerializeField]
-        private List<GameObject> m_loadedObjects = new List<GameObject>();
 
         public void AddHLOD(HLOD hlod)
         {
@@ -124,12 +122,10 @@ namespace Unity.HLODSystem.Streaming
 
             m_instantitedObjects.Clear();
 
-            for (int i = 0; i < m_loadedObjects.Count; ++i)
+            for (int i = 0; i < m_childObjects.Count; ++i)
             {
-                Addressables.ReleaseAsset(m_loadedObjects[i]);
+                Cache.AddressableCache.Unload(m_childObjects[i].Reference);
             }
-
-            m_loadedObjects.Clear();
 
             gameObject.SetActive(false);
         }
@@ -186,10 +182,9 @@ namespace Unity.HLODSystem.Streaming
                 }
 #endif
                 var objectInfo = m_childObjects[i];
-
-                var ao = Addressables.LoadAsset<UnityEngine.Object>(objectInfo.Reference);
-                yield return ao;
-                m_loadedObjects.Add((GameObject)ao.Result);
+                var ao = Cache.AddressableCache.Load(objectInfo.Reference);
+                if (ao.Result == null)
+                    yield return ao;
                 LoadDoneObject((GameObject)ao.Result, objectInfo, active);
 
             }
@@ -210,7 +205,6 @@ namespace Unity.HLODSystem.Streaming
                 var objectInfo = m_childObjects[i];
                 Addressables.LoadAsset<UnityEngine.Object>(objectInfo.Reference).Completed += o =>
                 {
-                    m_loadedObjects.Add((GameObject)o.Result);
                     LoadDoneObject((GameObject)o.Result, objectInfo, active);
                 };
             }
