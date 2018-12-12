@@ -131,6 +131,12 @@ namespace Unity.HLODSystem.Streaming
 
         private AssetReference GetAssetReference(GameObject obj)
         {
+            //create settings if there is no settings.
+            if (AddressableAssetSettingsDefaultObject.Settings == null)
+            {
+                AddressableAssetSettings.Create(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder, AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
+            }
+
             var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
             string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
             if (string.IsNullOrEmpty(path))
