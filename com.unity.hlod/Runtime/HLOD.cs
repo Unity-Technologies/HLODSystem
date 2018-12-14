@@ -216,6 +216,11 @@ namespace Unity.HLODSystem
 
         void Awake()
         {
+            //It need only in editor.
+            //It will be installed when building.
+#if UNITY_EDITOR
+            Install();
+#endif
             //Set default state
             if (m_LowRoot != null)
                 m_LowRoot.SetActive(true);
@@ -240,35 +245,12 @@ namespace Unity.HLODSystem
             s_ActiveHLODs.Remove(this);
         }
 
-        public void Enable()
+        public void Install()
         {
-
-        }
-
-        public void Disable()
-        {
-
-        }
-
-        public void EnableAll()
-        {
-            var hlods = GetComponentsInChildren<HLOD>(true);
-            for (int i = 0; i < hlods.Length; ++i)
+            if (enabled == true)
             {
-                hlods[i].enabled = true;
-                hlods[i].UpdateController();
-                hlods[i].m_controllerManager?.Enable();
-            }
-        }
-
-        public void DisableAll()
-        {
-            var hlods = GetComponentsInChildren<HLOD>(true);
-            for (int i = 0; i < hlods.Length; ++i)
-            {
-                hlods[i].enabled = false;
-                hlods[i].UpdateController();                
-                hlods[i].m_controllerManager?.Disable();
+                UpdateController();
+                m_controllerManager?.Enable();
             }
         }
 

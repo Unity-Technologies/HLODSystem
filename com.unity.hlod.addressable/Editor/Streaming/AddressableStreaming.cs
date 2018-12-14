@@ -66,6 +66,8 @@ namespace Unity.HLODSystem.Streaming
             {
                 Object.DestroyImmediate(needDestory[i]);
             }
+
+            controller.Disable();
            
         }
 

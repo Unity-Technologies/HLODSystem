@@ -185,6 +185,11 @@ namespace Unity.HLODSystem.Streaming
                 var ao = Cache.AddressableCache.Load(objectInfo.Reference);
                 if (ao.Result == null)
                     yield return ao;
+                if (ao.Result == null)
+                {
+                    Debug.LogError("Failed to load object: " + objectInfo.Reference);
+                }
+
                 LoadDoneObject((GameObject)ao.Result, objectInfo, active);
 
             }

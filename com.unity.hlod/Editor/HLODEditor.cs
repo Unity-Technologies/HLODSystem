@@ -142,17 +142,6 @@ namespace Unity.HLODSystem
                 Create(hlod);
             }
 
-            EditorGUILayout.Space();
-            if (GUILayout.Button("Enable All"))
-            {
-                hlod.EnableAll();
-            }
-
-            if (GUILayout.Button("Disable All"))
-            {
-                hlod.DisableAll();
-            }
-            
             serializedObject.ApplyModifiedProperties();
             if (EditorGUI.EndChangeCheck())
             {
