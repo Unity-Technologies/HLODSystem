@@ -17,7 +17,7 @@ namespace Unity.HLODSystem.Streaming
             StreamingBuilderTypes.RegisterType(typeof(AddressableStreaming));
         }
 
-        public void Build(HLOD hlod)
+        public void Build(HLOD hlod, bool isRoot)
         {
             if (hlod.HighRoot != null)
             {
@@ -26,8 +26,20 @@ namespace Unity.HLODSystem.Streaming
 
             if (hlod.LowRoot != null)
             {
-                BuildLow(hlod.name, hlod.LowRoot);
+                BuildLow(hlod, isRoot);
             }
+        }
+
+        public static void OnGUI(HLOD hlod)
+        {
+            dynamic options = hlod.StreamingOptions;
+
+            if (options.LastLowInMemory == null)
+                options.LastLowInMemory = false;
+
+            EditorGUI.indentLevel += 1;
+            options.LastLowInMemory = EditorGUILayout.Toggle("Last low in memory", options.LastLowInMemory);
+            EditorGUI.indentLevel -= 1;
         }
 
         private void BuildHigh(GameObject root)
@@ -71,8 +83,23 @@ namespace Unity.HLODSystem.Streaming
            
         }
 
-        private void BuildLow(string name, GameObject root)
+        private void BuildLow(HLOD hlod, bool isRoot)
         {
+            string name = hlod.name;
+            GameObject root = hlod.LowRoot;
+
+            if (isRoot == true)
+            {
+                dynamic options = hlod.StreamingOptions;
+                if (options.LastLowInMemory != null && options.LastLowInMemory == true)
+                {
+                    root.AddComponent<DefaultController>();
+                    return;
+                }
+            }
+
+            
+
             var controller = root.AddComponent<AddressableController>();
 
             PrefabStage stage = PrefabStageUtility.GetPrefabStage(root);

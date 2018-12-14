@@ -74,13 +74,13 @@ namespace Unity.HLODSystem
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
-                builder.Build(targetHlods[i]);
+                builder.Build(targetHlods[i], targetHlods[i] == hlod);
             }
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 SavePrefab(targetHlods[i]);
-            }
+           }
 
         }
 
@@ -151,6 +151,7 @@ namespace Unity.HLODSystem
                 
             }
 
+            hlod.LowRoot.SetActive(false);
             
 
             PrefabUtility.ApplyPrefabInstance(hlod.gameObject, InteractionMode.AutomatedAction);

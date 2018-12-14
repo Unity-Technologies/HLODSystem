@@ -108,11 +108,11 @@ namespace Unity.HLODSystem.Streaming.Cache
                 return;
 
             m_usingObjects[hash].Count -= 1;
-            if (m_usingObjects.Count == 0)
-            {
-                Addressables.ReleaseAsset(m_usingObjects[hash].Result);
-                m_usingObjects.Remove(hash);
-            }
+            if (m_usingObjects[hash].Count != 0)
+                return;
+
+            Addressables.ReleaseAsset(m_usingObjects[hash].Result);
+            m_usingObjects.Remove(hash);
         }
         #endregion
 

@@ -127,6 +127,8 @@ namespace Unity.HLODSystem
 
         [SerializeField]
         private SerializableDynamicObject m_BatcherOptions = new SerializableDynamicObject();
+        [SerializeField]
+        private SerializableDynamicObject m_StreamingOptions = new SerializableDynamicObject();
 
         [SerializeField]
         private float m_SimplifyPolygonRatio = 0.8f;
@@ -182,6 +184,11 @@ namespace Unity.HLODSystem
         public SerializableDynamicObject BatcherOptions
         {
             get { return m_BatcherOptions; }
+        }
+
+        public SerializableDynamicObject StreamingOptions
+        {
+            get { return m_StreamingOptions; }
         }
 
         public float SimplifyPolygonRatio

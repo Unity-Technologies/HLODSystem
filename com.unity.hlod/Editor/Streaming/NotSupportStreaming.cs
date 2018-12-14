@@ -9,7 +9,7 @@ namespace Unity.HLODSystem.Streaming
         {
             StreamingBuilderTypes.RegisterType(typeof(NotSupportStreaming), -1);
         }
-        public void Build(HLOD hlod)
+        public void Build(HLOD hlod, bool isRoot)
         {
             if (hlod.LowRoot != null)
             {
