@@ -1,0 +1,13 @@
+{
+	"name": "com.unity.hlod.addressable",
+	"displayName": "HLOD Addressable Streaming System",
+	"version": "0.0.1-preview",
+	"unity": "2018.3",
+	"description": "",
+	"keywords": ["HLOD"],
+	"category": "",
+	"dependencies": {
+		"com.unity.hlod": "0.0.1-preview",
+		"com.unity.addressables": "0.4.8-preview"
+	}
+}

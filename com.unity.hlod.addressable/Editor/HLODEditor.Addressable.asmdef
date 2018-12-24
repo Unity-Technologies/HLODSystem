@@ -1,0 +1,21 @@
+{
+  "name": "HLODEditor.Addressable",
+  "references": [
+    "HLOD.Addressable",
+    "HLODEditor",
+    "HLOD",
+    "Unity.Addressables.Editor",
+    "Unity.Addressables",
+    "Unity.ResourceManager"
+  ],
+  "optionalUnityReferences": [],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": []
+}

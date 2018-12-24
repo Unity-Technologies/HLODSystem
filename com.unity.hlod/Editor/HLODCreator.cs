@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using System.Linq;
 using Unity.HLODSystem.Simplifier;
+using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor.Experimental.SceneManagement;
 
@@ -55,9 +56,13 @@ namespace Unity.HLODSystem
                 curHlod.LowRoot.transform.SetParent(curHlod.transform);
             }
 
-            ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType);
+            AssetDatabase.Refresh();
+
+
+            
             for (int i = 0; i < targetHlods.Count; ++i)
             {
+                ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(targetHlods[i].SimplifierType);
                 yield return new BranchCoroutine(simplifier.Simplify(targetHlods[i]));
             }
 
@@ -68,8 +73,14 @@ namespace Unity.HLODSystem
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
-                SavePrefab(targetHlods[i]);
+                IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
+                builder.Build(targetHlods[i], targetHlods[i] == hlod);
             }
+
+            for (int i = 0; i < targetHlods.Count; ++i)
+            {
+                SavePrefab(targetHlods[i]);
+           }
 
         }
 
@@ -107,19 +118,25 @@ namespace Unity.HLODSystem
 
             AssetDatabase.Refresh();
             AssetDatabase.SaveAssets();
+
             if (PrefabUtility.IsAnyPrefabInstanceRoot(hlod.gameObject) == false)
             {
                 PrefabUtility.SaveAsPrefabAssetAndConnect(hlod.gameObject, path,
                     InteractionMode.AutomatedAction);
             }
             AssetDatabase.Refresh();
-            
+
 
             //store low lod meshes
             var meshFilters = hlod.LowRoot.GetComponentsInChildren<MeshFilter>();
             for (int f = 0; f < meshFilters.Length; ++f)
             {
-                AssetDatabase.AddObjectToAsset(meshFilters[f].sharedMesh, path);
+                string meshPath = AssetDatabase.GetAssetPath(meshFilters[f].sharedMesh);
+                if (string.IsNullOrEmpty(meshPath))
+                {
+                    AssetDatabase.AddObjectToAsset(meshFilters[f].sharedMesh, path);
+                }
+
                 var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
                 foreach (var material in meshRenderer.sharedMaterials)
                 {
@@ -134,26 +151,29 @@ namespace Unity.HLODSystem
                 
             }
 
+            hlod.LowRoot.SetActive(false);
+            
+
             PrefabUtility.ApplyPrefabInstance(hlod.gameObject, InteractionMode.AutomatedAction);
         }
 
         
         static GameObject CreateHigh(GameObject root)
         {
-            GameObject low = new GameObject("High");
+            GameObject high = new GameObject("High");
 
             while (root.transform.childCount > 0)
             {
                 Transform child = root.transform.GetChild(0);
-                child.SetParent(low.transform);
+                child.SetParent(high.transform);
             }
 
-            return low;
+            return high;
         }
 
         static GameObject CreateLow(HLOD hlod, GameObject highGameObject)
         {
-            GameObject high = new GameObject("Low");
+            GameObject low = new GameObject("Low");
 
             var lodGroups = highGameObject.GetComponentsInChildren<LODGroup>();
             List<Renderer> lodRenderers = new List<Renderer>();
@@ -183,12 +203,13 @@ namespace Unity.HLODSystem
                 var holder = rendererObject.AddComponent<Utils.SimplificationDistanceHolder>();
                 holder.OriginGameObject = renderer.gameObject;
 
-                rendererObject.transform.SetParent(high.transform);
+                rendererObject.transform.SetParent(low.transform);
                 rendererObject.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);
                 rendererObject.transform.localScale = renderer.transform.lossyScale;
             }
 
-            return high;
+            
+            return low;
         }
 
     }

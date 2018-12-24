@@ -5,9 +5,92 @@ using UnityEngine;
 
 namespace Unity.HLODSystem
 {
-    [ExecuteInEditMode]
     public class HLOD : MonoBehaviour, ISerializationCallbackReceiver
     {
+        class ControllerManager
+        {
+            enum CurrentShow
+            {
+                High,
+                Low,
+                Cull,
+            }
+            private CurrentShow m_currentShow = CurrentShow.Cull;
+
+            private HLOD m_outer;
+            private Streaming.ControllerBase m_highController;
+            private Streaming.ControllerBase m_lowController;
+
+            private Coroutine m_lastRunner = null;
+
+            public ControllerManager(HLOD outer, Streaming.ControllerBase highController, Streaming.ControllerBase lowController)
+            {
+                m_outer = outer;
+                m_highController = highController;
+                m_lowController = lowController;
+            }
+
+            public void Enable()
+            {
+                m_highController.Enable();
+                m_lowController.Enable();
+
+                m_highController.gameObject.SetActive(false);
+                m_lowController.gameObject.SetActive(true);
+            }
+
+            public void Disable()
+            {
+                m_highController.Disable();
+                m_lowController.Disable();
+
+                m_highController.gameObject.SetActive(true);
+                m_lowController.gameObject.SetActive(false);
+            }
+
+            public void ShowHigh()
+            {
+                if (m_currentShow == CurrentShow.High)
+                    return;
+
+                if ( m_currentShow != CurrentShow.Low )
+                    ShowLow();
+
+                m_currentShow = CurrentShow.High;
+                IEnumerator coroutine = SwitchShow(m_lastRunner, m_highController, m_lowController);
+                m_lastRunner = m_outer.StartCoroutine(coroutine);
+            }
+
+            public void ShowLow()
+            {
+                if (m_currentShow == CurrentShow.Low)
+                    return;
+
+                m_currentShow = CurrentShow.Low;
+                IEnumerator coroutine = SwitchShow(m_lastRunner, m_lowController, m_highController);
+                m_lastRunner = m_outer.StartCoroutine(coroutine);
+            }
+
+            public void Hide()
+            {
+                if (m_currentShow == CurrentShow.Cull)
+                    return;
+
+                m_highController.Hide();
+                m_lowController.Hide();
+            }
+
+            private IEnumerator SwitchShow(Coroutine lastRunner, Streaming.ControllerBase show, Streaming.ControllerBase hide)
+            {
+                //wait for finish to last coroutine
+                //for synchronize active state. 
+                yield return lastRunner;
+
+                yield return show.Load();
+                show.Show();
+                hide.Hide();
+            }
+        }
         [SerializeField]
         private Bounds m_Bounds;
 
@@ -27,8 +110,11 @@ namespace Unity.HLODSystem
         [SerializeField]
         private GameObject m_LowRoot;
 
+        private ControllerManager m_controllerManager;
+
         private Type m_BatcherType;
         private Type m_SimplifierType;
+        private Type m_StreamingType;
 
         [SerializeField]
         private string m_BatcherTypeStr;        //< unity serializer is not support serialization with System.Type
@@ -37,7 +123,12 @@ namespace Unity.HLODSystem
         private string m_SimplifierTypeStr;
 
         [SerializeField]
+        private string m_StreamingTypeStr;
+
+        [SerializeField]
         private SerializableDynamicObject m_BatcherOptions = new SerializableDynamicObject();
+        [SerializeField]
+        private SerializableDynamicObject m_StreamingOptions = new SerializableDynamicObject();
 
         [SerializeField]
         private float m_SimplifyPolygonRatio = 0.8f;
@@ -53,16 +144,16 @@ namespace Unity.HLODSystem
 
         public bool RecursiveGeneration
         {
-            get{ return m_RecursiveGeneration; }
+            get { return m_RecursiveGeneration; }
         }
         public float MinSize
         {
-            get{ return m_MinSize; }
+            get { return m_MinSize; }
         }
 
         public GameObject HighRoot
         {
-            set{ m_HighRoot = value; }
+            set { m_HighRoot = value; }
             get { return m_HighRoot; }
         }
 
@@ -84,9 +175,20 @@ namespace Unity.HLODSystem
             get { return m_SimplifierType; }
         }
 
+        public Type StreamingType
+        {
+            set { m_StreamingType = value; }
+            get { return m_StreamingType; }
+        }
+
         public SerializableDynamicObject BatcherOptions
         {
             get { return m_BatcherOptions; }
+        }
+
+        public SerializableDynamicObject StreamingOptions
+        {
+            get { return m_StreamingOptions; }
         }
 
         public float SimplifyPolygonRatio
@@ -119,6 +221,21 @@ namespace Unity.HLODSystem
             get{ return m_Bounds; }
         }
 
+        void Awake()
+        {
+            //It need only in editor.
+            //It will be installed when building.
+#if UNITY_EDITOR
+            Install();
+#endif
+            //Set default state
+            if (m_LowRoot != null)
+                m_LowRoot.SetActive(true);
+
+            if (m_HighRoot != null)
+                m_HighRoot.SetActive(false);
+        }
+
         void OnEnable()
         {
             if (s_ActiveHLODs == null)
@@ -128,34 +245,19 @@ namespace Unity.HLODSystem
             }
 
             s_ActiveHLODs.Add(this);
-
         }
 
         void OnDisable()
         {
             s_ActiveHLODs.Remove(this);
-
-            if (LowRoot != null)
-                LowRoot.SetActive(false);
-            if (HighRoot != null)
-                HighRoot.SetActive(true);
         }
 
-        public void EnableAll()
+        public void Install()
         {
-            var hlods = GetComponentsInChildren<HLOD>(true);
-            for (int i = 0; i < hlods.Length; ++i)
+            if (enabled == true)
             {
-                hlods[i].enabled = true;
-            }
-        }
-
-        public void DisableAll()
-        {
-            var hlods = GetComponentsInChildren<HLOD>(true);
-            for (int i = 0; i < hlods.Length; ++i)
-            {
-                hlods[i].enabled = false;
+                UpdateController();
+                m_controllerManager?.Enable();
             }
         }
 
@@ -194,6 +296,9 @@ namespace Unity.HLODSystem
         private static List<HLOD> s_ActiveHLODs;
         private static void OnPreCull(Camera cam)
         {
+            if (cam != Camera.main)
+                return;
+
             if (s_ActiveHLODs == null)
                 return;
 
@@ -217,7 +322,8 @@ namespace Unity.HLODSystem
                 float distance = 1.0f;
                 HLOD curHlod = s_ActiveHLODs[i];
 
-                if (curHlod.HighRoot == null || curHlod.LowRoot == null)
+                curHlod.UpdateController();
+                if (curHlod.m_controllerManager == null)
                     continue;
 
                 if (cam.orthographic == false)
@@ -226,18 +332,15 @@ namespace Unity.HLODSystem
 
                 if (relativeHeight > curHlod.m_LODDistance)
                 {
-                    curHlod.HighRoot.SetActive(true);
-                    curHlod.LowRoot.SetActive(false);
+                    curHlod.m_controllerManager.ShowHigh();
                 }
                 else if (relativeHeight > curHlod.m_CullDistance)
                 {
-                    curHlod.HighRoot.SetActive(false);
-                    curHlod.LowRoot.SetActive(true);
+                    curHlod.m_controllerManager.ShowLow();
                 }
                 else
                 {
-                    curHlod.HighRoot.SetActive(false);
-                    curHlod.LowRoot.SetActive(false);
+                    curHlod.m_controllerManager.Hide();
                 }
             }
         }
@@ -248,6 +351,8 @@ namespace Unity.HLODSystem
                 m_BatcherTypeStr = m_BatcherType.AssemblyQualifiedName;
             if (m_SimplifierType != null)
                 m_SimplifierTypeStr = m_SimplifierType.AssemblyQualifiedName;
+            if (m_StreamingType != null)
+                m_StreamingTypeStr = m_StreamingType.AssemblyQualifiedName;
         }
 
         public void OnAfterDeserialize()
@@ -269,8 +374,42 @@ namespace Unity.HLODSystem
             {
                 m_SimplifierType = Type.GetType(m_SimplifierTypeStr);
             }
+
+            if (string.IsNullOrEmpty(m_StreamingTypeStr))
+            {
+                m_StreamingType = null;
+            }
+            else
+            {
+                m_StreamingType = Type.GetType(m_StreamingTypeStr);
+            }
             
         }
+
+        private void UpdateController()
+        {
+            if (m_controllerManager != null)
+                return;
+
+            Streaming.ControllerBase highController = null;
+            Streaming.ControllerBase lowController = null;
+
+            if (m_HighRoot != null)
+            {
+                highController = m_HighRoot.GetComponent<Streaming.ControllerBase>();
+            }
+
+            if (m_LowRoot != null)
+            {
+                lowController = m_LowRoot.GetComponent<Streaming.ControllerBase>();
+            }
+
+            if (highController == null || lowController == null)
+                return;
+
+            m_controllerManager = new ControllerManager(this, highController, lowController);
+        }
+
     }
 
 }

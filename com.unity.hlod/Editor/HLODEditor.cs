@@ -26,6 +26,9 @@ namespace Unity.HLODSystem
         private Type[] m_SimplifierTypes;
         private string[] m_SimplifierNames;
 
+        private Type[] m_StreamingTypes;
+        private string[] m_StreamingNames;
+
         void OnEnable()
         {
             m_RecursiveGenerationProperty = serializedObject.FindProperty("m_RecursiveGeneration");
@@ -43,6 +46,9 @@ namespace Unity.HLODSystem
 
             m_SimplifierTypes = Simplifier.SimplifierTypes.GetTypes();
             m_SimplifierNames = m_SimplifierTypes.Select(t => t.Name).ToArray();
+
+            m_StreamingTypes = Streaming.StreamingBuilderTypes.GetTypes();
+            m_StreamingNames = m_StreamingTypes.Select(t => t.Name).ToArray();
         }
 
         public override void OnInspectorGUI()
@@ -109,26 +115,40 @@ namespace Unity.HLODSystem
             }
 
 
+            if (m_StreamingTypes.Length > 0)
+            {
+                int streamingIndex = Math.Max(Array.IndexOf(m_StreamingTypes, hlod.StreamingType), 0);
+                streamingIndex = EditorGUILayout.Popup("Streaming", streamingIndex, m_StreamingNames);
+                hlod.StreamingType = m_StreamingTypes[streamingIndex];
+
+                var info = m_StreamingTypes[streamingIndex].GetMethod("OnGUI");
+                if (info != null)
+                {
+                    if (info.IsStatic == true)
+                    {
+                        info.Invoke(null, new object[] {hlod});
+                    }
+                }
+            }
+            else
+            {
+                EditorGUILayout.LabelField("Can not find StreamingSetters.");
+            }
+
+
+
             if (GUILayout.Button("Generate"))
             {
                 Create(hlod);
             }
 
-            EditorGUILayout.Space();
-            if (GUILayout.Button("Enable All"))
-            {
-                hlod.EnableAll();
-            }
-
-            if (GUILayout.Button("Disable All"))
-            {
-                hlod.DisableAll();
-            }
-            
             serializedObject.ApplyModifiedProperties();
             if (EditorGUI.EndChangeCheck())
             {
-                EditorSceneManager.MarkSceneDirty(PrefabStageUtility.GetCurrentPrefabStage().scene);
+                if (PrefabStageUtility.GetCurrentPrefabStage() != null)
+                {
+                    EditorSceneManager.MarkSceneDirty(PrefabStageUtility.GetCurrentPrefabStage().scene);
+                }
             }
         }
 
