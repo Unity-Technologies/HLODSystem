@@ -87,7 +87,11 @@ namespace Unity.HLODSystem.Streaming.Cache
                 var ao = Addressables.LoadAsset<Object>(reference);
                 ao.Completed += operation =>
                 {
-                    m_usingObjects[hash].Result = operation.Result;
+                    if (m_usingObjects.ContainsKey(hash) == true)
+                    {
+                        m_usingObjects[hash].Result = operation.Result;
+                    }
+
                     m_loadingObjects.Remove(hash);
                 };
                 m_loadingObjects[hash] = ao;
@@ -111,8 +115,23 @@ namespace Unity.HLODSystem.Streaming.Cache
             if (m_usingObjects[hash].Count != 0)
                 return;
 
-            Addressables.ReleaseAsset(m_usingObjects[hash].Result);
-            m_usingObjects.Remove(hash);
+            //This means loading now.
+            //So, after loading, we check asset again for remove or not.
+            if (m_usingObjects[hash].Result == null)
+            {
+                m_loadingObjects[hash].Completed += operation =>
+                {
+                    if (m_usingObjects[hash].Count == 0)
+                    {
+                        Addressables.ReleaseAsset(m_usingObjects[hash].Result);
+                    }
+                };
+            }
+            else
+            {
+                Addressables.ReleaseAsset(m_usingObjects[hash].Result);
+                m_usingObjects.Remove(hash);
+            }
         }
         #endregion
 

@@ -33,6 +33,7 @@ namespace Unity.HLODSystem.Streaming
         [SerializeField]
         private List<GameObject> m_instantitedObjects = new List<GameObject>();
 
+        private List<AssetReference> m_loadedReferences = new List<AssetReference>();
         public void AddHLOD(HLOD hlod)
         {
             m_childHlods.Add(hlod);
@@ -122,10 +123,11 @@ namespace Unity.HLODSystem.Streaming
 
             m_instantitedObjects.Clear();
 
-            for (int i = 0; i < m_childObjects.Count; ++i)
+            for (int i = 0; i < m_loadedReferences.Count; ++i)
             {
-                Cache.AddressableCache.Unload(m_childObjects[i].Reference);
+                Cache.AddressableCache.Unload(m_loadedReferences[i]);
             }
+            m_loadedReferences.Clear();
 
             gameObject.SetActive(false);
         }
@@ -183,6 +185,7 @@ namespace Unity.HLODSystem.Streaming
 #endif
                 var objectInfo = m_childObjects[i];
                 var ao = Cache.AddressableCache.Load(objectInfo.Reference);
+                m_loadedReferences.Add(objectInfo.Reference);
                 if (ao.Result == null)
                     yield return ao;
                 if (ao.Result == null)
