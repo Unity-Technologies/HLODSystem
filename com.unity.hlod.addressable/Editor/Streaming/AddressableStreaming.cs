@@ -21,7 +21,7 @@ namespace Unity.HLODSystem.Streaming
         {
             if (hlod.HighRoot != null)
             {
-                BuildHigh(hlod.HighRoot);
+                BuildHigh(hlod);
             }
 
             if (hlod.LowRoot != null)
@@ -36,14 +36,21 @@ namespace Unity.HLODSystem.Streaming
 
             if (options.LastLowInMemory == null)
                 options.LastLowInMemory = false;
+            if (options.MaxInstantiateCount == null)
+                options.MaxInstantiateCount = 10;
 
             EditorGUI.indentLevel += 1;
             options.LastLowInMemory = EditorGUILayout.Toggle("Last low in memory", options.LastLowInMemory);
+            options.MaxInstantiateCount =
+                EditorGUILayout.IntSlider("Max instantiate count per frame", options.MaxInstantiateCount, 1, 100, null);
+            
             EditorGUI.indentLevel -= 1;
         }
 
-        private void BuildHigh(GameObject root)
+        private void BuildHigh(HLOD hlod)
         {
+            dynamic options = hlod.StreamingOptions;
+            var root = hlod.HighRoot;
             var controller = root.AddComponent<AddressableController>();
 
             Stack<Transform> trevelStack = new Stack<Transform>();
@@ -56,10 +63,10 @@ namespace Unity.HLODSystem.Streaming
                 var current = trevelStack.Pop();
                 foreach (Transform child in current)
                 {
-                    HLOD hlod = child.GetComponent<HLOD>();
-                    if (hlod != null)
+                    HLOD childHlod = child.GetComponent<HLOD>();
+                    if (childHlod != null)
                     {
-                        controller.AddHLOD(hlod);
+                        controller.AddHLOD(childHlod);
                     }
                     else if (PrefabUtility.IsAnyPrefabInstanceRoot(child.gameObject) == true)
                     {
@@ -79,6 +86,7 @@ namespace Unity.HLODSystem.Streaming
                 Object.DestroyImmediate(needDestory[i]);
             }
 
+            controller.MaxInstantiateCount = options.MaxInstantiateCount;
             controller.Disable();
            
         }
@@ -87,10 +95,11 @@ namespace Unity.HLODSystem.Streaming
         {
             string name = hlod.name;
             GameObject root = hlod.LowRoot;
+            dynamic options = hlod.StreamingOptions;
 
             if (isRoot == true)
             {
-                dynamic options = hlod.StreamingOptions;
+                
                 if (options.LastLowInMemory != null && options.LastLowInMemory == true)
                 {
                     root.AddComponent<DefaultController>();
@@ -152,7 +161,7 @@ namespace Unity.HLODSystem.Streaming
 
             var reference = GetAssetReference(go);
             controller.AddObject(reference, go.transform);
-            
+            controller.MaxInstantiateCount = options.MaxInstantiateCount;
 
             Object.DestroyImmediate(go);
         }

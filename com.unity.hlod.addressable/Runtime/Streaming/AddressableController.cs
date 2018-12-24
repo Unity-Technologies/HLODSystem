@@ -33,7 +33,17 @@ namespace Unity.HLODSystem.Streaming
         [SerializeField]
         private List<GameObject> m_instantitedObjects = new List<GameObject>();
 
+        [SerializeField]
+        private int m_maxInstantiateCount = 10;
+
         private List<AssetReference> m_loadedReferences = new List<AssetReference>();
+
+        public int MaxInstantiateCount
+        {
+            set { m_maxInstantiateCount = value; }
+            get { return m_maxInstantiateCount; }
+        }
+
         public void AddHLOD(HLOD hlod)
         {
             m_childHlods.Add(hlod);
@@ -173,6 +183,7 @@ namespace Unity.HLODSystem.Streaming
 
         private IEnumerator CreateChildObjects(bool active)
         {
+            int instantiateCount = 0;
             for (int i = 0; i < m_childObjects.Count; ++i)
             {
 #if UNITY_EDITOR
@@ -194,6 +205,11 @@ namespace Unity.HLODSystem.Streaming
                 }
 
                 LoadDoneObject((GameObject)ao.Result, objectInfo, active);
+                if (++instantiateCount >= MaxInstantiateCount)
+                {
+                    instantiateCount = 0;
+                    yield return null;
+                }
 
             }
         }
