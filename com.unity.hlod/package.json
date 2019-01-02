@@ -3,7 +3,7 @@
 	"displayName": "HLOD System",
 	"version": "0.0.1-preview",
 	"unity": "2018.3",
-	"description": "",
+	"description": "Replaces multiple Static Mesh Actors with single, combined Static Mesh Actor at long view distances",
 	"keywords": ["HLOD"],
 	"category": "",
 	"dependencies": {
