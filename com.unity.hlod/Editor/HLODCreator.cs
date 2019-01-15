@@ -39,7 +39,7 @@ namespace Unity.HLODSystem
 
                 //GetComponentsInChildren is not working.
                 //so, I made it manually.
-                targetHlods.AddRange(FindChildComponents<HLOD>(hlod.gameObject));
+                targetHlods.AddRange(FindObjects.GetComponentsInChildren<HLOD>(hlod.gameObject));
             }
             else
             {
@@ -58,8 +58,6 @@ namespace Unity.HLODSystem
 
             AssetDatabase.Refresh();
 
-
-            
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(targetHlods[i].SimplifierType);
@@ -69,7 +67,7 @@ namespace Unity.HLODSystem
             yield return new WaitForBranches();
 
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
-            batcher.Batch(targetHlods.Last(), targetHlods.Select(h=>h.LowRoot).ToArray());
+            batcher.Batch(targetHlods.Last(), targetHlods.Select(h => h.LowRoot).ToArray());
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
@@ -80,33 +78,10 @@ namespace Unity.HLODSystem
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 SavePrefab(targetHlods[i]);
-           }
-
-        }
-
-        //It must order by child first.
-        //Because we need to make child prefab first.
-        static T[] FindChildComponents<T>(GameObject root) where T : Component
-        {
-            LinkedList<T> result = new LinkedList<T>();
-            Queue<GameObject> queue = new Queue<GameObject>();
-            queue.Enqueue(root);
-
-            while (queue.Count > 0)
-            {
-                GameObject go = queue.Dequeue();
-                T component = go.GetComponent<T>();
-                if ( component != null )
-                    result.AddFirst(component);
-
-                foreach (Transform child in go.transform)
-                {
-                    queue.Enqueue(child.gameObject);
-                }
             }
 
-            return result.ToArray();
         }
+
 
         static void SavePrefab(HLOD hlod)
         {
@@ -175,19 +150,30 @@ namespace Unity.HLODSystem
         {
             GameObject low = new GameObject("Low");
 
-            var lodGroups = highGameObject.GetComponentsInChildren<LODGroup>();
-            List<Renderer> lodRenderers = new List<Renderer>();
+            List<Renderer> renderers = new List<Renderer>();
 
-            for (int i = 0; i < lodGroups.Length; ++i)
+            //Convert gameobject to MeshRenderer.
+            //This gameObjects are mixed LODGroup and MeshRenderer.
+            List<GameObject> gameObjects = FindObjects.HLODTargets(highGameObject);
+            for (int i = 0; i < gameObjects.Count; ++i)
             {
-                LOD[] lods = lodGroups[i].GetLODs();
-                Renderer[] renderers = lods.Last().renderers;
-                lodRenderers.AddRange(renderers);
+                var lodGroup = gameObjects[i].GetComponent<LODGroup>();
+                if (lodGroup != null)
+                {
+                    renderers.AddRange(lodGroup.GetLODs().Last().renderers);
+                    continue;
+                }
+
+                var renderer = gameObjects[i].GetComponent<Renderer>();
+                if (renderer != null)
+                {
+                    renderers.Add(renderer);
+                }
             }
 
-            for (int i = 0; i < lodRenderers.Count; ++i)
+            for (int i = 0; i < renderers.Count; ++i)
             {
-                Renderer renderer = lodRenderers[i];
+                Renderer renderer = renderers[i];
                 if (renderer == null)
                     continue;
 
@@ -196,7 +182,7 @@ namespace Unity.HLODSystem
                     continue;
 
                 MeshFilter filter = renderer.GetComponent<MeshFilter>();
-                GameObject rendererObject = new GameObject(lodRenderers[i].name, typeof(MeshFilter), typeof(MeshRenderer));
+                GameObject rendererObject = new GameObject(renderers[i].name, typeof(MeshFilter), typeof(MeshRenderer), typeof(LowMeshHolder));
 
                 EditorUtility.CopySerialized(filter, rendererObject.GetComponent<MeshFilter>());
                 EditorUtility.CopySerialized(renderer, rendererObject.GetComponent<MeshRenderer>());

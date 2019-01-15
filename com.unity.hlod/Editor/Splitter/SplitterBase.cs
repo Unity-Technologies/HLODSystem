@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
 using UnityEditor.SceneManagement;
@@ -23,7 +25,7 @@ namespace Unity.HLODSystem
             if (hlod == null)
                 return;
 
-            var childGroups = hlod.GetComponentsInChildren<LODGroup>();
+            var childTargets = FindObjects.HLODTargets(hlod.gameObject);
             var data = GetData(hlod);
 
             for (int c = 0; c < data.Length; ++c)
@@ -31,16 +33,16 @@ namespace Unity.HLODSystem
                 data[c].GameObject.transform.SetParent(hlod.transform);
             }
 
-            for (int i = 0; i < childGroups.Length; ++i)
+            for (int i = 0; i < childTargets.Count; ++i)
             {
                 for (int c = 0; c < data.Length; ++c)
                 {
-                    if (data[c].Bounds.Contains(childGroups[i].transform.position) == false)
+                    if (data[c].Bounds.Contains(childTargets[i].transform.position) == false)
                     {
                         continue;
                     }
 
-                    ChildMove(childGroups[i].gameObject, hlod.gameObject, data[c].GameObject);
+                    ChildMove(childTargets[i], hlod.gameObject, data[c].GameObject);
                 }
             }
 
