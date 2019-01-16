@@ -7,7 +7,7 @@ using System.Linq;
 using Unity.HLODSystem.Simplifier;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
-using UnityEditor.Experimental.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
@@ -26,7 +26,7 @@ namespace Unity.HLODSystem
         }
         public static IEnumerator Create(HLOD hlod)
         {
-            List<HLOD> targetHlods = new List<HLOD>();
+            List<HLOD> targetHlods = null;
            
             hlod.CalcBounds();
             if (hlod.RecursiveGeneration == true)
@@ -39,10 +39,11 @@ namespace Unity.HLODSystem
 
                 //GetComponentsInChildren is not working.
                 //so, I made it manually.
-                targetHlods.AddRange(FindObjects.GetComponentsInChildren<HLOD>(hlod.gameObject));
+                targetHlods = ObjectUtils.GetComponentsInChildren<HLOD>(hlod.gameObject);
             }
             else
             {
+                targetHlods = new List<HLOD>();
                 targetHlods.Add(hlod);
             }
 
@@ -77,59 +78,55 @@ namespace Unity.HLODSystem
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
-                SavePrefab(targetHlods[i]);
+                PrefabUtils.SavePrefab(targetHlods[i]);
             }
 
         }
 
-
-        static void SavePrefab(HLOD hlod)
+        public static IEnumerator Update(HLOD hlod)
         {
-            string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
-            path = stage.prefabAssetPath;
-            path = System.IO.Path.GetDirectoryName(path) + "/";
-            path = path + hlod.name + ".prefab";
+            yield break;
+        }
 
-            AssetDatabase.Refresh();
-            AssetDatabase.SaveAssets();
+        public static IEnumerator Destroy(HLOD hlod)
+        {
+            List<HLOD> targetHlods = ObjectUtils.GetComponentsInChildren<HLOD>(hlod.gameObject).ToList();
 
-            if (PrefabUtility.IsAnyPrefabInstanceRoot(hlod.gameObject) == false)
+            for (int i = 0; i < targetHlods.Count; ++i)
             {
-                PrefabUtility.SaveAsPrefabAssetAndConnect(hlod.gameObject, path,
-                    InteractionMode.AutomatedAction);
-            }
-            AssetDatabase.Refresh();
+                GameObject obj = PrefabUtility.GetOutermostPrefabInstanceRoot(targetHlods[i].gameObject);
+                if (obj == null)
+                    continue;
 
-
-            //store low lod meshes
-            var meshFilters = hlod.LowRoot.GetComponentsInChildren<MeshFilter>();
-            for (int f = 0; f < meshFilters.Length; ++f)
-            {
-                string meshPath = AssetDatabase.GetAssetPath(meshFilters[f].sharedMesh);
-                if (string.IsNullOrEmpty(meshPath))
-                {
-                    AssetDatabase.AddObjectToAsset(meshFilters[f].sharedMesh, path);
-                }
-
-                var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
-                foreach (var material in meshRenderer.sharedMaterials)
-                {
-                    string materialPath = AssetDatabase.GetAssetPath(material);
-                    if (string.IsNullOrEmpty(materialPath))
-                    {
-                        AssetDatabase.AddObjectToAsset(material, path);
-                    }
-                }
-
-                AssetDatabase.Refresh();
-                
+                PrefabUtility.UnpackPrefabInstance(obj, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             }
 
-            hlod.LowRoot.SetActive(false);
+            for (int i = 0; i < targetHlods.Count; ++i)
+            {
+                List<GameObject> hlodTargets = ObjectUtils.HLODTargets(targetHlods[i].HighRoot);
+
+                for (int ti = 0; ti < hlodTargets.Count; ++ti)
+                {
+                    ObjectUtils.HierarchyMove(hlodTargets[ti], targetHlods[i].HighRoot, hlod.gameObject );
+                }
+
+                if ( targetHlods[i] != hlod )
+                    Object.DestroyImmediate(targetHlods[i].gameObject);
+            }
+
+            Object.DestroyImmediate(hlod.HighRoot);
+            Object.DestroyImmediate(hlod.LowRoot);
+
+            yield break;
             
+        }
 
-            PrefabUtility.ApplyPrefabInstance(hlod.gameObject, InteractionMode.AutomatedAction);
+
+        
+
+        static void DestroyPrefab(HLOD hlod)
+        {
+
         }
 
         
@@ -154,7 +151,7 @@ namespace Unity.HLODSystem
 
             //Convert gameobject to MeshRenderer.
             //This gameObjects are mixed LODGroup and MeshRenderer.
-            List<GameObject> gameObjects = FindObjects.HLODTargets(highGameObject);
+            List<GameObject> gameObjects = ObjectUtils.HLODTargets(highGameObject);
             for (int i = 0; i < gameObjects.Count; ++i)
             {
                 var lodGroup = gameObjects[i].GetComponent<LODGroup>();

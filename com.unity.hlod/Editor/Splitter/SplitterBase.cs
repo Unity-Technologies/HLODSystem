@@ -1,12 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
-using UnityEditor.Experimental.SceneManagement;
-using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace Unity.HLODSystem
 {
@@ -25,7 +20,7 @@ namespace Unity.HLODSystem
             if (hlod == null)
                 return;
 
-            var childTargets = FindObjects.HLODTargets(hlod.gameObject);
+            var childTargets = ObjectUtils.HLODTargets(hlod.gameObject);
             var data = GetData(hlod);
 
             for (int c = 0; c < data.Length; ++c)
@@ -42,7 +37,7 @@ namespace Unity.HLODSystem
                         continue;
                     }
 
-                    ChildMove(childTargets[i], hlod.gameObject, data[c].GameObject);
+                    ObjectUtils.HierarchyMove(childTargets[i], hlod.gameObject, data[c].GameObject);
                 }
             }
 
@@ -100,22 +95,8 @@ namespace Unity.HLODSystem
                 Transform curTransform = traceStack.Pop();
                 if (cache.ContainsKey(curTransform) == false)
                 {
-                    GameObject go = new GameObject(curTransform.name);
-                    go.transform.SetParent(parent);
-
-                    var allComponents = curTransform.GetComponents<Component>();
-                    for (int i = 0; i < allComponents.Length; ++i)
-                    {
-                        System.Type type = allComponents[i].GetType();
-                        Component component = go.GetComponent(type);
-                        if (component == null)
-                        {
-                            component = go.AddComponent(type);
-                        }
-
-                        EditorUtility.CopySerialized(allComponents[i], component);
-                    }
-
+                    GameObject go = ObjectUtils.CopyGameObjectWithComponent(curTransform.gameObject);
+                    go.transform.SetParent(parent);    
                     cache.Add(curTransform, go);
                 }
 
