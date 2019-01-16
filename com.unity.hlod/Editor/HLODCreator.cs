@@ -85,7 +85,9 @@ namespace Unity.HLODSystem
 
         public static IEnumerator Update(HLOD hlod)
         {
-            yield break;
+            yield return Destroy(hlod);
+            yield return Create(hlod);
+
         }
 
         public static IEnumerator Destroy(HLOD hlod)
