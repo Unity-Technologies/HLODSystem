@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 
 namespace Unity.HLODSystem
 {
@@ -242,6 +243,7 @@ namespace Unity.HLODSystem
             {
                 s_ActiveHLODs = new List<HLOD>();
                 Camera.onPreCull += OnPreCull;
+                RenderPipeline.beginCameraRendering += OnPreCull;
             }
 
             s_ActiveHLODs.Add(this);
