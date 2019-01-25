@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.HLODSystem.Utils;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 
@@ -8,6 +9,7 @@ namespace Unity.HLODSystem
 {
     public class HLOD : MonoBehaviour, ISerializationCallbackReceiver
     {
+        public const string HLODLayerStr = "HLOD";
         class ControllerManager
         {
             enum CurrentShow
@@ -22,7 +24,7 @@ namespace Unity.HLODSystem
             private Streaming.ControllerBase m_highController;
             private Streaming.ControllerBase m_lowController;
 
-            private Coroutine m_lastRunner = null;
+            private CustomCoroutine m_lastRunner = null;
 
             public ControllerManager(HLOD outer, Streaming.ControllerBase highController, Streaming.ControllerBase lowController)
             {
@@ -58,8 +60,9 @@ namespace Unity.HLODSystem
                     ShowLow();
 
                 m_currentShow = CurrentShow.High;
-                IEnumerator coroutine = SwitchShow(m_lastRunner, m_highController, m_lowController);
-                m_lastRunner = m_outer.StartCoroutine(coroutine);
+                IEnumerator routine = SwitchShow(m_lastRunner, m_highController, m_lowController);
+                m_lastRunner = CoroutineRunner.RunCoroutine(routine);
+
             }
 
             public void ShowLow()
@@ -68,8 +71,8 @@ namespace Unity.HLODSystem
                     return;
 
                 m_currentShow = CurrentShow.Low;
-                IEnumerator coroutine = SwitchShow(m_lastRunner, m_lowController, m_highController);
-                m_lastRunner = m_outer.StartCoroutine(coroutine);
+                IEnumerator routine = SwitchShow(m_lastRunner, m_lowController, m_highController);
+                m_lastRunner = CoroutineRunner.RunCoroutine(routine);
             }
 
             public void Hide()
@@ -81,7 +84,8 @@ namespace Unity.HLODSystem
                 m_lowController.Hide();
             }
 
-            private IEnumerator SwitchShow(Coroutine lastRunner, Streaming.ControllerBase show, Streaming.ControllerBase hide)
+
+            private IEnumerator SwitchShow<T>(T lastRunner, Streaming.ControllerBase show, Streaming.ControllerBase hide)
             {
                 //wait for finish to last coroutine
                 //for synchronize active state. 
@@ -237,22 +241,22 @@ namespace Unity.HLODSystem
                 m_HighRoot.SetActive(false);
         }
 
+        
+
         void OnEnable()
         {
-            if (s_ActiveHLODs == null)
-            {
-                s_ActiveHLODs = new List<HLOD>();
-                Camera.onPreCull += OnPreCull;
-                RenderPipeline.beginCameraRendering += OnPreCull;
-            }
-
-            s_ActiveHLODs.Add(this);
+            HLODManager.Instance.RegisterHLOD(this);
         }
 
         void OnDisable()
         {
-            s_ActiveHLODs.Remove(this);
+            HLODManager.Instance.UnregisterHLOD(this);
         }
+        private void OnDestroy()
+        {
+            HLODManager.Instance.UnregisterHLOD(this);
+        }
+
 
         public void Install()
         {
@@ -295,55 +299,29 @@ namespace Unity.HLODSystem
             m_Bounds.size = new Vector3(max, max, max);
         }
 
-        private static List<HLOD> s_ActiveHLODs;
-        private static void OnPreCull(Camera cam)
+        public void UpdateCull(bool isOrthographics, Vector3 cameraPosition, float preRelative)
         {
-            if (cam != Camera.main)
+            float distance = 1.0f;
+
+            UpdateController();
+            if (m_controllerManager == null)
                 return;
 
-            if (s_ActiveHLODs == null)
-                return;
+            if (isOrthographics == false)
+                distance = Vector3.Distance(m_Bounds.center, cameraPosition);
+            float relativeHeight = m_Bounds.size.x * preRelative / distance;
 
-            var cameraTransform = cam.transform;
-            var cameraPosition = cameraTransform.position;
-
-            float preRelative = 0.0f;
-            if (cam.orthographic)
+            if (relativeHeight > m_LODDistance)
             {
-                preRelative = 0.5f / cam.orthographicSize;
+                m_controllerManager.ShowHigh();
+            }
+            else if (relativeHeight > m_CullDistance)
+            {
+                m_controllerManager.ShowLow();
             }
             else
             {
-                float halfAngle = Mathf.Tan(Mathf.Deg2Rad * cam.fieldOfView * 0.5F);
-                preRelative = 0.5f / halfAngle;
-            }
-            preRelative = preRelative * QualitySettings.lodBias;
-
-            for (int i = 0; i < s_ActiveHLODs.Count; ++i)
-            {
-                float distance = 1.0f;
-                HLOD curHlod = s_ActiveHLODs[i];
-
-                curHlod.UpdateController();
-                if (curHlod.m_controllerManager == null)
-                    continue;
-
-                if (cam.orthographic == false)
-                    distance = Vector3.Distance(curHlod.m_Bounds.center, cameraPosition);
-                float relativeHeight = curHlod.m_Bounds.size.x * preRelative / distance;
-
-                if (relativeHeight > curHlod.m_LODDistance)
-                {
-                    curHlod.m_controllerManager.ShowHigh();
-                }
-                else if (relativeHeight > curHlod.m_CullDistance)
-                {
-                    curHlod.m_controllerManager.ShowLow();
-                }
-                else
-                {
-                    curHlod.m_controllerManager.Hide();
-                }
+                m_controllerManager.Hide();
             }
         }
 

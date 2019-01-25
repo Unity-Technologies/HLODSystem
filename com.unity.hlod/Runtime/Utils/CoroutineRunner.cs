@@ -1,96 +1,170 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace Unity.HLODSystem.Utils
 {
-    public class CoroutineRunner : MonoBehaviour
+  
+    public class CustomCoroutine : IEnumerator
     {
-        class RunnerEnumerator : IEnumerator
+        class AsyncOperationEnumerator : IEnumerator
         {
-            private CoroutineRunner m_Runner;
-            private Stack<IEnumerator> m_CoroutineStack = new Stack<IEnumerator>();
-            private List<Coroutine> m_BranchList = new List<Coroutine>();
-            public RunnerEnumerator(CoroutineRunner runner, IEnumerator coroutine)
-            {
-                m_Runner = runner;
-                m_CoroutineStack.Push(coroutine);
-            }
+            private AsyncOperation m_operation;
 
-            public object Current
+            public AsyncOperationEnumerator(AsyncOperation operation)
             {
-                get { return m_CoroutineStack.Count > 0 ? m_CoroutineStack.Peek().Current : null; }
+                m_operation = operation;
             }
-
             public bool MoveNext()
             {
-                while (m_CoroutineStack.Count > 0)
-                {
-                    IEnumerator coroutine = m_CoroutineStack.Peek();
-                    if (coroutine.MoveNext())
-                    {
-                        object cur = Current;
-
-                        if (cur is IEnumerator)
-                        {
-                            m_CoroutineStack.Push(cur as IEnumerator);
-                        }
-                        else if (cur is BranchCoroutine)
-                        {
-                            var branch = cur as BranchCoroutine;
-                            m_BranchList.Add(m_Runner.RunCoroutine(branch.GetBranch(), false));
-                        }
-                        else if (cur is WaitForBranches)
-                        {
-                            m_CoroutineStack.Push(WaitForBranchesImpl());
-                        }
-                        else
-                        {
-                            return true;
-                        }
-                        
-                    }
-                    else
-                    {
-                        m_CoroutineStack.Pop();
-                    }
-                }
-
-                return false;
+                return m_operation.isDone == false;
             }
 
             public void Reset()
             {
-                while (m_CoroutineStack.Count > 1)
-                    m_CoroutineStack.Pop();
-
-                m_CoroutineStack.Peek().Reset();
             }
 
-            private IEnumerator WaitForBranchesImpl()
+            public object Current
             {
-                Coroutine[] branches = m_BranchList.ToArray();
-                for (int i = 0; i < branches.Length; ++i)
+                get { return null; }
+            }
+        }
+        private Stack<IEnumerator> m_routineStack = new Stack<IEnumerator>();
+        private List<CustomCoroutine> m_branchList = new List<CustomCoroutine>();
+
+        public CustomCoroutine(IEnumerator routine)
+        {
+            m_routineStack.Push(routine);
+        }
+
+        public bool MoveNext()
+        {
+            while (m_routineStack.Count > 0)
+            {
+                IEnumerator coroutine = m_routineStack.Peek();
+                if (coroutine.MoveNext())
                 {
-                    yield return branches[i];
+                    object cur = Current;
+
+                    if (cur == null)
+                    {
+                        return true;
+                    }
+                    else if (cur is IEnumerator)
+                    {
+                        m_routineStack.Push(cur as IEnumerator);
+                    }
+                    else if (cur is AsyncOperation)
+                    {
+                        m_routineStack.Push(new AsyncOperationEnumerator(cur as AsyncOperation));
+                    }
+                    else if (cur is BranchCoroutine)
+                    {
+                        var branch = cur as BranchCoroutine;
+                        m_branchList.Add(CoroutineRunner.RunCoroutine(branch.GetBranch()));
+                    }
+                    else if (cur is WaitForBranches)
+                    {
+                        m_routineStack.Push(WaitForBranchesImpl());
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Not support yield instruction in CustomCoroutine. " + cur.GetType().Name);
+                        return true;
+                    }
+                        
+                }
+                else
+                {
+                    m_routineStack.Pop();
+                }
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            while (m_routineStack.Count > 1)
+                m_routineStack.Pop();
+
+            m_routineStack.Peek().Reset();
+        }
+
+        public object Current { get { return m_routineStack.Count > 0 ? m_routineStack.Peek().Current : null; } }
+
+
+        private IEnumerator WaitForBranchesImpl()
+        {
+            CustomCoroutine[] branches = m_branchList.ToArray();
+            for (int i = 0; i < branches.Length; ++i)
+            {
+                yield return branches[i];
+            }
+        }
+    }
+
+
+
+    //Editor is not support coroutine
+    //so, if it run on editor, it have to run coroutine manually.
+    public class CoroutineRunner : MonoBehaviour
+    {
+        public static CustomCoroutine RunCoroutine(IEnumerator coroutine)
+        {
+            return Run(coroutine);
+        }
+
+#if UNITY_EDITOR
+        private static List<CustomCoroutine> s_coroutines;
+        [InitializeOnLoadMethod]
+        private static void Setup()
+        {
+            s_coroutines = new List<CustomCoroutine>();
+            EditorApplication.update+= EditorUpdate;
+        }
+
+        private static void EditorUpdate()
+        {
+            for (int i = 0; i < s_coroutines.Count; ++i)
+            {
+                if (s_coroutines[i].MoveNext() == false)
+                {
+                    s_coroutines.RemoveAt(i);
+                    i -= 1;
                 }
             }
         }
 
-        public Coroutine RunCoroutine(IEnumerator coroutine, bool autoRemoveGameObject = true)
+        private static CustomCoroutine Run(IEnumerator routine)
         {
-            return StartCoroutine(Run(coroutine, autoRemoveGameObject));
+            var coroutine = new CustomCoroutine(routine);
+            s_coroutines.Add(coroutine);
+            return coroutine;
         }
-
-        private IEnumerator Run(IEnumerator coroutine, bool autoRemoveGameObject)
+#else
+        private static IEnumerator CoroutineImpl(Coroutine coroutine)
         {
-            yield return new RunnerEnumerator(this, coroutine);
-
-            if (autoRemoveGameObject == true)
+            yield return coroutine;
+        }
+        private static GameObject gameObjectInstance = null;
+        private static CustomCoroutine Run(IEnumerator routine)
+        {
+            if (gameObjectInstance == null)
             {
-                DestroyImmediate(gameObject);
+                gameObjectInstance = new GameObject("Runner");
+                gameObjectInstance.hideFlags = HideFlags.HideAndDontSave;
+                gameObjectInstance.AddComponent<CoroutineRunner>();
             }
+
+            var runner = gameObjectInstance.GetComponent<CoroutineRunner>();
+            var coroutine = runner.StartCoroutine(routine);
+            return new CustomCoroutine(CoroutineImpl(coroutine));
         }
+#endif
     }
 
 }
