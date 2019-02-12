@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Linq;
+using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
 using UnityEditor.SceneManagement;
@@ -39,6 +40,16 @@ namespace Unity.HLODSystem
 
         private Type[] m_StreamingTypes;
         private string[] m_StreamingNames;
+
+        [InitializeOnLoadMethod]
+        static void InitTagTagUtils()
+        {
+            if (LayerMask.NameToLayer(HLOD.HLODLayerStr) == -1)
+            {
+                Utils.TagUtils.AddLayer(HLOD.HLODLayerStr);
+                Tools.lockedLayers |= LayerMask.NameToLayer(HLOD.HLODLayerStr);
+            }
+        }
 
         void OnEnable()
         {
@@ -172,19 +183,19 @@ namespace Unity.HLODSystem
             GUI.enabled = generateButton == Styles.GenerateButtonEnable;
             if (GUILayout.Button(generateButton))
             {
-                Run(HLODCreator.Create(hlod));
+                CoroutineRunner.RunCoroutine(HLODCreator.Create(hlod));
             }
 
             GUI.enabled = updateButton == Styles.UpdateButtonEnable;
             if (GUILayout.Button(updateButton))
             {
-                Run(HLODCreator.Update(hlod));
+                CoroutineRunner.RunCoroutine(HLODCreator.Update(hlod));
             }
 
             GUI.enabled = destroyButton == Styles.DestroyButtonEnable;
             if (GUILayout.Button(destroyButton))
             {
-                Run(HLODCreator.Destroy(hlod));
+                CoroutineRunner.RunCoroutine(HLODCreator.Destroy(hlod));
             }
 
             GUI.enabled = true;
@@ -199,14 +210,6 @@ namespace Unity.HLODSystem
             }
         }
 
-        private void Run(IEnumerator coroutine)
-        {
-            GameObject go = new GameObject("Runner");
-            var runner = go.AddComponent<Utils.CoroutineRunner>();
-            go.hideFlags = HideFlags.HideAndDontSave;
-
-            runner.RunCoroutine(coroutine);
-        }
     }
 
 }
