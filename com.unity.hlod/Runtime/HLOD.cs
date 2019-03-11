@@ -156,6 +156,12 @@ namespace Unity.HLODSystem
             get { return m_MinSize; }
         }
 
+        public float CullDistance
+        {
+            set { m_CullDistance = value; }
+            get { return m_CullDistance; }
+        }
+
         public GameObject HighRoot
         {
             set { m_HighRoot = value; }

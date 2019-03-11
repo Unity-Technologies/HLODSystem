@@ -54,6 +54,7 @@ namespace Unity.HLODSystem
                     EditorUtility.CopySerialized(hlod, childHLOD);
 
                     childHLOD.Bounds = data[c].Bounds;
+                    childHLOD.CullDistance = 0.0f; //< cull distance should exist only in the root hlod.
 
                     if (childHLOD.RecursiveGeneration == true)
                     {
