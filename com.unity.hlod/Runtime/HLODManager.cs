@@ -41,8 +41,21 @@ namespace Unity.HLODSystem
 
         private void OnPreCull(Camera cam)
         {
-            if (cam != Camera.current)
+#if UNITY_EDITOR
+            if (EditorApplication.isPlaying == false)
+            {
+                if (cam != Camera.current)
+                    return;
+            }
+            else
+            {
+                if (cam != Camera.main)
+                    return;
+            }
+#else
+            if (cam != Camera.main)
                 return;
+#endif
 
             if (m_activeHLODs == null)
                 return;

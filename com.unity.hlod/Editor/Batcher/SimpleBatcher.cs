@@ -63,7 +63,7 @@ namespace Unity.HLODSystem
 
                     for (int m = 0; m < materials.Length; ++m)
                     {
-                        Texture2D tex = materials[m].mainTexture as Texture2D;
+                        Texture2D tex = GetTexture(materials[m]);
                         if (tex == null)
                         {
                             textures.Add(whiteTexture);
@@ -140,7 +140,8 @@ namespace Unity.HLODSystem
                 material = new Material(AssetDatabase.LoadAssetAtPath<Material>(materialPath));
             }
 
-            material.mainTexture = atlas.PacktedTexture;
+
+            SetTexture(material, atlas.PacktedTexture);
             meshFilter.sharedMesh = combinedMesh;
             meshRenderer.material = material;
         }
@@ -226,12 +227,27 @@ namespace Unity.HLODSystem
         }
 
 
+        private void SetTexture(Material m, Texture2D t)
+        {
+            //for the LWRP
+            if (m.HasProperty("_BaseMap"))
+            {
+                m.SetTexture("_BaseMap", t);
+                return;
+            }
+
+            m.SetTexture("_MainTex", t);
+        }
         private Texture2D GetTexture(Material m)
         {
             if (m)
             {
-                if ( m.mainTexture != null)
-                    return m.mainTexture as Texture2D;            
+                if (m.HasProperty("_BaseMap"))
+                {
+                    return m.GetTexture("_BaseMap") as Texture2D;
+                }
+                if ( m.HasProperty("_MainTex"))
+                    return m.GetTexture("_MainTex") as Texture2D;            
             }
 
             return null;

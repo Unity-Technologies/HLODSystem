@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
 using Unity.HLODSystem.Simplifier;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
+using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
@@ -26,8 +28,14 @@ namespace Unity.HLODSystem
         }
         public static IEnumerator Create(HLOD hlod)
         {
+            Stopwatch sw = new Stopwatch();
             List<HLOD> targetHlods = null;
            
+            AssetDatabase.Refresh();
+            AssetDatabase.SaveAssets();
+
+            sw.Reset();
+            sw.Start();
             hlod.CalcBounds();
             if (hlod.RecursiveGeneration == true)
             {
@@ -46,7 +54,7 @@ namespace Unity.HLODSystem
                 targetHlods = new List<HLOD>();
                 targetHlods.Add(hlod);
             }
-
+           
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 var curHlod = targetHlods[i];
@@ -56,8 +64,9 @@ namespace Unity.HLODSystem
                 curHlod.HighRoot.transform.SetParent(curHlod.transform);
                 curHlod.LowRoot.transform.SetParent(curHlod.transform);
             }
-
-            AssetDatabase.Refresh();
+            Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
+            sw.Reset();
+            sw.Start();
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
@@ -66,21 +75,31 @@ namespace Unity.HLODSystem
             }
 
             yield return new WaitForBranches();
+            Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
+            sw.Reset();
+            sw.Start();
 
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
             batcher.Batch(targetHlods.Last(), targetHlods.Select(h => h.LowRoot).ToArray());
+            Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
+            sw.Reset();
+            sw.Start();
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
                 builder.Build(targetHlods[i], targetHlods[i] == hlod);
             }
+            Debug.Log("[HLOD] Streaming: " + sw.Elapsed.ToString("g"));
+            sw.Reset();
+            sw.Start();
 
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 PrefabUtils.SavePrefab(targetHlods[i]);
             }
-
+            Debug.Log("[HLOD] SavePrefab: " + sw.Elapsed.ToString("g"));
+            
         }
 
         public static IEnumerator Update(HLOD hlod)
