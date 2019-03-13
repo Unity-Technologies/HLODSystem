@@ -24,7 +24,7 @@ namespace Unity.HLODSystem
             private Streaming.ControllerBase m_highController;
             private Streaming.ControllerBase m_lowController;
 
-            private CustomCoroutine m_lastRunner = null;
+            private IEnumerator m_lastRunner = null;
 
             public ControllerManager(HLOD outer, Streaming.ControllerBase highController, Streaming.ControllerBase lowController)
             {
