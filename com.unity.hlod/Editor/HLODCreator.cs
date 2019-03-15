@@ -90,15 +90,13 @@ namespace Unity.HLODSystem
                 IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
                 builder.Build(targetHlods[i], targetHlods[i] == hlod);
             }
-            Debug.Log("[HLOD] Streaming: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-
-            for (int i = 0; i < targetHlods.Count; ++i)
-            {
-                PrefabUtils.SavePrefab(targetHlods[i]);
-            }
-            Debug.Log("[HLOD] SavePrefab: " + sw.Elapsed.ToString("g"));
+            Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+            
+            //for (int i = 0; i < targetHlods.Count; ++i)
+            //{
+            //    PrefabUtils.SavePrefab(targetHlods[i]);
+            //}
+            //Debug.Log("[HLOD] SavePrefab: " + sw.Elapsed.ToString("g"));
             
         }
 

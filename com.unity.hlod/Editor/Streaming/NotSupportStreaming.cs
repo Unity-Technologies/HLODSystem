@@ -20,6 +20,8 @@ namespace Unity.HLODSystem.Streaming
             {
                 hlod.HighRoot.AddComponent<DefaultController>();
             }
+
+            Utils.PrefabUtils.SavePrefab(hlod);
         }
     }
 }
