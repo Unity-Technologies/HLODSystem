@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System.IO;
+using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
 using UnityEngine;
 
@@ -6,52 +7,48 @@ namespace Unity.HLODSystem.Utils
 {
     public static class PrefabUtils 
     {
+      
         public static void SavePrefab(HLOD hlod)
         {
             string path = "";
             PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
             path = stage.prefabAssetPath;
-            path = System.IO.Path.GetDirectoryName(path) + "/";
-            path = path + hlod.name + ".prefab";
-
-            AssetDatabase.Refresh();
-            AssetDatabase.SaveAssets();
-
-            if (PrefabUtility.IsAnyPrefabInstanceRoot(hlod.gameObject) == false)
-            {
-                PrefabUtility.SaveAsPrefabAssetAndConnect(hlod.gameObject, path,
-                    InteractionMode.AutomatedAction);
-            }
-            AssetDatabase.Refresh();
-
+            path = Path.GetDirectoryName(path) + "/";
+            path = path + hlod.name;
 
             //store low lod meshes
             var meshFilters = hlod.LowRoot.GetComponentsInChildren<MeshFilter>();
+
+            var controller = hlod.LowRoot.GetComponent<Streaming.ControllerBase>();
             for (int f = 0; f < meshFilters.Length; ++f)
             {
-                string meshPath = AssetDatabase.GetAssetPath(meshFilters[f].sharedMesh);
-                if (string.IsNullOrEmpty(meshPath))
-                {
-                    AssetDatabase.AddObjectToAsset(meshFilters[f].sharedMesh, path);
-                }
+                var mesh = meshFilters[f].sharedMesh;
+
+                HLODMesh hlodmesh = ScriptableObject.CreateInstance<HLODMesh>();
+                hlodmesh.FromMesh(mesh);
 
                 var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
-                foreach (var material in meshRenderer.sharedMaterials)
-                {
-                    string materialPath = AssetDatabase.GetAssetPath(material);
-                    if (string.IsNullOrEmpty(materialPath))
-                    {
-                        AssetDatabase.AddObjectToAsset(material, path);
-                    }
-                }
-
-                AssetDatabase.Refresh();
+                var material = meshRenderer.sharedMaterial;
+                AssetDatabase.CreateAsset(material, path + ".mat");
+                AssetDatabase.CreateAsset(hlodmesh, path + "_" + mesh.name + ".hlodmesh");
                 
+
+                controller.AddHLODMesh(hlodmesh, material);
+            }
+
+            for (int i = hlod.LowRoot.transform.childCount - 1; i >= 0; --i )
+            {
+                GameObject.DestroyImmediate(hlod.LowRoot.transform.GetChild(i).gameObject);
             }
 
             hlod.LowRoot.SetActive(false);
+            
+            if (PrefabUtility.IsAnyPrefabInstanceRoot(hlod.gameObject) == false)
+            {
+                PrefabUtility.SaveAsPrefabAssetAndConnect(hlod.gameObject, path + ".prefab",
+                    InteractionMode.AutomatedAction);
+            }
 
-            PrefabUtility.ApplyPrefabInstance(hlod.gameObject, InteractionMode.AutomatedAction);
         }
 
         public static void RemovePrefab(HLOD hlod)

@@ -64,6 +64,10 @@ namespace Unity.HLODSystem.Streaming
             m_childObjects.Add(obj);
         }
 
+        public override void AddHLODMesh(HLODMesh mesh, Material mat)
+        {
+
+        }
 
         public override IEnumerator Load()
         {
