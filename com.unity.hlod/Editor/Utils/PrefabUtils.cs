@@ -24,16 +24,25 @@ namespace Unity.HLODSystem.Utils
             {
                 var mesh = meshFilters[f].sharedMesh;
 
+                var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
+                var material = meshRenderer.sharedMaterial;
+
                 HLODMesh hlodmesh = ScriptableObject.CreateInstance<HLODMesh>();
                 hlodmesh.FromMesh(mesh);
 
-                var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
-                var material = meshRenderer.sharedMaterial;
-                AssetDatabase.CreateAsset(material, path + ".mat");
-                AssetDatabase.CreateAsset(hlodmesh, path + "_" + mesh.name + ".hlodmesh");
                 
+                string meshName = path;
+                if (string.IsNullOrEmpty(mesh.name) == false)
+                    meshName = meshName + "_" + mesh.name;
 
+                AssetDatabase.CreateAsset(hlodmesh, meshName + ".hlodmesh");
                 controller.AddHLODMesh(hlodmesh, material);
+
+                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(material)))
+                {
+                    AssetDatabase.AddObjectToAsset(material, meshName + ".hlodmesh");
+                }
+
             }
 
             for (int i = hlod.LowRoot.transform.childCount - 1; i >= 0; --i )
