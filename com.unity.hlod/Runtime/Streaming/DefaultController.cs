@@ -7,23 +7,18 @@ namespace Unity.HLODSystem.Streaming
 {
     public class DefaultController : ControllerBase
     {
-        [Serializable]
-        struct MeshData
-        {
-            [SerializeField] public HLODMesh Mesh;
-            [SerializeField] public Material Material;
-        }
 
         [SerializeField]
-        private List<MeshData> m_meshDataList = new List<MeshData>();
+        private List<HLODMesh> m_meshDataList = new List<HLODMesh>();
 
-        public override void AddHLODMesh(HLODMesh mesh, Material mat)
+        public void AddHLODMesh(HLODMesh mesh)
         {
-            m_meshDataList.Add(new MeshData
-            {
-                Mesh = mesh,
-                Material = mat
-            });
+            m_meshDataList.Add(mesh);
+        }
+
+        public void AddHLODMeshes(List<HLODMesh> meshes)
+        {
+            m_meshDataList.AddRange(meshes);
         }
         
         public override IEnumerator Load()
@@ -32,7 +27,7 @@ namespace Unity.HLODSystem.Streaming
             {
                 GameObject go = new GameObject();
 
-                go.AddComponent<MeshFilter>().sharedMesh = m_meshDataList[i].Mesh.ToMesh();
+                go.AddComponent<MeshFilter>().sharedMesh = m_meshDataList[i].ToMesh();
                 go.AddComponent<MeshRenderer>().material = m_meshDataList[i].Material;
                 go.transform.parent = gameObject.transform;
             }

@@ -18,6 +18,14 @@ namespace Unity.HLODSystem
         private Vector2[] m_uv;
         [SerializeField]
         private int[] m_triangles;
+        [SerializeField]
+        private Material m_material;
+
+        public Material Material
+        {
+            set { m_material = value; }
+            get { return m_material; }
+        }
 
         public void FromMesh(Mesh mesh)
         {

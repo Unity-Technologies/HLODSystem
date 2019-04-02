@@ -85,12 +85,20 @@ namespace Unity.HLODSystem
             sw.Reset();
             sw.Start();
 
+
+            AssetDatabase.StartAssetEditing();
             for (int i = 0; i < targetHlods.Count; ++i)
             {
                 IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
                 builder.Build(targetHlods[i], targetHlods[i] == hlod);
             }
             Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+            sw.Reset();
+            sw.Start();
+
+            AssetDatabase.StopAssetEditing();
+            Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
+            
             
             //for (int i = 0; i < targetHlods.Count; ++i)
             //{
