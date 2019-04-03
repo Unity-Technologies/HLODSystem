@@ -59,11 +59,12 @@ namespace Unity.HLODSystem.Utils
                 if (string.IsNullOrEmpty(mesh.name) == false)
                     meshName = meshName + "_" + mesh.name;
 
-                AssetDatabase.CreateAsset(hlodmesh, meshName + ".hlodmesh");
                 if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(material)))
                 {
-                    AssetDatabase.AddObjectToAsset(material, meshName + ".hlodmesh");
+                    AssetDatabase.CreateAsset(material, meshName + ".mat");
                 }
+                AssetDatabase.CreateAsset(hlodmesh, meshName + ".asset");
+                
 
                 GameObject.DestroyImmediate(meshFilters[f].gameObject);
                 result.Add(hlodmesh);
