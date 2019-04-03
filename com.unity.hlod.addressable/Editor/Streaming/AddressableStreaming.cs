@@ -1,5 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
@@ -20,6 +22,12 @@ namespace Unity.HLODSystem.Streaming
 
         public void Build(HLOD hlod, bool isRoot)
         {
+            string path = "";
+            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
+            path = stage.prefabAssetPath;
+            path = Path.GetDirectoryName(path) + "/";            
+
+
             if (hlod.HighRoot != null)
             {
                 BuildHigh(hlod);
@@ -29,6 +37,8 @@ namespace Unity.HLODSystem.Streaming
             {
                 BuildLow(hlod, isRoot);
             }
+
+            PrefabUtils.SavePrefab(path, hlod);
         }
 
         public static void OnGUI(HLOD hlod)
@@ -94,81 +104,39 @@ namespace Unity.HLODSystem.Streaming
 
         private void BuildLow(HLOD hlod, bool isRoot)
         {
-            string name = hlod.name;
             GameObject root = hlod.LowRoot;
             dynamic options = hlod.StreamingOptions;
 
+            string path = "";
+            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
+            path = stage.prefabAssetPath;
+            path = Path.GetDirectoryName(path) + "/";            
+
             if (isRoot == true)
             {
-                
                 if (options.LastLowInMemory != null && options.LastLowInMemory == true)
                 {
-                    root.AddComponent<DefaultController>();
+                    var rootController = root.AddComponent<DefaultController>();
+                    List<HLODMesh> rootCreatedMeshes = ObjectUtils.SaveHLODMesh(path, hlod.name, hlod.LowRoot);
+                    rootController.AddHLODMeshes(rootCreatedMeshes);
                     return;
                 }
             }
 
-            
-
             var controller = root.AddComponent<AddressableController>();
 
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(root);
-            string path = stage.prefabAssetPath;
-            path = System.IO.Path.GetDirectoryName(path) + "/Low/";
-
-            if (System.IO.Directory.Exists(path) == false)
+            List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, hlod.name, hlod.LowRoot);
+            List<AssetReference> references = new List<AssetReference>(createdMeshes.Count);
+            for (int i = 0; i < createdMeshes.Count; ++i)
             {
-                System.IO.Directory.CreateDirectory(path);
+                references.Add(GetAssetReference(createdMeshes[i]));
             }
-
-            path = path + name + ".prefab";
-
-            root.SetActive(true);
-
-            //Move every child object to new one for make prefab.
-            GameObject go = new GameObject(name);
-
-            while (root.transform.childCount > 0)
-            {
-                var child = root.transform.GetChild(0);
-                child.SetParent(go.transform);
-            }
-
-            go.transform.SetParent(root.transform);
-
-            PrefabUtility.SaveAsPrefabAssetAndConnect(go, path, InteractionMode.AutomatedAction);
-            AssetDatabase.Refresh();
-
-            //store low lod meshes
-            var meshFilters = go.GetComponentsInChildren<MeshFilter>();
-            for (int f = 0; f < meshFilters.Length; ++f)
-            {
-                AssetDatabase.AddObjectToAsset(meshFilters[f].sharedMesh, path);
-                var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
-                foreach (var material in meshRenderer.sharedMaterials)
-                {
-                    string materialPath = AssetDatabase.GetAssetPath(material);
-                    if (string.IsNullOrEmpty(materialPath))
-                    {
-                        AssetDatabase.AddObjectToAsset(material, path);
-                    }
-                }
-
-                AssetDatabase.Refresh();
-                
-            }
-
-            PrefabUtility.ApplyPrefabInstance(go, InteractionMode.AutomatedAction);
-
-            var reference = GetAssetReference(go);
-            controller.AddObject(reference, go.transform);
+            controller.AddHLODMeshReferences(references);
             controller.MaxInstantiateCount = options.MaxInstantiateCount;
-
-            Object.DestroyImmediate(go);
         }
 
 
-        private AssetReference GetAssetReference(GameObject obj)
+        private AssetReference GetAssetReference(Object obj)
         {
             //create settings if there is no settings.
             if (AddressableAssetSettingsDefaultObject.Settings == null)
@@ -176,8 +144,12 @@ namespace Unity.HLODSystem.Streaming
                 AddressableAssetSettings.Create(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder, AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
             }
 
+            
             var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
-            string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
+            string path = AssetDatabase.GetAssetPath(obj);
+            
+            if (string.IsNullOrEmpty(path))
+                PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
             if (string.IsNullOrEmpty(path))
                 return null;
 

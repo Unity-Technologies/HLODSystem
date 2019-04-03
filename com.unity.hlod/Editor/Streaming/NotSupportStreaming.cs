@@ -1,4 +1,8 @@
-﻿using UnityEditor;
+﻿using System.IO;
+using System.Collections.Generic;
+using Unity.HLODSystem.Utils;
+using UnityEditor;
+using UnityEditor.Experimental.SceneManagement;
 
 namespace Unity.HLODSystem.Streaming
 {
@@ -11,15 +15,25 @@ namespace Unity.HLODSystem.Streaming
         }
         public void Build(HLOD hlod, bool isRoot)
         {
+            string path = "";
+            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
+            path = stage.prefabAssetPath;
+            path = Path.GetDirectoryName(path) + "/";            
+
             if (hlod.LowRoot != null)
             {
-                hlod.LowRoot.AddComponent<DefaultController>();
+                var controller = hlod.LowRoot.AddComponent<DefaultController>();
+
+                List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, hlod.name, hlod.LowRoot);
+                controller.AddHLODMeshes(createdMeshes);
             }
 
             if (hlod.HighRoot != null)
             {
                 hlod.HighRoot.AddComponent<DefaultController>();
             }
+
+            PrefabUtils.SavePrefab(path, hlod);
         }
     }
 }

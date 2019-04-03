@@ -49,6 +49,21 @@ namespace Unity.HLODSystem.Streaming
             m_childHlods.Add(hlod);
         }
 
+        public void AddHLODMeshReferences(List<AssetReference> refs)
+        {
+            for (int i = 0; i < refs.Count; ++i)
+            {
+                ChildObject obj = new ChildObject();
+                obj.Reference = refs[i];
+                obj.Parent = gameObject;
+                obj.Position = Vector3.zero;
+                obj.Rotation = Quaternion.identity;
+                obj.Scale = Vector3.one;
+
+                m_childObjects.Add(obj);
+            }
+        }
+
         public void AddObject(AssetReference reference, Transform objectTransform)
         {
             if (reference == null || objectTransform == null)
@@ -63,7 +78,6 @@ namespace Unity.HLODSystem.Streaming
 
             m_childObjects.Add(obj);
         }
-
 
         public override IEnumerator Load()
         {
@@ -167,18 +181,38 @@ namespace Unity.HLODSystem.Streaming
             enabled = false;
         }
 
-        private void LoadDoneObject(GameObject prefab, ChildObject obj, bool active)
+        private void LoadDoneObject(UnityEngine.Object asset, ChildObject obj, bool active)
         {
-            if (prefab == null)
+            if (asset == null)
                 return;
 
-            GameObject instance = Instantiate(prefab, obj.Parent.transform);
-            instance.transform.position = obj.Position;
-            instance.transform.rotation = obj.Rotation;
-            instance.transform.localScale = obj.Scale;
-            instance.SetActive(active);
+            if (asset is HLODMesh)
+            {
+                HLODMesh mesh = (HLODMesh)asset;
+                GameObject go = new GameObject();
 
-            m_instantitedObjects.Add(instance);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh.ToMesh();
+                go.AddComponent<MeshRenderer>().sharedMaterial = mesh.Material;
+
+                go.transform.parent = obj.Parent.transform;
+                go.transform.position = obj.Position;
+                go.transform.rotation = obj.Rotation;
+                go.transform.localScale = obj.Scale;
+                go.SetActive(active);
+
+                m_instantitedObjects.Add(go);
+
+            }
+            if (asset is GameObject)
+            {
+                GameObject instance = Instantiate((GameObject)asset, obj.Parent.transform);
+                instance.transform.position = obj.Position;
+                instance.transform.rotation = obj.Rotation;
+                instance.transform.localScale = obj.Scale;
+                instance.SetActive(active);
+
+                m_instantitedObjects.Add(instance);
+            }
         }
 
         private IEnumerator CreateChildObjects(bool active)
@@ -189,8 +223,8 @@ namespace Unity.HLODSystem.Streaming
 #if UNITY_EDITOR
                 if (EditorApplication.isPlaying == false)
                 {
-                    GameObject prefab = (GameObject) m_childObjects[i].Reference.editorAsset;
-                    LoadDoneObject(prefab, m_childObjects[i], active);
+                    UnityEngine.Object asset = m_childObjects[i].Reference.editorAsset;
+                    LoadDoneObject(asset, m_childObjects[i], active);
                     continue;
                 }
 #endif
@@ -204,7 +238,7 @@ namespace Unity.HLODSystem.Streaming
                     Debug.LogError("Failed to load object: " + objectInfo.Reference);
                 }
 
-                LoadDoneObject((GameObject)ao.Result, objectInfo, active);
+                LoadDoneObject(ao.Result, objectInfo, active);
                 if (++instantiateCount >= MaxInstantiateCount)
                 {
                     instantiateCount = 0;
@@ -221,15 +255,15 @@ namespace Unity.HLODSystem.Streaming
 #if UNITY_EDITOR
                 if (EditorApplication.isPlaying == false)
                 {
-                    GameObject prefab = (GameObject) m_childObjects[i].Reference.editorAsset;
-                    LoadDoneObject(prefab, m_childObjects[i], active);
+                    UnityEngine.Object asset = m_childObjects[i].Reference.editorAsset;
+                    LoadDoneObject(asset, m_childObjects[i], active);
                     continue;
                 }
 #endif
                 var objectInfo = m_childObjects[i];
                 Addressables.LoadAsset<UnityEngine.Object>(objectInfo.Reference).Completed += o =>
                 {
-                    LoadDoneObject((GameObject)o.Result, objectInfo, active);
+                    LoadDoneObject(o.Result, objectInfo, active);
                 };
             }
         }
