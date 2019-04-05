@@ -131,7 +131,7 @@ namespace Unity.HLODSystem
             Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
             sw.Reset();
             sw.Start();
-            /*            
+            
             ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType, new object[]{hlod});
             if ( simplifier == null )
                 yield break;
@@ -146,6 +146,7 @@ namespace Unity.HLODSystem
             sw.Reset();
             sw.Start();
 
+            /*
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
             if ( batcher == null )
                 yield break;

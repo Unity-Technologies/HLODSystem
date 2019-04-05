@@ -12,6 +12,11 @@ namespace Unity.HLODSystem.Simplifier
             SimplifierTypes.RegisterType(typeof(NotUseSimplifier), -1);
         }
 
+        public IEnumerator Simplify(HLODBuildInfo info)
+        {
+            yield break;
+        }
+
         public IEnumerator Simplify(HLOD hlod)
         {
             yield break;
