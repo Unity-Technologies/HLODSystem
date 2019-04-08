@@ -172,6 +172,16 @@ namespace Unity.HLODSystem
             }
         }
 
+        public void SaveTextures(string path, string prefixName)
+        {
+            int index = 1;
+            foreach (var group in atlasGroups)
+            {
+                var name = path + Path.DirectorySeparatorChar + prefixName + index++ + ".png";
+                group.Atlas.PacktedTexture = SaveTexture(group.Atlas.PacktedTexture, name);
+            }
+        }
+
         private TextureAtlas MakeTextureAtlas(PackTexture packTexture, int packTextureSize)
         {
             TextureAtlas atlas = new TextureAtlas();
@@ -208,10 +218,6 @@ namespace Unity.HLODSystem
             }
 
             packtedTexture.Apply();
-
-            var name = Path.GetRandomFileName();
-            packtedTexture = SaveTexture(packtedTexture, name);
-
             atlas.PacktedTexture = packtedTexture;
             return atlas;
         }
@@ -276,12 +282,8 @@ namespace Unity.HLODSystem
             return minTextureCount;
         }
 
-        static Texture2D SaveTexture(Texture2D texture, string name)
-        {
-            var path = GetPrefabDirectory() + name;            
-            path = Path.ChangeExtension(path, "PNG");
-
-            
+        static Texture2D SaveTexture(Texture2D texture, string path)
+        {           
             var dirPath = Path.GetDirectoryName(path);
             if (Directory.Exists(path) == false)
             {
@@ -296,11 +298,6 @@ namespace Unity.HLODSystem
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
-        static string GetPrefabDirectory()
-        {
-            string path = PrefabStageUtility.GetCurrentPrefabStage().prefabAssetPath;
-            return Path.GetDirectoryName(path) + Path.DirectorySeparatorChar;
-        }
     }
 
 }

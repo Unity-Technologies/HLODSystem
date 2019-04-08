@@ -1,7 +1,9 @@
 ﻿using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using UnityEditor.Experimental.SceneManagement;
 using UnityEngine.Rendering;
 
 namespace Unity.HLODSystem
@@ -33,27 +35,14 @@ namespace Unity.HLODSystem
         }
 
         private TexturePacker m_Packer = new TexturePacker();
+        private Dictionary<Texture2D, Material> m_createdMaterials = new Dictionary<Texture2D, Material>();
         private HLOD m_hlod;
 
         public SimpleBatcher(HLOD hlod)
         {
             m_hlod = hlod;
         }
-
-        //from AutoLOD
-        //https://github.com/Unity-Technologies/AutoLOD
-        public void Batch(HLOD rootHlod, GameObject[] targets)
-        {
-            //dynamic options = rootHlod.BatcherOptions;
-
-            //PackingTexture(targets, options);
-
-            //for (int i = 0; i < targets.Length; ++i)
-            //{
-            //    Combine(targets[i], options);
-            //}
-        }
-
+        
         public void Batch(List<HLODBuildInfo> targets)
         {
             dynamic options = m_hlod.BatcherOptions;
@@ -96,6 +85,14 @@ namespace Unity.HLODSystem
 
             
             m_Packer.Pack(options.PackTextureSize, options.LimitTextureSize);
+            m_Packer.SaveTextures(GetPrefabDirectory(), m_hlod.name);
+        }
+
+        
+        static string GetPrefabDirectory()
+        {
+            string path = PrefabStageUtility.GetCurrentPrefabStage().prefabAssetPath;
+            return Path.GetDirectoryName(path) + Path.DirectorySeparatorChar;
         }
 
         private void Combine(HLODBuildInfo info, dynamic options)
@@ -139,25 +136,9 @@ namespace Unity.HLODSystem
             var meshRenderer = go.AddComponent<MeshRenderer>();
             var meshFilter = go.AddComponent<MeshFilter>();
 
-            Material material = null;
-
             go.transform.SetParent(m_hlod.LowRoot.transform);
-
-            string materialGUID = options.MaterialGUID;
-            if (string.IsNullOrEmpty(materialGUID) == true)
-            {
-                material = new Material(Shader.Find("Standard"));
-            }
-            else
-            {
-                string materialPath = AssetDatabase.GUIDToAssetPath(materialGUID);
-                material = new Material(AssetDatabase.LoadAssetAtPath<Material>(materialPath));
-            }
-
-
-            SetTexture(material, atlas.PacktedTexture);
             meshFilter.sharedMesh = combinedMesh;
-            meshRenderer.material = material;
+            meshRenderer.material = GetMaterial(options, atlas.PacktedTexture);
         }
 
 
@@ -219,6 +200,41 @@ namespace Unity.HLODSystem
             ret.uv2 = null;
 
             return ret;
+        }
+
+
+        private Dictionary<Texture2D, Material> m_cachedMaterial = new Dictionary<Texture2D, Material>();
+        private Material GetMaterial(dynamic options, Texture2D texture)
+        {            
+            string materialGUID = options.MaterialGUID;
+            Material material = null;
+
+            if (m_cachedMaterial.ContainsKey(texture) == true)
+            {
+                return m_cachedMaterial[texture];
+            }
+
+            if (string.IsNullOrEmpty(materialGUID) == true)
+            {
+                material = new Material(Shader.Find("Standard"));
+            }
+            else
+            {
+                string materialPath = AssetDatabase.GUIDToAssetPath(materialGUID);
+                material = new Material(AssetDatabase.LoadAssetAtPath<Material>(materialPath));
+            }
+            SetTexture(material, texture);
+
+            string texturePath = AssetDatabase.GetAssetPath(texture);
+            if (string.IsNullOrEmpty(texturePath) == false)
+            {
+                string materialPath = Path.ChangeExtension(texturePath, "mat");
+                AssetDatabase.CreateAsset(material, materialPath);
+            }
+
+
+            m_cachedMaterial[texture] = material;
+            return material;
         }
 
 
