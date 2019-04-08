@@ -20,7 +20,7 @@ namespace Unity.HLODSystem.Streaming
             StreamingBuilderTypes.RegisterType(typeof(AddressableStreaming));
         }
 
-        public void Build(HLOD hlod, bool isRoot)
+        public void Build(HLOD hlod)
         {
             string path = "";
             PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
@@ -33,10 +33,10 @@ namespace Unity.HLODSystem.Streaming
                 BuildHigh(hlod);
             }
 
-            if (hlod.LowRoot != null)
-            {
-                BuildLow(hlod, isRoot);
-            }
+            //if (hlod.LowRoot != null)
+            //{
+            //    BuildLow(hlod, isRoot);
+            //}
 
             PrefabUtils.SavePrefab(path, hlod);
         }

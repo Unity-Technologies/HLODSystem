@@ -13,7 +13,7 @@ namespace Unity.HLODSystem.Streaming
         {
             StreamingBuilderTypes.RegisterType(typeof(NotSupportStreaming), -1);
         }
-        public void Build(HLOD hlod, bool isRoot)
+        public void Build(HLOD hlod)
         {
             string path = "";
             PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);

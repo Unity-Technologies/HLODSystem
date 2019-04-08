@@ -140,9 +140,6 @@ namespace Unity.HLODSystem
             sw.Start();
             
             ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType, new object[]{hlod});
-            if ( simplifier == null )
-                yield break;
-
             for (int i = 0; i < buildInfos.Count; ++i)
             {
                 yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
@@ -155,37 +152,23 @@ namespace Unity.HLODSystem
 
             
             IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[]{hlod});
-            if ( batcher == null )
-                yield break;
-
             batcher.Batch(buildInfos);
             Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
             sw.Reset();
             sw.Start();
             
-            /*
+            
             AssetDatabase.StartAssetEditing();
             IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType);
-            if ( builder == null )
-                yield break;
-            //for (int i = 0; i < targetHlods.Count; ++i)
-            //{
-            //    IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
-            //    builder.Build(targetHlods[i], targetHlods[i] == hlod);
-            //}
+            builder.Build(hlod);
             Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
             sw.Reset();
             sw.Start();
 
             AssetDatabase.StopAssetEditing();
             Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
-            //combine
-            
-            //storing
-            */
 
-            yield break;
-            
+            hlod.Root = rootNode;
         }
 
         public static IEnumerator Update(HLOD hlod)

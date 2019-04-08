@@ -55,14 +55,12 @@ namespace Unity.HLODSystem.Utils
                 hlodmesh.FromMesh(mesh);
                 hlodmesh.Material = material;
               
-                string meshName = path;
-                if (string.IsNullOrEmpty(mesh.name) == false)
-                    meshName = meshName + "_" + mesh.name;
+                string meshName = path + meshFilters[f].gameObject.name;
 
-                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(material)))
-                {
-                    AssetDatabase.CreateAsset(material, meshName + ".mat");
-                }
+                //if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(material)))
+                //{
+                //    AssetDatabase.CreateAsset(material, meshName + ".mat");
+                //}
                 AssetDatabase.CreateAsset(hlodmesh, meshName + ".asset");
                 
 

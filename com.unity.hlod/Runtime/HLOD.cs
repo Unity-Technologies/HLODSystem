@@ -98,6 +98,7 @@ namespace Unity.HLODSystem
         }
         [SerializeField]
         private Bounds m_Bounds;
+        private SpaceNode m_root;
 
         [SerializeField]
         private bool m_RecursiveGeneration = true;
@@ -154,6 +155,12 @@ namespace Unity.HLODSystem
         public float MinSize
         {
             get { return m_MinSize; }
+        }
+
+        public SpaceNode Root
+        {
+            set { m_root = value; }
+            get { return m_root; }
         }
 
         public float CullDistance
