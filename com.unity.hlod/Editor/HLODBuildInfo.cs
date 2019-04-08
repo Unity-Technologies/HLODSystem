@@ -7,6 +7,7 @@ namespace Unity.HLODSystem
 {
     public class HLODBuildInfo
     {
+        public string name = "";
         public int parentIndex = -1;
         public SpaceNode target;
 

@@ -135,7 +135,7 @@ namespace Unity.HLODSystem
             combinedMesh.CombineMeshes(combineInstances.ToArray());
             combinedMesh.RecalculateBounds();
 
-            var go = new GameObject("CombinedMesh");
+            var go = new GameObject(info.name);
             var meshRenderer = go.AddComponent<MeshRenderer>();
             var meshFilter = go.AddComponent<MeshFilter>();
 

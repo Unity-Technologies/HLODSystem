@@ -67,7 +67,7 @@ namespace Unity.HLODSystem
                 mesh.CombineMeshes(instances.Value.ToArray(), true, true, false);
                 mesh.name = instances.Key.name;
 
-                var go = new GameObject(instances.Key.name, typeof(MeshRenderer), typeof(MeshFilter));
+                var go = new GameObject(info.name + instances.Key.name, typeof(MeshRenderer), typeof(MeshFilter));
                 go.GetComponent<MeshFilter>().sharedMesh = mesh;
                 go.GetComponent<MeshRenderer>().sharedMaterial = instances.Key;
 

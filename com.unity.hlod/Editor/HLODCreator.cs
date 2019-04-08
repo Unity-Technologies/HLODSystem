@@ -64,17 +64,21 @@ namespace Unity.HLODSystem
             List<HLODBuildInfo> results = new List<HLODBuildInfo>();
             Stack<SpaceNode> trevelStack = new Stack<SpaceNode>();
             Stack<int> parentStack = new Stack<int>();
+            Stack<string> nameStack = new Stack<string>();
 
             trevelStack.Push(root);
             parentStack.Push(-1);
+            nameStack.Push("");
             
 
             while (trevelStack.Count > 0)
             {
                 int currentNodeIndex = results.Count;
+                string name = nameStack.Pop();
                 SpaceNode node = trevelStack.Pop();
                 HLODBuildInfo info = new HLODBuildInfo
                 {
+                    name = name,
                     parentIndex = parentStack.Pop(),
                     target = node
                 };
@@ -85,6 +89,7 @@ namespace Unity.HLODSystem
                     {
                         trevelStack.Push(node.ChildTreeNodes[i]);
                         parentStack.Push(currentNodeIndex);
+                        nameStack.Push(name + "_" + (i + 1));
                     }
                 }
 
