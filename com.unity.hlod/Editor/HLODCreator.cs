@@ -110,7 +110,7 @@ namespace Unity.HLODSystem
             return results;
         }
 
-        public static IEnumerator CreateWithoutPrefab(HLOD hlod)
+        public static IEnumerator Create(HLOD hlod)
         {
             Stopwatch sw = new Stopwatch();
 
@@ -122,7 +122,9 @@ namespace Unity.HLODSystem
 
             hlod.CalcBounds();
 
-            List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
+            SetHighAndLow(hlod);
+
+            List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.HighRoot);
             ISpaceSplitter spliter = new QuadTreeSpaceSplitter(5.0f, hlod.MinSize);
             SpaceNode rootNode = spliter.CreateSpaceTree(hlod.Bounds, hlodTargets);
 
@@ -146,16 +148,17 @@ namespace Unity.HLODSystem
             sw.Reset();
             sw.Start();
 
-            /*
-            IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
+            
+            IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[]{hlod});
             if ( batcher == null )
                 yield break;
 
-            //batcher.Batch(targetHlods.Last(), targetHlods.Select(h => h.LowRoot).ToArray());
+            batcher.Batch(buildInfos);
             Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
             sw.Reset();
             sw.Start();
             
+            /*
             AssetDatabase.StartAssetEditing();
             IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType);
             if ( builder == null )
@@ -177,87 +180,6 @@ namespace Unity.HLODSystem
             */
 
             yield break;
-            
-        }
-        public static IEnumerator Create(HLOD hlod)
-        {
-            Stopwatch sw = new Stopwatch();
-            List<HLOD> targetHlods = null;
-           
-            AssetDatabase.Refresh();
-            AssetDatabase.SaveAssets();
-
-            sw.Reset();
-            sw.Start();
-            hlod.CalcBounds();
-            //if (hlod.RecursiveGeneration == true)
-            //{
-            //    if (hlod.Bounds.size.x > hlod.MinSize)
-            //    {
-            //        ISplitter splitter = new OctSplitter();
-            //        splitter.Split(hlod);
-            //    }
-
-            //    //GetComponentsInChildren is not working.
-            //    //so, I made it manually.
-            //    targetHlods = ObjectUtils.GetComponentsInChildren<HLOD>(hlod.gameObject);
-            //}
-            //else
-            //{
-            //    targetHlods = new List<HLOD>();
-            //    targetHlods.Add(hlod);
-            //}
-           
-            for (int i = 0; i < targetHlods.Count; ++i)
-            {
-                var curHlod = targetHlods[i];
-                curHlod.HighRoot = CreateHigh(curHlod.gameObject);
-                curHlod.LowRoot = CreateLow(curHlod, curHlod.HighRoot);
-
-                curHlod.HighRoot.transform.SetParent(curHlod.transform);
-                curHlod.LowRoot.transform.SetParent(curHlod.transform);
-            }
-            Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-
-            for (int i = 0; i < targetHlods.Count; ++i)
-            {
-                ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(targetHlods[i].SimplifierType);
-                yield return new BranchCoroutine(simplifier.Simplify(targetHlods[i]));
-            }
-
-            yield return new WaitForBranches();
-            Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-
-            IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
-            batcher.Batch(targetHlods.Last(), targetHlods.Select(h => h.LowRoot).ToArray());
-            Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-
-
-            AssetDatabase.StartAssetEditing();
-            for (int i = 0; i < targetHlods.Count; ++i)
-            {
-                IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
-                builder.Build(targetHlods[i], targetHlods[i] == hlod);
-            }
-            Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-
-            AssetDatabase.StopAssetEditing();
-            Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
-            
-            
-            //for (int i = 0; i < targetHlods.Count; ++i)
-            //{
-            //    PrefabUtils.SavePrefab(targetHlods[i]);
-            //}
-            //Debug.Log("[HLOD] SavePrefab: " + sw.Elapsed.ToString("g"));
             
         }
 
@@ -301,70 +223,24 @@ namespace Unity.HLODSystem
             
         }
 
-        static GameObject CreateHigh(GameObject root)
+        static void SetHighAndLow(HLOD hlod)
         {
             GameObject high = new GameObject("High");
+            GameObject low = new GameObject("Low");
 
-            while (root.transform.childCount > 0)
+            while (hlod.transform.childCount > 0)
             {
-                Transform child = root.transform.GetChild(0);
+                Transform child = hlod.transform.GetChild(0);
                 child.SetParent(high.transform);
             }
 
-            return high;
-        }
+            high.transform.parent = hlod.transform;
+            low.transform.parent = hlod.transform;
 
-        static GameObject CreateLow(HLOD hlod, GameObject highGameObject)
-        {
-            GameObject low = new GameObject("Low");
-
-            List<Renderer> renderers = new List<Renderer>();
-
-            //Convert gameobject to MeshRenderer.
-            //This gameObjects are mixed LODGroup and MeshRenderer.
-            List<GameObject> gameObjects = ObjectUtils.HLODTargets(highGameObject);
-            for (int i = 0; i < gameObjects.Count; ++i)
-            {
-                var lodGroup = gameObjects[i].GetComponent<LODGroup>();
-                if (lodGroup != null)
-                {
-                    renderers.AddRange(lodGroup.GetLODs().Last().renderers);
-                    continue;
-                }
-
-                var renderer = gameObjects[i].GetComponent<Renderer>();
-                if (renderer != null)
-                {
-                    renderers.Add(renderer);
-                }
-            }
-
-            for (int i = 0; i < renderers.Count; ++i)
-            {
-                Renderer renderer = renderers[i];
-                if (renderer == null)
-                    continue;
-
-                float max = Mathf.Max(renderer.bounds.size.x, renderer.bounds.size.y, renderer.bounds.size.z);
-                if (max < hlod.ThresholdSize)
-                    continue;
-
-                MeshFilter filter = renderer.GetComponent<MeshFilter>();
-                GameObject rendererObject = new GameObject(renderers[i].name, typeof(MeshFilter), typeof(MeshRenderer), typeof(LowMeshHolder));
-
-                EditorUtility.CopySerialized(filter, rendererObject.GetComponent<MeshFilter>());
-                EditorUtility.CopySerialized(renderer, rendererObject.GetComponent<MeshRenderer>());
-                var holder = rendererObject.AddComponent<Utils.SimplificationDistanceHolder>();
-                holder.OriginGameObject = renderer.gameObject;
-
-                rendererObject.transform.SetParent(low.transform);
-                rendererObject.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);
-                rendererObject.transform.localScale = renderer.transform.lossyScale;
-            }
-
+            hlod.HighRoot = high;
+            hlod.LowRoot = low;
             
-            return low;
-        }
 
+        }
     }
 }

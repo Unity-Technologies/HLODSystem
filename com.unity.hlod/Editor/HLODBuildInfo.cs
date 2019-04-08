@@ -11,6 +11,7 @@ namespace Unity.HLODSystem
         public SpaceNode target;
 
         public List<MeshRenderer> renderers = new List<MeshRenderer>();
+        public List<Mesh> simplifiedMeshes = null;
         public List<int> distances = new List<int>();
     }
 

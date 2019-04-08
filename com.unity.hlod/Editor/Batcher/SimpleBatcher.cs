@@ -32,34 +32,49 @@ namespace Unity.HLODSystem
             BatcherTypes.RegisterBatcherType(typeof(SimpleBatcher));
         }
 
-        TexturePacker m_Packer = new TexturePacker();
+        private TexturePacker m_Packer = new TexturePacker();
+        private HLOD m_hlod;
+
+        public SimpleBatcher(HLOD hlod)
+        {
+            m_hlod = hlod;
+        }
 
         //from AutoLOD
         //https://github.com/Unity-Technologies/AutoLOD
         public void Batch(HLOD rootHlod, GameObject[] targets)
         {
-            dynamic options = rootHlod.BatcherOptions;
+            //dynamic options = rootHlod.BatcherOptions;
 
+            //PackingTexture(targets, options);
+
+            //for (int i = 0; i < targets.Length; ++i)
+            //{
+            //    Combine(targets[i], options);
+            //}
+        }
+
+        public void Batch(List<HLODBuildInfo> targets)
+        {
+            dynamic options = m_hlod.BatcherOptions;
             PackingTexture(targets, options);
 
-            for (int i = 0; i < targets.Length; ++i)
+            for (int i = 0; i < targets.Count; ++i)
             {
                 Combine(targets[i], options);
             }
         }
 
-        private void PackingTexture(GameObject[] targets, dynamic options)
+        private void PackingTexture(List<HLODBuildInfo> targets, dynamic options)
         {
-            
-            for (int i = 0; i < targets.Length; ++i)
+            for (int i = 0; i < targets.Count; ++i)
             {
-                var renderers = targets[i].GetComponentsInChildren<Renderer>();
+                var renderers = targets[i].renderers;
                 var textures = new HashSet<Texture2D>();
 
-                for (int r = 0; r < renderers.Length; ++r)
+                for (int r = 0; r < renderers.Count; ++r)
                 {
                     var materials = renderers[r].sharedMaterials;
-                    
 
                     for (int m = 0; m < materials.Length; ++m)
                     {
@@ -83,10 +98,10 @@ namespace Unity.HLODSystem
             m_Packer.Pack(options.PackTextureSize, options.LimitTextureSize);
         }
 
-        private void Combine(GameObject root, dynamic options)
+        private void Combine(HLODBuildInfo info, dynamic options)
         {
-            var renderers = root.GetComponentsInChildren<Renderer>();
-            var atlas = m_Packer.GetAtlas(root);
+            var renderers = info.renderers;
+            var atlas = m_Packer.GetAtlas(info);
             var atlasLookup = new Dictionary<Texture2D, Rect>();
 
             for (int i = 0; i < atlas.Textures.Length; ++i)
@@ -94,20 +109,24 @@ namespace Unity.HLODSystem
                 atlasLookup[atlas.Textures[i]] = atlas.UVs[i];
             }
 
-            var meshFilters = root.GetComponentsInChildren<MeshFilter>();
+
             var combineInstances = new List<CombineInstance>();
             var combinedMesh = new Mesh();
 
-            for (int i = 0; i < meshFilters.Length; ++i)
+            for ( int i = 0; i < info.renderers.Count; ++i )
             {
-                var mesh = ConvertMesh(meshFilters[i], atlasLookup);
+                var mf = info.renderers[i].GetComponent<MeshFilter>();
+                if (mf == null)
+                    continue;
+
+                var mesh = ConvertMesh(mf, info.simplifiedMeshes[i], atlasLookup);
 
                 for (int j = 0; j < mesh.subMeshCount; ++j)
                 {
                     var ci = new CombineInstance();
                     ci.mesh = mesh;
                     ci.subMeshIndex = j;
-                    ci.transform = meshFilters[i].transform.localToWorldMatrix;
+                    ci.transform = mf.transform.localToWorldMatrix;
                     combineInstances.Add(ci);
                 }
             }
@@ -116,18 +135,13 @@ namespace Unity.HLODSystem
             combinedMesh.CombineMeshes(combineInstances.ToArray());
             combinedMesh.RecalculateBounds();
 
-            for (int i = 0; i < meshFilters.Length; i++)
-            {
-                Object.DestroyImmediate(meshFilters[i].gameObject);
-            }
-
             var go = new GameObject("CombinedMesh");
             var meshRenderer = go.AddComponent<MeshRenderer>();
             var meshFilter = go.AddComponent<MeshFilter>();
 
             Material material = null;
 
-            go.transform.SetParent(root.transform);
+            go.transform.SetParent(m_hlod.LowRoot.transform);
 
             string materialGUID = options.MaterialGUID;
             if (string.IsNullOrEmpty(materialGUID) == true)
@@ -147,31 +161,13 @@ namespace Unity.HLODSystem
         }
 
 
-        private Mesh ConvertMesh(MeshFilter filter, Dictionary<Texture2D, Rect> atlasLookup)
+        private Mesh ConvertMesh(MeshFilter filter, Mesh mesh, Dictionary<Texture2D, Rect> atlasLookup)
         {
-            var sharedMesh = filter.sharedMesh;
-
-            if (sharedMesh.isReadable == false)
-            {
-                var assetPath = AssetDatabase.GetAssetPath(sharedMesh);
-                if (!string.IsNullOrEmpty(assetPath))
-                {
-                    var importer = AssetImporter.GetAtPath(assetPath) as ModelImporter;
-                    if (importer)
-                    {
-                        importer.isReadable = true;
-                        importer.SaveAndReimport();
-                    }
-                }
-            }
-
+            var ret = Object.Instantiate(mesh);
             var meshRenderer = filter.GetComponent<MeshRenderer>();
             var sharedMaterials = meshRenderer.sharedMaterials;
 
-            var mesh = Object.Instantiate(sharedMesh);
-
             var uv = mesh.uv;
-            var colors = mesh.colors;
             var updated = new bool[uv.Length];
 
             var triangles = new List<int>();
@@ -219,11 +215,10 @@ namespace Unity.HLODSystem
                 }
             }
 
-            mesh.uv = uv;
-            mesh.uv2 = null;
-            mesh.colors = colors;
+            ret.uv = uv;
+            ret.uv2 = null;
 
-            return mesh;
+            return ret;
         }
 
 

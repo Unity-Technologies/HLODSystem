@@ -19,17 +19,17 @@ namespace Unity.HLODSystem
         };
         class Group
         {
-            public GameObject go;
+            public object obj;
             public HashSet<Texture2D> textures;
         }
         class AtlasGroup
         {
-            public List<GameObject> GameObjects;
+            public List<object> Objects;
             public TextureAtlas Atlas;
         }
         class PackTexture
         {
-            public List<GameObject> GameObjects;
+            public List<object> Objects;
             public HashSet<Texture2D> Textures;
             public int PackableTextureCount;
         }
@@ -59,20 +59,20 @@ namespace Unity.HLODSystem
 
         }
 
-        public void  AddTextureGroup(GameObject go, Texture2D[] textures)
+        public void  AddTextureGroup(object obj, Texture2D[] textures)
         {
             Group group = new Group();
-            group.go = go;
+            group.obj = obj;
             group.textures = new HashSet<Texture2D>(textures);
 
             groups.Add(group);
         }
 
-        public TextureAtlas GetAtlas(GameObject go)
+        public TextureAtlas GetAtlas(object obj)
         {
             foreach (var group in atlasGroups)
             {
-                if (group.GameObjects.Contains(go))
+                if (group.Objects.Contains(obj))
                     return group.Atlas;
             }
             return null;
@@ -103,7 +103,7 @@ namespace Unity.HLODSystem
                 {
                     packTextures.Add(new PackTexture()
                     {
-                        GameObjects = new List<GameObject>() {group.go},
+                        Objects = new List<object>() {group.obj},
                         Textures = new HashSet<Texture2D>(group.textures),
                         PackableTextureCount = maximum
                     });                    
@@ -128,11 +128,11 @@ namespace Unity.HLODSystem
                         PackTexture lhs = scoreList[i].Lhs;
                         PackTexture rhs = scoreList[i].Rhs;
 
-                        List<GameObject> newGameObjects = new List<GameObject>(scoreList[i].Lhs.GameObjects.Concat(scoreList[i].Rhs.GameObjects));
+                        List<object> newObjects = new List<object>(scoreList[i].Lhs.Objects.Concat(scoreList[i].Rhs.Objects));
 
                         PackTexture newPackTexture = new PackTexture()
                         {
-                            GameObjects = newGameObjects,
+                            Objects = newObjects,
                             Textures = unionTextures,
                             PackableTextureCount = maximum
                         };
@@ -163,7 +163,7 @@ namespace Unity.HLODSystem
                     var atlas = MakeTextureAtlas(pack, packTextureSize);
                     atlasGroups.Add(new AtlasGroup()
                     {
-                        GameObjects = pack.GameObjects,
+                        Objects = pack.Objects,
                         Atlas = atlas
                     });
                 }
