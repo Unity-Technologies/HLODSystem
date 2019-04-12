@@ -20,27 +20,10 @@ namespace Unity.HLODSystem.Streaming
             StreamingBuilderTypes.RegisterType(typeof(AddressableStreaming));
         }
 
-        public void Build(HLOD hlod)
+        public void Build(SpaceManager.SpaceNode rootNode, List<HLODBuildInfo> infos)
         {
-            string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
-            path = stage.prefabAssetPath;
-            path = Path.GetDirectoryName(path) + "/";            
 
-
-            if (hlod.HighRoot != null)
-            {
-                BuildHigh(hlod);
-            }
-
-            //if (hlod.LowRoot != null)
-            //{
-            //    BuildLow(hlod, isRoot);
-            //}
-
-            PrefabUtils.SavePrefab(path, hlod);
         }
-
         public static void OnGUI(HLOD hlod)
         {
             dynamic options = hlod.StreamingOptions;
@@ -57,84 +40,6 @@ namespace Unity.HLODSystem.Streaming
             
             EditorGUI.indentLevel -= 1;
         }
-
-        private void BuildHigh(HLOD hlod)
-        {
-            dynamic options = hlod.StreamingOptions;
-            var root = hlod.HighRoot;
-            var controller = root.AddComponent<AddressableController>();
-
-            Stack<Transform> trevelStack = new Stack<Transform>();
-            trevelStack.Push(root.transform);
-
-            List<GameObject> needDestory = new List<GameObject>();
-
-            while (trevelStack.Count > 0)
-            {
-                var current = trevelStack.Pop();
-                foreach (Transform child in current)
-                {
-                    HLOD childHlod = child.GetComponent<HLOD>();
-                    if (childHlod != null)
-                    {
-                        controller.AddHLOD(childHlod);
-                    }
-                    else if (PrefabUtility.IsAnyPrefabInstanceRoot(child.gameObject) == true)
-                    {
-                        var reference = GetAssetReference(child.gameObject);
-                        controller.AddObject(reference, child);
-                        needDestory.Add(child.gameObject);
-                    }
-                    else
-                    {
-                        trevelStack.Push(child);
-                    }
-                }
-            }
-
-            for (int i = 0; i < needDestory.Count; ++i)
-            {
-                Object.DestroyImmediate(needDestory[i]);
-            }
-
-            controller.MaxInstantiateCount = options.MaxInstantiateCount;
-            controller.Disable();
-           
-        }
-
-        private void BuildLow(HLOD hlod, bool isRoot)
-        {
-            GameObject root = hlod.LowRoot;
-            dynamic options = hlod.StreamingOptions;
-
-            string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
-            path = stage.prefabAssetPath;
-            path = Path.GetDirectoryName(path) + "/";            
-
-            if (isRoot == true)
-            {
-                if (options.LastLowInMemory != null && options.LastLowInMemory == true)
-                {
-                    var rootController = root.AddComponent<DefaultController>();
-                    List<HLODMesh> rootCreatedMeshes = ObjectUtils.SaveHLODMesh(path, hlod.name, hlod.LowRoot);
-                    rootController.AddHLODMeshes(rootCreatedMeshes);
-                    return;
-                }
-            }
-
-            var controller = root.AddComponent<AddressableController>();
-
-            List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, hlod.name, hlod.LowRoot);
-            List<AssetReference> references = new List<AssetReference>(createdMeshes.Count);
-            for (int i = 0; i < createdMeshes.Count; ++i)
-            {
-                references.Add(GetAssetReference(createdMeshes[i]));
-            }
-            controller.AddHLODMeshReferences(references);
-            controller.MaxInstantiateCount = options.MaxInstantiateCount;
-        }
-
 
         private AssetReference GetAssetReference(Object obj)
         {

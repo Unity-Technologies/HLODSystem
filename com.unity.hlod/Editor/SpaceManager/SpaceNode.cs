@@ -4,11 +4,11 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.SpaceManager
 {
-    public class SpaceNode : ScriptableObject
+    public class SpaceNode
     {
         public static SpaceNode CreateSpaceNodeWithBounds(Bounds bounds)
         {
-            var spaceNode = CreateInstance<SpaceNode>();
+            var spaceNode = new SpaceNode();
             spaceNode.Bounds = bounds;
             return spaceNode;
         }
@@ -20,8 +20,6 @@ namespace Unity.HLODSystem.SpaceManager
 
         [SerializeField]
         private List<GameObject> m_objcets = new List<GameObject>();
-        [SerializeField]
-        private List<HLODMesh> m_hlodMeshes = new List<HLODMesh>();
 
 
         public Bounds Bounds
@@ -37,10 +35,6 @@ namespace Unity.HLODSystem.SpaceManager
         {
             set { m_childTreeNodes = value;}
             get { return m_childTreeNodes; }
-        }
-        public List<HLODMesh> HLODMeshes
-        {
-            get { return m_hlodMeshes; }
         }
     }
 }

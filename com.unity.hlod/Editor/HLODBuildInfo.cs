@@ -14,6 +14,8 @@ namespace Unity.HLODSystem
         public List<MeshRenderer> renderers = new List<MeshRenderer>();
         public List<Mesh> simplifiedMeshes = null;
         public List<int> distances = new List<int>();
+
+        public List<GameObject> combinedGameObjects = new List<GameObject>();
     }
 
 }

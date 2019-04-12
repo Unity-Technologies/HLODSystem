@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
@@ -62,24 +63,24 @@ namespace Unity.HLODSystem
         private static List<HLODBuildInfo> CreateBuildInfo(SpaceNode root)
         {
             List<HLODBuildInfo> results = new List<HLODBuildInfo>();
-            Stack<SpaceNode> trevelStack = new Stack<SpaceNode>();
-            Stack<int> parentStack = new Stack<int>();
-            Stack<string> nameStack = new Stack<string>();
+            Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
+            Queue<int> parentQueue = new Queue<int>();
+            Queue<string> nameQueue = new Queue<string>();
 
-            trevelStack.Push(root);
-            parentStack.Push(-1);
-            nameStack.Push("");
+            trevelQueue.Enqueue(root);
+            parentQueue.Enqueue(-1);
+            nameQueue.Enqueue("");
             
 
-            while (trevelStack.Count > 0)
+            while (trevelQueue.Count > 0)
             {
                 int currentNodeIndex = results.Count;
-                string name = nameStack.Pop();
-                SpaceNode node = trevelStack.Pop();
+                string name = nameQueue.Dequeue();
+                SpaceNode node = trevelQueue.Dequeue();
                 HLODBuildInfo info = new HLODBuildInfo
                 {
                     name = name,
-                    parentIndex = parentStack.Pop(),
+                    parentIndex = parentQueue.Dequeue(),
                     target = node
                 };
 
@@ -87,9 +88,9 @@ namespace Unity.HLODSystem
                 {
                     for (int i = 0; i < node.ChildTreeNodes.Count; ++i)
                     {
-                        trevelStack.Push(node.ChildTreeNodes[i]);
-                        parentStack.Push(currentNodeIndex);
-                        nameStack.Push(name + "_" + (i + 1));
+                        trevelQueue.Enqueue(node.ChildTreeNodes[i]);
+                        parentQueue.Enqueue(currentNodeIndex);
+                        nameQueue.Enqueue(name + "_" + (i + 1));
                     }
                 }
 
@@ -125,13 +126,11 @@ namespace Unity.HLODSystem
             sw.Reset();
             sw.Start();
 
-            hlod.CalcBounds();
+            Bounds bounds = hlod.GetBounds();
 
-            SetHighAndLow(hlod);
-
-            List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.HighRoot);
+            List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
             ISpaceSplitter spliter = new QuadTreeSpaceSplitter(5.0f, hlod.MinSize);
-            SpaceNode rootNode = spliter.CreateSpaceTree(hlod.Bounds, hlodTargets);
+            SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlodTargets);
 
             List<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode);           
             
@@ -156,19 +155,25 @@ namespace Unity.HLODSystem
             Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
             sw.Reset();
             sw.Start();
-            
-            
-            AssetDatabase.StartAssetEditing();
-            IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType);
-            builder.Build(hlod);
-            Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
 
-            AssetDatabase.StopAssetEditing();
-            Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
+            try
+            {
+                AssetDatabase.StartAssetEditing();
+                IStreamingBuilder builder =
+                    (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] {hlod});
+                builder.Build(rootNode, buildInfos);
+                Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+                sw.Reset();
+                sw.Start();
+            }
+            finally
+            {
 
-            hlod.Root = rootNode;
+                AssetDatabase.StopAssetEditing();
+                Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
+            }
+
+            //hlod.Root = rootNode;
         }
 
         public static IEnumerator Update(HLOD hlod)
@@ -180,55 +185,35 @@ namespace Unity.HLODSystem
 
         public static IEnumerator Destroy(HLOD hlod)
         {
-            List<HLOD> targetHlods = ObjectUtils.GetComponentsInChildren<HLOD>(hlod.gameObject).ToList();
+            //List<HLOD> targetHlods = ObjectUtils.GetComponentsInChildren<HLOD>(hlod.gameObject).ToList();
 
-            for (int i = 0; i < targetHlods.Count; ++i)
-            {
-                GameObject obj = PrefabUtility.GetOutermostPrefabInstanceRoot(targetHlods[i].gameObject);
-                if (obj == null)
-                    continue;
+            //for (int i = 0; i < targetHlods.Count; ++i)
+            //{
+            //    GameObject obj = PrefabUtility.GetOutermostPrefabInstanceRoot(targetHlods[i].gameObject);
+            //    if (obj == null)
+            //        continue;
 
-                PrefabUtility.UnpackPrefabInstance(obj, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            }
+            //    PrefabUtility.UnpackPrefabInstance(obj, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            //}
 
-            for (int i = 0; i < targetHlods.Count; ++i)
-            {
-                List<GameObject> hlodTargets = ObjectUtils.HLODTargets(targetHlods[i].HighRoot);
+            //for (int i = 0; i < targetHlods.Count; ++i)
+            //{
+            //    List<GameObject> hlodTargets = ObjectUtils.HLODTargets(targetHlods[i].HighRoot);
 
-                for (int ti = 0; ti < hlodTargets.Count; ++ti)
-                {
-                    ObjectUtils.HierarchyMove(hlodTargets[ti], targetHlods[i].HighRoot, hlod.gameObject );
-                }
+            //    for (int ti = 0; ti < hlodTargets.Count; ++ti)
+            //    {
+            //        ObjectUtils.HierarchyMove(hlodTargets[ti], targetHlods[i].HighRoot, hlod.gameObject );
+            //    }
 
-                if ( targetHlods[i] != hlod )
-                    Object.DestroyImmediate(targetHlods[i].gameObject);
-            }
+            //    if ( targetHlods[i] != hlod )
+            //        Object.DestroyImmediate(targetHlods[i].gameObject);
+            //}
 
-            Object.DestroyImmediate(hlod.HighRoot);
-            Object.DestroyImmediate(hlod.LowRoot);
+            //Object.DestroyImmediate(hlod.HighRoot);
+            //Object.DestroyImmediate(hlod.LowRoot);
 
             yield break;
             
-        }
-
-        static void SetHighAndLow(HLOD hlod)
-        {
-            GameObject high = new GameObject("High");
-            GameObject low = new GameObject("Low");
-
-            while (hlod.transform.childCount > 0)
-            {
-                Transform child = hlod.transform.GetChild(0);
-                child.SetParent(high.transform);
-            }
-
-            high.transform.parent = hlod.transform;
-            low.transform.parent = hlod.transform;
-
-            hlod.HighRoot = high;
-            hlod.LowRoot = low;
-            
-
         }
     }
 }

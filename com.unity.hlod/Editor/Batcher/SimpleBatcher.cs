@@ -136,9 +136,11 @@ namespace Unity.HLODSystem
             var meshRenderer = go.AddComponent<MeshRenderer>();
             var meshFilter = go.AddComponent<MeshFilter>();
 
-            go.transform.SetParent(m_hlod.LowRoot.transform);
+            go.transform.SetParent(m_hlod.transform);
             meshFilter.sharedMesh = combinedMesh;
             meshRenderer.material = GetMaterial(options, atlas.PacktedTexture);
+
+            info.combinedGameObjects.Add(go);
         }
 
 

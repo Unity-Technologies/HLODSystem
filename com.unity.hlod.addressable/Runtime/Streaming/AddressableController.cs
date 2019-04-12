@@ -44,6 +44,35 @@ namespace Unity.HLODSystem.Streaming
             get { return m_maxInstantiateCount; }
         }
 
+
+        public override int AddHighObject(GameObject gameObject)
+        {
+            return -1;
+        }
+        public override int AddLowObject(HLODMesh hlodMesh)
+        {
+            return -1;
+        }
+
+        public override IEnumerator GetHighObject(int id, Action<GameObject> callback)
+        {
+            yield break;
+        }
+
+        public override IEnumerator GetLowObject(int id, Action<GameObject> callback)
+        {
+            yield break;
+        }
+
+        public override void ReleaseHighObject(int id)
+        {
+
+        }
+        public override void ReleaseLowObject(int id)
+        {
+
+        }
+
         public void AddHLOD(HLOD hlod)
         {
             m_childHlods.Add(hlod);
@@ -79,38 +108,38 @@ namespace Unity.HLODSystem.Streaming
             m_childObjects.Add(obj);
         }
 
-        public override IEnumerator Load()
+        public IEnumerator Load()
         {
             if (m_instantitedObjects.Count > 0)
                 yield break;
 
             for (int i = 0; i < m_childHlods.Count; ++i)
             {
-                var lowRoot = m_childHlods[i].LowRoot;
-                if (lowRoot == null)
-                    continue;
-                var controller = lowRoot.GetComponent<ControllerBase>();
-                if (controller == null)
-                    continue;
+                //var lowRoot = m_childHlods[i].LowRoot;
+                //if (lowRoot == null)
+                //    continue;
+                //var controller = lowRoot.GetComponent<ControllerBase>();
+                //if (controller == null)
+                //    continue;
 
-                yield return controller.Load();
+                //yield return controller.Load();
             }
 
             yield return CreateChildObjects(false);
         }
 
-        public override void Show()
+        public void Show()
         {
             for (int i = 0; i < m_childHlods.Count; ++i)
             {
-                var lowRoot = m_childHlods[i].LowRoot;
-                if (lowRoot == null)
-                    continue;
-                var controller = lowRoot.GetComponent<ControllerBase>();
-                if (controller == null)
-                    continue;
+                //var lowRoot = m_childHlods[i].LowRoot;
+                //if (lowRoot == null)
+                //    continue;
+                //var controller = lowRoot.GetComponent<ControllerBase>();
+                //if (controller == null)
+                //    continue;
 
-                controller.Show();
+                //controller.Show();
             }
 
             for (int i = 0; i < m_instantitedObjects.Count; ++i)
@@ -121,18 +150,18 @@ namespace Unity.HLODSystem.Streaming
             gameObject.SetActive(true);
         }
 
-        public override void Hide()
+        public  void Hide()
         {
             for (int i = 0; i < m_childHlods.Count; ++i)
             {
-                var lowRoot = m_childHlods[i].LowRoot;
-                if (lowRoot == null)
-                    continue;
-                var controller = lowRoot.GetComponent<ControllerBase>();
-                if (controller == null)
-                    continue;
+                //var lowRoot = m_childHlods[i].LowRoot;
+                //if (lowRoot == null)
+                //    continue;
+                //var controller = lowRoot.GetComponent<ControllerBase>();
+                //if (controller == null)
+                //    continue;
 
-                controller.Hide();
+                //controller.Hide();
             }
 
             for (int i = 0; i < m_instantitedObjects.Count; ++i)
@@ -156,7 +185,7 @@ namespace Unity.HLODSystem.Streaming
             gameObject.SetActive(false);
         }
 
-        public override void Enable()
+        public void Enable()
         {
             if (enabled == true)
                 return;
@@ -172,7 +201,7 @@ namespace Unity.HLODSystem.Streaming
             m_instantitedObjects.Clear();
             enabled = true;
         }
-        public override void Disable()
+        public void Disable()
         {
             if (enabled == false)
                 return;

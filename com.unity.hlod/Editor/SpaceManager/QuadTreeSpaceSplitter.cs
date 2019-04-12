@@ -28,7 +28,7 @@ namespace Unity.HLODSystem.SpaceManager
         }
         public SpaceNode CreateSpaceTree(Bounds initBounds, List<GameObject> targetObjects)
         {
-            SpaceNode rootNode = ScriptableObject.CreateInstance<SpaceNode>();
+            SpaceNode rootNode = new SpaceNode();
             rootNode.Bounds = initBounds;
 
             for (int oi = 0; oi < targetObjects.Count; ++oi)

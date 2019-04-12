@@ -71,7 +71,9 @@ namespace Unity.HLODSystem
                 go.GetComponent<MeshFilter>().sharedMesh = mesh;
                 go.GetComponent<MeshRenderer>().sharedMaterial = instances.Key;
 
-                go.transform.SetParent(m_hlod.LowRoot.transform);
+                go.transform.SetParent(m_hlod.transform);
+
+                info.combinedGameObjects.Add(go);
             }
         }
 
