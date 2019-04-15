@@ -132,9 +132,10 @@ namespace Unity.HLODSystem
 
         IEnumerator OnEnteringHigh()
         {
+            //child low mesh should be load before change to high.
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
-                yield return m_childTreeNodes[i].LoadLowMeshes();
+                m_childTreeNodes[i].m_fsm.ChangeState(State.Low);
             }
 
             for (int i = 0; i < m_highObjectIds.Count; ++i)
@@ -146,6 +147,13 @@ namespace Unity.HLODSystem
                     m_highObjects.Add(go);
                 });
 
+            }
+
+            //wait for child nodes were finished.
+            //it needs because avoid flickering.
+            for (int i = 0; i < m_childTreeNodes.Count; ++i)
+            {
+                yield return m_childTreeNodes[i].m_fsm.LastRunEnumerator;
             }
         }
         void OnEnteredHigh()

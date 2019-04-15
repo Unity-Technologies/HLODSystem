@@ -138,7 +138,8 @@ namespace Unity.HLODSystem
 
         void Start()
         {
-            m_root.Initialize(GetComponent<ControllerBase>(), m_spaceManager, m_activeManager);
+            ControllerBase controller = GetComponent<ControllerBase>();
+            m_root.Initialize(controller, m_spaceManager, m_activeManager);
             m_activeManager.Activate(m_root);
 
         }

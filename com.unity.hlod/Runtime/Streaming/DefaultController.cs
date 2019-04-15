@@ -15,14 +15,14 @@ namespace Unity.HLODSystem.Streaming
 
         private List<GameObject> m_createdHlodMeshObjects = new List<GameObject>();
 
-        public override int AddHighObject(GameObject gameObject)
+        public int AddHighObject(GameObject gameObject)
         {
             int id = m_gameObjectList.Count;
             m_gameObjectList.Add(gameObject);
             return id;
         }
 
-        public override int AddLowObject(HLODMesh hlodMesh)
+        public int AddLowObject(HLODMesh hlodMesh)
         {
             int id = m_hlodMeshes.Count;
             m_hlodMeshes.Add(hlodMesh);

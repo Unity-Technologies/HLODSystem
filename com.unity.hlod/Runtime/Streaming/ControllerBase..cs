@@ -9,9 +9,6 @@ namespace Unity.HLODSystem.Streaming
     using ControllerID = Int32;
     public abstract class ControllerBase : MonoBehaviour
     {
-        public abstract ControllerID AddHighObject(GameObject gameObject);
-        public abstract ControllerID AddLowObject(HLODMesh hlodMesh);
-
         //This should be a coroutine.
         public abstract IEnumerator GetHighObject(ControllerID id, Action<GameObject> callback);
 

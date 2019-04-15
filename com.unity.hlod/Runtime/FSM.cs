@@ -23,6 +23,11 @@ namespace Unity.HLODSystem
             get { return m_currentState; }
         }
 
+        public IEnumerator LastRunEnumerator
+        {
+            get { return m_lastRun; }
+        }
+
         public void ChangeState(T state)
         {
             if (EqualityComparer<T>.Default.Equals(state, m_currentState))
