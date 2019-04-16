@@ -10,6 +10,8 @@ namespace Unity.HLODSystem.SpaceManager
         void UpdateCamera(Camera cam);
 
         bool IsHigh(Bounds bounds);
+
+        bool IsCull(Bounds bounds);
     }
 
 }

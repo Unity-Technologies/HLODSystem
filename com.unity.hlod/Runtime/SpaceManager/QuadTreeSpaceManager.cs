@@ -16,7 +16,6 @@ namespace Unity.HLODSystem.SpaceManager
         }
         public void UpdateCamera(Camera cam)
         {
-            
             if (cam.orthographic)
             {
                 preRelative = 0.5f / cam.orthographicSize;
@@ -39,6 +38,14 @@ namespace Unity.HLODSystem.SpaceManager
                 float distance = GetDistance(bounds.center, camPosition);
             float relativeHeight = bounds.size.x * preRelative / distance;
             return relativeHeight > m_hlod.LODDistance;
+        }
+
+        public bool IsCull(Bounds bounds)
+        {
+            float distance = GetDistance(bounds.center, camPosition);
+
+            float relativeHeight = bounds.size.x * preRelative / distance;
+            return relativeHeight < m_hlod.CullDistance;
         }
 
         private float GetDistance(Vector3 boundsPos, Vector3 camPos)

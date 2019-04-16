@@ -207,7 +207,16 @@ namespace Unity.HLODSystem
                 return;
 
             m_spaceManager.UpdateCamera(camera);
-            m_activeManager.UpdateActiveNodes();
+
+            if (m_spaceManager.IsCull(m_root.Bounds) == true)
+            {
+                m_root.Cull();
+            }
+            else
+            {
+                m_activeManager.UpdateActiveNodes();
+            }
+            
          
         }
 
