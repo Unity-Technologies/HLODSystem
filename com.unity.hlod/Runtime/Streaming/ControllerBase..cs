@@ -1,19 +1,23 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 
 namespace Unity.HLODSystem.Streaming
 {
+    using ControllerID = Int32;
     public abstract class ControllerBase : MonoBehaviour
     {
-        public abstract IEnumerator Load();
+        //This should be a coroutine.
+        public abstract IEnumerator GetHighObject(ControllerID id, Action<GameObject> callback);
 
-        public abstract void Show();
-        public abstract void Hide();
+        public abstract IEnumerator GetLowObject(ControllerID id, Action<GameObject> callback);
 
-        public abstract void Enable();
-        public abstract void Disable();
+        public abstract void ReleaseHighObject(ControllerID id);
+        public abstract void ReleaseLowObject(ControllerID id);
+
+
     }
 
 }

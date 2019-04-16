@@ -23,8 +23,7 @@ namespace Unity.HLODSystem
             public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destory a HLOD mesh.");
             public static GUIContent DestroyButtonDisable = new GUIContent("Destroy", "Destory is only allow in prefab mode.");
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "You need to generate HLOD before the destroy.");
-        }
-        private SerializedProperty m_RecursiveGenerationProperty;
+        }        
         private SerializedProperty m_MinSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
         private SerializedProperty m_CullDistanceProperty;
@@ -52,8 +51,7 @@ namespace Unity.HLODSystem
         }
 
         void OnEnable()
-        {
-            m_RecursiveGenerationProperty = serializedObject.FindProperty("m_RecursiveGeneration");
+        {            
             m_MinSizeProperty = serializedObject.FindProperty("m_MinSize");
             m_LODDistanceProperty = serializedObject.FindProperty("m_LODDistance");
             m_CullDistanceProperty = serializedObject.FindProperty("m_CullDistance");
@@ -85,13 +83,7 @@ namespace Unity.HLODSystem
                 return;
             }
 
-            EditorGUILayout.PropertyField(m_RecursiveGenerationProperty);
-            if ( m_RecursiveGenerationProperty.boolValue )
-            {
-                EditorGUI.indentLevel += 1;
-                EditorGUILayout.PropertyField(m_MinSizeProperty);
-                EditorGUI.indentLevel -= 1;
-            }
+            EditorGUILayout.PropertyField(m_MinSizeProperty);
 
             m_LODSlider.Draw();
             EditorGUILayout.PropertyField(m_ThresholdSizeProperty);
@@ -171,12 +163,12 @@ namespace Unity.HLODSystem
                 updateButton = Styles.UpdateButtonDisable;
                 destroyButton = Styles.DestroyButtonDisable;
             }
-            else if (hlod.HighRoot != null && hlod.LowRoot != null)
-            {
-                generateButton = Styles.GenerateButtonExists;
-                updateButton = Styles.UpdateButtonEnable;
-                destroyButton = Styles.DestroyButtonEnable;
-            }
+            //else if (hlod.HighRoot != null && hlod.LowRoot != null)
+            //{
+            //    generateButton = Styles.GenerateButtonExists;
+            //    updateButton = Styles.UpdateButtonEnable;
+            //    destroyButton = Styles.DestroyButtonEnable;
+            //}
 
 
 

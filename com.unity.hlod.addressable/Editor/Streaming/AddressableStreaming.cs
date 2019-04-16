@@ -1,6 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
+using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -20,26 +20,103 @@ namespace Unity.HLODSystem.Streaming
             StreamingBuilderTypes.RegisterType(typeof(AddressableStreaming));
         }
 
-        public void Build(HLOD hlod, bool isRoot)
+        
+        private HLOD m_hlod;
+        public AddressableStreaming(HLOD hlod)
+        {
+            m_hlod = hlod;
+        }
+
+
+        public void Build(SpaceManager.SpaceNode rootNode, List<HLODBuildInfo> infos)
         {
             string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
+            PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);
             path = stage.prefabAssetPath;
-            path = Path.GetDirectoryName(path) + "/";            
+            path = Path.GetDirectoryName(path) + "/";
 
+            var addressableController = m_hlod.gameObject.AddComponent<AddressableController>();
+            HLODTreeNode convertedRootNode = ConvertNode(rootNode);
 
-            if (hlod.HighRoot != null)
+            //I think it is better to do when convert nodes.
+            //But that is not easy because of the structure.
+            for (int i = 0; i < infos.Count; ++i)
             {
-                BuildHigh(hlod);
+                var spaceNode = infos[i].target;
+                var hlodTreeNode = convertedTable[infos[i].target];
+
+                for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
+                {
+                    var address = GetAssetReference(spaceNode.Objects[oi]);
+                    int highId = -1;
+                    if (address != null)
+                    {
+                        highId = addressableController.AddHighObject(address, spaceNode.Objects[oi]);
+                    }
+                    else
+                    {
+                        highId = addressableController.AddHighObject(spaceNode.Objects[oi]);
+                    }
+
+                    hlodTreeNode.HighObjectIds.Add(highId);
+                }
+
+                for (int oi = 0; oi < infos[i].combinedGameObjects.Count; ++oi)
+                {
+                    List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, m_hlod.name, infos[i].combinedGameObjects[oi]);
+
+                    foreach (var mesh in createdMeshes)
+                    {
+                        var address = GetAssetReference(mesh);
+                        int lowId = addressableController.AddLowObject(address);
+                        hlodTreeNode.LowObjectIds.Add(lowId);
+                    }
+                }
             }
 
-            if (hlod.LowRoot != null)
-            {
-                BuildLow(hlod, isRoot);
-            }
-
-            PrefabUtils.SavePrefab(path, hlod);
+            m_hlod.Root = convertedRootNode;
         }
+
+        Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
+
+        private HLODTreeNode ConvertNode(SpaceNode rootNode)
+        {
+            HLODTreeNode root = new HLODTreeNode();
+
+            Queue<HLODTreeNode> hlodTreeNodes = new Queue<HLODTreeNode>();
+            Queue<SpaceNode> spaceNodes = new Queue<SpaceNode>();
+
+            hlodTreeNodes.Enqueue(root);
+            spaceNodes.Enqueue(rootNode);
+
+            while (hlodTreeNodes.Count > 0)
+            {
+                var hlodTreeNode = hlodTreeNodes.Dequeue();
+                var spaceNode = spaceNodes.Dequeue();
+
+                convertedTable[spaceNode] = hlodTreeNode;
+
+                hlodTreeNode.Bounds = spaceNode.Bounds;
+                if (spaceNode.ChildTreeNodes != null)
+                {
+                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.ChildTreeNodes.Count);
+                    for (int i = 0; i < spaceNode.ChildTreeNodes.Count; ++i)
+                    {
+                        var treeNode = new HLODTreeNode();
+                        childTreeNodes.Add(treeNode);
+
+                        hlodTreeNodes.Enqueue(treeNode);
+                        spaceNodes.Enqueue(spaceNode.ChildTreeNodes[i]);
+                    }
+
+                    hlodTreeNode.ChildNodes = childTreeNodes;
+
+                }
+            }
+
+            return root;
+        }
+
 
         public static void OnGUI(HLOD hlod)
         {
@@ -58,84 +135,6 @@ namespace Unity.HLODSystem.Streaming
             EditorGUI.indentLevel -= 1;
         }
 
-        private void BuildHigh(HLOD hlod)
-        {
-            dynamic options = hlod.StreamingOptions;
-            var root = hlod.HighRoot;
-            var controller = root.AddComponent<AddressableController>();
-
-            Stack<Transform> trevelStack = new Stack<Transform>();
-            trevelStack.Push(root.transform);
-
-            List<GameObject> needDestory = new List<GameObject>();
-
-            while (trevelStack.Count > 0)
-            {
-                var current = trevelStack.Pop();
-                foreach (Transform child in current)
-                {
-                    HLOD childHlod = child.GetComponent<HLOD>();
-                    if (childHlod != null)
-                    {
-                        controller.AddHLOD(childHlod);
-                    }
-                    else if (PrefabUtility.IsAnyPrefabInstanceRoot(child.gameObject) == true)
-                    {
-                        var reference = GetAssetReference(child.gameObject);
-                        controller.AddObject(reference, child);
-                        needDestory.Add(child.gameObject);
-                    }
-                    else
-                    {
-                        trevelStack.Push(child);
-                    }
-                }
-            }
-
-            for (int i = 0; i < needDestory.Count; ++i)
-            {
-                Object.DestroyImmediate(needDestory[i]);
-            }
-
-            controller.MaxInstantiateCount = options.MaxInstantiateCount;
-            controller.Disable();
-           
-        }
-
-        private void BuildLow(HLOD hlod, bool isRoot)
-        {
-            GameObject root = hlod.LowRoot;
-            dynamic options = hlod.StreamingOptions;
-
-            string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
-            path = stage.prefabAssetPath;
-            path = Path.GetDirectoryName(path) + "/";            
-
-            if (isRoot == true)
-            {
-                if (options.LastLowInMemory != null && options.LastLowInMemory == true)
-                {
-                    var rootController = root.AddComponent<DefaultController>();
-                    List<HLODMesh> rootCreatedMeshes = ObjectUtils.SaveHLODMesh(path, hlod.name, hlod.LowRoot);
-                    rootController.AddHLODMeshes(rootCreatedMeshes);
-                    return;
-                }
-            }
-
-            var controller = root.AddComponent<AddressableController>();
-
-            List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, hlod.name, hlod.LowRoot);
-            List<AssetReference> references = new List<AssetReference>(createdMeshes.Count);
-            for (int i = 0; i < createdMeshes.Count; ++i)
-            {
-                references.Add(GetAssetReference(createdMeshes[i]));
-            }
-            controller.AddHLODMeshReferences(references);
-            controller.MaxInstantiateCount = options.MaxInstantiateCount;
-        }
-
-
         private AssetReference GetAssetReference(Object obj)
         {
             //create settings if there is no settings.
@@ -146,10 +145,13 @@ namespace Unity.HLODSystem.Streaming
 
             
             var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
-            string path = AssetDatabase.GetAssetPath(obj);
+            string path = "";
+
+            if ( obj is GameObject && PrefabUtility.IsAnyPrefabInstanceRoot(obj as GameObject) == true )
+                path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
+            else
+                path = AssetDatabase.GetAssetPath(obj);
             
-            if (string.IsNullOrEmpty(path))
-                PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
             if (string.IsNullOrEmpty(path))
                 return null;
 

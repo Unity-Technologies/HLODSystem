@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Unity.HLODSystem
 {
@@ -15,67 +16,64 @@ namespace Unity.HLODSystem
             BatcherTypes.RegisterBatcherType(typeof(MaterialPreservingBatcher));
         }
 
-        public MaterialPreservingBatcher()
-        {
-            
-        }
-        public void Batch(HLOD rootHlod, GameObject[] targets)
-        {
+        private HLOD m_hlod;
 
-            for (int i = 0; i < targets.Length; ++i)
+        public MaterialPreservingBatcher(HLOD hlod)
+        {
+            m_hlod = hlod;
+        }
+  
+        public void Batch(List<HLODBuildInfo> targets)
+        {
+            for (int i = 0; i < targets.Count; ++i)
             {
                 Combine(targets[i]);
             }
 
         }
 
-        private void Combine(GameObject root)
+        private void Combine(HLODBuildInfo info)
         {
             var instancesTable = new Dictionary<Material, List<CombineInstance>>();
 
-            for(int i = root.transform.childCount - 1; i >= 0; --i)
+            for ( int i = 0; i < info.renderers.Count; ++i)
             {
-                var child = root.transform.GetChild(i);
-                var go = child.gameObject;
-                var renderers = go.GetComponentsInChildren<Renderer>();
+                if (info.renderers[i] == null)
+                    continue;
 
-                foreach(var renderer in renderers )
-                {
-                    if (renderer == null)
-                        continue;
-
-                    var materials = renderer.sharedMaterials;
+                var materials = info.renderers[i].sharedMaterials;
                     
-                    for(int m = 0; m < materials.Length; ++m)
+                for(int m = 0; m < materials.Length; ++m)
+                {
+                    if (instancesTable.ContainsKey(materials[m]) == false)
                     {
-                        if (instancesTable.ContainsKey(materials[m]) == false)
-                        {
-                            instancesTable.Add(materials[m], new List<CombineInstance>());
-                        }
-                        var instance = new CombineInstance();
-                        instance.transform = child.localToWorldMatrix;
-                        instance.mesh = renderer.GetComponent<MeshFilter>().sharedMesh;
-                        instance.subMeshIndex = m;
-
-                        instancesTable[materials[m]].Add(instance);
-
+                        instancesTable.Add(materials[m], new List<CombineInstance>());
                     }
+                    var instance = new CombineInstance();
+                    instance.transform = info.renderers[i].localToWorldMatrix;
+                    instance.mesh = info.simplifiedMeshes[i];
+                    instance.subMeshIndex = m;
+
+                    instancesTable[materials[m]].Add(instance);
+
                 }
 
-                Object.DestroyImmediate(go);
             }
 
             foreach (var instances in instancesTable)
             {
                 var mesh = new Mesh();
+                mesh.indexFormat = IndexFormat.UInt32;
                 mesh.CombineMeshes(instances.Value.ToArray(), true, true, false);
                 mesh.name = instances.Key.name;
 
-                var go = new GameObject(instances.Key.name, typeof(MeshRenderer), typeof(MeshFilter));
+                var go = new GameObject(info.name + instances.Key.name, typeof(MeshRenderer), typeof(MeshFilter));
                 go.GetComponent<MeshFilter>().sharedMesh = mesh;
                 go.GetComponent<MeshRenderer>().sharedMaterial = instances.Key;
 
-                go.transform.SetParent(root.transform);
+                go.transform.SetParent(m_hlod.transform);
+
+                info.combinedGameObjects.Add(go);
             }
         }
 

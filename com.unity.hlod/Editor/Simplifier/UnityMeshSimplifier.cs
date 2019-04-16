@@ -17,6 +17,10 @@ namespace Unity.HLODSystem.Simplifier
             SimplifierTypes.RegisterType(typeof(UnityMeshSimplifier));
         }
 
+        public UnityMeshSimplifier(HLOD hlod) : base(hlod)
+        {
+        }
+
         protected override IEnumerator GetSimplifiedMesh(Mesh origin, float quality, Action<Mesh> resultCallback)
         {
             var meshSimplifier = new global::UnityMeshSimplifier.MeshSimplifier();

@@ -37,10 +37,6 @@ namespace Unity.HLODSystem
                 hlods.AddRange(roots[i].GetComponentsInChildren<HLOD>());
             }
 
-            for (int i = 0; i < hlods.Count; ++i)
-            {
-                hlods[i].Install();
-            }
 
         }
     }
