@@ -20,9 +20,11 @@ namespace Unity.HLODSystem.SpaceManager
     {
         private float m_looseSize;
         private float m_minSize;
+        private Vector3 m_rootPosition;
 
-        public QuadTreeSpaceSplitter(float looseSize, float minSize)
+        public QuadTreeSpaceSplitter(Vector3 rootPosition, float looseSize, float minSize)
         {
+            m_rootPosition = rootPosition;
             m_looseSize = looseSize;
             m_minSize = minSize;
         }
@@ -85,16 +87,24 @@ namespace Unity.HLODSystem.SpaceManager
             return rootNode;
         }
 
+
+        private Bounds CalcBounds(Renderer renderer)
+        {
+            Bounds bounds = renderer.bounds;
+            bounds.center -= m_rootPosition;
+
+            return bounds;
+        }
         private Bounds? CalculateBounds(GameObject obj)
         {
             MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer>();
             if (renderers.Length == 0)
                 return null;
 
-            Bounds result = renderers[0].bounds;
+            Bounds result = CalcBounds(renderers[0]);
             for (int i = 1; i < renderers.Length; ++i)
             {
-                result.Encapsulate(renderers[i].bounds);
+                result.Encapsulate(CalcBounds(renderers[i]));
             }
 
             return result;

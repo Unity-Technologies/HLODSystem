@@ -38,7 +38,7 @@ namespace Unity.HLODSystem.Streaming
         {
             m_hlod = GetComponent<HLOD>();
             m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            m_hlodMeshesRoot.transform.SetParent(m_hlod.transform);
+            m_hlodMeshesRoot.transform.SetParent(m_hlod.transform, false);
 
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
@@ -61,8 +61,8 @@ namespace Unity.HLODSystem.Streaming
             obj.GameObject = origin;
             obj.Reference = reference;
             obj.Parent = origin.transform.parent;
-            obj.Position = origin.transform.position;
-            obj.Rotation = origin.transform.rotation;
+            obj.Position = origin.transform.localPosition;
+            obj.Rotation = origin.transform.localRotation;
             obj.Scale = origin.transform.localScale;
 
             m_highObjects.Add(obj);
@@ -114,8 +114,8 @@ namespace Unity.HLODSystem.Streaming
                     yield return op;
                     go = Instantiate(op.Result, m_highObjects[id].Parent.transform);
                     go.SetActive(false);
-                    go.transform.position = m_highObjects[id].Position;
-                    go.transform.rotation = m_highObjects[id].Rotation;
+                    go.transform.localPosition = m_highObjects[id].Position;
+                    go.transform.localRotation = m_highObjects[id].Rotation;
                     go.transform.localScale = m_highObjects[id].Scale;
 
 
@@ -151,7 +151,8 @@ namespace Unity.HLODSystem.Streaming
 
                 GameObject go = new GameObject(op.Result.name);
                 go.SetActive(false);
-                go.transform.parent = m_hlodMeshesRoot.transform;
+                //go.transform.parent = m_hlodMeshesRoot.transform;
+                go.transform.SetParent(m_hlodMeshesRoot.transform, false);
                 go.AddComponent<MeshFilter>().sharedMesh = op.Result.ToMesh();
                 go.AddComponent<MeshRenderer>().material = op.Result.Material;
 

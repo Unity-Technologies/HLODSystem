@@ -50,7 +50,12 @@ namespace Unity.HLODSystem
                         instancesTable.Add(materials[m], new List<CombineInstance>());
                     }
                     var instance = new CombineInstance();
-                    instance.transform = info.renderers[i].localToWorldMatrix;
+                    Matrix4x4 mat = info.renderers[i].localToWorldMatrix;
+                    Vector3 position = m_hlod.transform.position;
+                    mat.m03 -= position.x;
+                    mat.m13 -= position.y;
+                    mat.m23 -= position.z;
+                    instance.transform = mat;
                     instance.mesh = info.simplifiedMeshes[i];
                     instance.subMeshIndex = m;
 

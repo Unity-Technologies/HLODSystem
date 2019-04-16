@@ -129,7 +129,7 @@ namespace Unity.HLODSystem
             Bounds bounds = hlod.GetBounds();
 
             List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
-            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(5.0f, hlod.MinSize);
+            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(hlod.transform.position, 5.0f, hlod.MinSize);
             SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlodTargets);
 
             List<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode);           

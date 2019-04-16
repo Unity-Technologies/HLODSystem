@@ -53,7 +53,7 @@ namespace Unity.HLODSystem.Streaming
         {
             m_hlod = GetComponent<HLOD>();
             m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            m_hlodMeshesRoot.transform.SetParent(m_hlod.transform);
+            m_hlodMeshesRoot.transform.SetParent(m_hlod.transform, false);
             
             for (int i = 0; i < m_hlodMeshes.Count; ++i)
             {
@@ -61,7 +61,7 @@ namespace Unity.HLODSystem.Streaming
 
                 go.AddComponent<MeshFilter>().sharedMesh = m_hlodMeshes[i].ToMesh();
                 go.AddComponent<MeshRenderer>().material = m_hlodMeshes[i].Material;
-                go.transform.parent = m_hlodMeshesRoot.transform;
+                go.transform.SetParent(m_hlodMeshesRoot.transform, false);
 
                 go.SetActive(false);
 

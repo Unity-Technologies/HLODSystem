@@ -170,6 +170,13 @@ namespace Unity.HLODSystem
         }
 #endif
 
+        Bounds CalcLocalBounds(Renderer renderer)
+        {
+            Bounds bounds = renderer.bounds;
+            bounds.center -= transform.position;
+
+            return bounds;
+        }
         public Bounds GetBounds()
         {
             Bounds ret = new Bounds();
@@ -181,10 +188,10 @@ namespace Unity.HLODSystem
                 return ret;
             }
 
-            UnityEngine.Bounds bounds = renderers[0].bounds;
+            Bounds bounds = CalcLocalBounds(renderers[0]);
             for (int i = 1; i < renderers.Length; ++i)
             {
-                bounds.Encapsulate(renderers[i].bounds);
+                bounds.Encapsulate(CalcLocalBounds(renderers[i]));
             }
 
             ret.center = bounds.center;

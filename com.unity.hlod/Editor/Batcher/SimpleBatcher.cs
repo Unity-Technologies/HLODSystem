@@ -123,7 +123,13 @@ namespace Unity.HLODSystem
                     var ci = new CombineInstance();
                     ci.mesh = mesh;
                     ci.subMeshIndex = j;
-                    ci.transform = mf.transform.localToWorldMatrix;
+
+                    Matrix4x4 mat = mf.transform.localToWorldMatrix;
+                    Vector3 position = m_hlod.transform.position;
+                    mat.m03 -= position.x;
+                    mat.m13 -= position.y;
+                    mat.m23 -= position.z;
+                    ci.transform = mat;
                     combineInstances.Add(ci);
                 }
             }
