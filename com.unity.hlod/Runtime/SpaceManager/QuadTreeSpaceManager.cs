@@ -35,9 +35,18 @@ namespace Unity.HLODSystem.SpaceManager
         {
             //float distance = 1.0f;
             //if (cam.orthographic == false)
-                float distance = Vector3.Distance(bounds.center, camPosition);
+            
+                float distance = GetDistance(bounds.center, camPosition);
             float relativeHeight = bounds.size.x * preRelative / distance;
             return relativeHeight > m_hlod.LODDistance;
+        }
+
+        private float GetDistance(Vector3 boundsPos, Vector3 camPos)
+        {
+            float x = Mathf.Abs(boundsPos.x - camPos.x);
+            float z = Mathf.Abs(boundsPos.z - camPos.z);
+            float square = x * x + z * z;
+            return Mathf.Sqrt(square);
         }
     }
 
