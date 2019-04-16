@@ -9,6 +9,8 @@ namespace Unity.HLODSystem.Streaming
     using ControllerID = Int32;
     public abstract class ControllerBase : MonoBehaviour
     {
+        public abstract void Install();
+
         //This should be a coroutine.
         public abstract IEnumerator GetHighObject(ControllerID id, Action<GameObject> callback);
 

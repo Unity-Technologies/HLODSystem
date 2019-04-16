@@ -32,19 +32,32 @@ namespace Unity.HLODSystem.Streaming
         private Dictionary<int, GameObject> m_createdHighObjects = new Dictionary<int, GameObject>();
         private Dictionary<int, GameObject> m_createdLowObjects = new Dictionary<int, GameObject>();
 
-        private HLOD m_hlod;
+        
         private GameObject m_hlodMeshesRoot;
         void Start()
         {
-            m_hlod = GetComponent<HLOD>();
-            m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            m_hlodMeshesRoot.transform.SetParent(m_hlod.transform, false);
+            HLOD hlod;
+            hlod = GetComponent<HLOD>();
 
+            m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
+            m_hlodMeshesRoot.transform.SetParent(hlod.transform, false);
+
+#if UNITY_EDITOR
+            Install();
+#endif
+        }
+
+        public override void Install()
+        {
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
                 if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKey.isValid)
                 {
+#if UNITY_EDITOR
+                    DestroyImmediate(m_highObjects[i].GameObject);
+#else
                     Destroy(m_highObjects[i].GameObject);
+#endif
                 }
                 else if (m_highObjects[i].GameObject != null)
                 {
@@ -151,7 +164,6 @@ namespace Unity.HLODSystem.Streaming
 
                 GameObject go = new GameObject(op.Result.name);
                 go.SetActive(false);
-                //go.transform.parent = m_hlodMeshesRoot.transform;
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
                 go.AddComponent<MeshFilter>().sharedMesh = op.Result.ToMesh();
                 go.AddComponent<MeshRenderer>().material = op.Result.Material;

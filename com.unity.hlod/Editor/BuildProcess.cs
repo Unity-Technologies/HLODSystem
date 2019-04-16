@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.HLODSystem.Streaming;
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.Build;
@@ -37,6 +38,12 @@ namespace Unity.HLODSystem
                 hlods.AddRange(roots[i].GetComponentsInChildren<HLOD>());
             }
 
+            for (int i = 0; i < hlods.Count; ++i)
+            {
+                var controller = hlods[i].GetComponent<ControllerBase>();
+                if ( controller != null )
+                    controller.Install();
+            }
 
         }
     }
