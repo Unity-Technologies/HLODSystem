@@ -83,8 +83,6 @@ namespace Unity.HLODSystem
             m_controller = controller;
             m_spaceManager = spaceManager;
             m_activeManager = activeManager;
-
-            m_bounds.center += controller.transform.position;
         }
 
         public void Cull()

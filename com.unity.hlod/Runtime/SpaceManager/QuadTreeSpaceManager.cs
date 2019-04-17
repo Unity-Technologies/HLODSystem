@@ -26,7 +26,7 @@ namespace Unity.HLODSystem.SpaceManager
                 preRelative = 0.5f / halfAngle;
             }
             preRelative = preRelative * QualitySettings.lodBias;
-            camPosition = cam.transform.position;
+            camPosition = m_hlod.transform.worldToLocalMatrix.MultiplyPoint(cam.transform.position);
 
         }
 

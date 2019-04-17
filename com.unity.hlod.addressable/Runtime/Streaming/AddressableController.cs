@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
 {
@@ -36,6 +37,12 @@ namespace Unity.HLODSystem.Streaming
         private GameObject m_hlodMeshesRoot;
         void Start()
         {
+           OnStart();
+        }
+
+        
+        public override void OnStart()
+        {
             HLOD hlod;
             hlod = GetComponent<HLOD>();
 
@@ -45,7 +52,14 @@ namespace Unity.HLODSystem.Streaming
 #if UNITY_EDITOR
             Install();
 #endif
+
         }
+
+        public override void OnStop()
+        {
+        }
+
+
 
         public override void Install()
         {
@@ -53,11 +67,7 @@ namespace Unity.HLODSystem.Streaming
             {
                 if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKey.isValid)
                 {
-#if UNITY_EDITOR
-                    DestroyImmediate(m_highObjects[i].GameObject);
-#else
-                    Destroy(m_highObjects[i].GameObject);
-#endif
+                    DestoryObject(m_highObjects[i].GameObject);
                 }
                 else if (m_highObjects[i].GameObject != null)
                 {
@@ -102,6 +112,10 @@ namespace Unity.HLODSystem.Streaming
         public override IEnumerator GetHighObject(int id, Action<GameObject> callback)
         {
             GameObject ret = null;
+            int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
+            if (layer < 0 || layer > 31)
+                layer = 0;
+
             if (m_createdHighObjects.ContainsKey(id))
             {
                 //this id being loaded
@@ -120,17 +134,26 @@ namespace Unity.HLODSystem.Streaming
                 if (m_highObjects[id].GameObject != null)
                 {
                     go = m_highObjects[id].GameObject;
+                    ChangeLayersRecursively(go.transform, layer);
                 }
                 else
                 {
+                    GameObject asset = null;
+#if UNITY_EDITOR
+                    asset = m_highObjects[id].Reference.editorAsset as GameObject;
+#else
                     var op = m_highObjects[id].Reference.LoadAsset<GameObject>();
                     yield return op;
-                    go = Instantiate(op.Result, m_highObjects[id].Parent.transform);
+                    asset = op.Result;
+#endif
+
+                    go = Instantiate(asset, m_highObjects[id].Parent.transform);
                     go.SetActive(false);
                     go.transform.localPosition = m_highObjects[id].Position;
                     go.transform.localRotation = m_highObjects[id].Rotation;
                     go.transform.localScale = m_highObjects[id].Scale;
 
+                    ChangeLayersRecursively(go.transform, layer);
 
                 }
                 m_createdHighObjects[id] = go;
@@ -146,6 +169,10 @@ namespace Unity.HLODSystem.Streaming
         public override IEnumerator GetLowObject(int id, Action<GameObject> callback)
         {
             GameObject ret = null;
+            int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
+            if (layer < 0 || layer > 31)
+                layer = 0;
+
             if (m_createdLowObjects.ContainsKey(id))
             {
                 //this id being loaded
@@ -158,15 +185,24 @@ namespace Unity.HLODSystem.Streaming
             {
                 m_createdLowObjects.Add(id, null);
 
+                HLODMesh mesh = null;
+
+#if UNITY_EDITOR
+                mesh = m_lowObjects[id].editorAsset as HLODMesh;
+#else
 
                 var op = m_lowObjects[id].LoadAsset<HLODMesh>();
                 yield return op;
+                mesh = op.Result;
+#endif
 
-                GameObject go = new GameObject(op.Result.name);
+                GameObject go = new GameObject(mesh.name);
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
-                go.AddComponent<MeshFilter>().sharedMesh = op.Result.ToMesh();
-                go.AddComponent<MeshRenderer>().material = op.Result.Material;
+                go.AddComponent<MeshFilter>().sharedMesh = mesh.ToMesh();
+                go.AddComponent<MeshRenderer>().material = mesh.Material;
+                
+                ChangeLayersRecursively(go.transform, layer);
 
                 m_createdLowObjects[id] = go;
 
@@ -182,13 +218,15 @@ namespace Unity.HLODSystem.Streaming
         {
             if (m_highObjects[id].Reference == null || m_highObjects[id].Reference.RuntimeKey.isValid == false)
             {
-                m_createdHighObjects[id].SetActive(false);
+                if ( m_createdHighObjects[id] != null)
+                    m_createdHighObjects[id].SetActive(false);
 
             }
             else
             {
-                Destroy(m_createdHighObjects[id]);
-                m_highObjects[id].Reference.ReleaseAsset();
+                DestoryObject(m_createdHighObjects[id]);
+                if (m_highObjects[id].Reference.Asset != null) 
+                    m_highObjects[id].Reference.ReleaseAsset();
             }
 
             m_createdHighObjects.Remove(id);
@@ -198,8 +236,30 @@ namespace Unity.HLODSystem.Streaming
             GameObject go = m_createdLowObjects[id];
             m_createdLowObjects.Remove(id);
 
-            Destroy(go);
-            m_lowObjects[id].ReleaseAsset();
+            DestoryObject(go);
+            if (m_lowObjects[id].Asset != null)
+                m_lowObjects[id].ReleaseAsset();
+        }
+
+        private void DestoryObject(Object obj)
+        {
+#if UNITY_EDITOR
+            if ( UnityEditor.EditorApplication.isPlaying)
+                Destroy(obj);
+            else
+                DestroyImmediate(obj);
+#else
+            Destroy(obj);
+#endif
+        }
+
+        static void ChangeLayersRecursively(Transform trans, int layer)
+        {
+            trans.gameObject.layer = layer;
+            foreach (Transform child in trans)
+            {
+                ChangeLayersRecursively(child, layer);
+            }
         }
     }
 

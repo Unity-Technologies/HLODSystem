@@ -48,16 +48,25 @@ namespace Unity.HLODSystem.Streaming
             yield break;
         }
 
-        [SerializeField]
-        
         void Start()
         {
-            
+            OnStart();
+        }
 
+        public override void OnStart()
+        {
 #if UNITY_EDITOR
             Install();
 #endif
+
         }
+
+        public override void OnStop()
+        {
+
+        }
+
+
 
         public override void Install()
         {
