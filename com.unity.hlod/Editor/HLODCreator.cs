@@ -183,44 +183,38 @@ namespace Unity.HLODSystem
             //hlod.Root = rootNode;
         }
 
-        public static IEnumerator Update(HLOD hlod)
-        {
-            yield return Destroy(hlod);
-            yield return Create(hlod);
-
-        }
-
         public static IEnumerator Destroy(HLOD hlod)
         {
-            //List<HLOD> targetHlods = ObjectUtils.GetComponentsInChildren<HLOD>(hlod.gameObject).ToList();
 
-            //for (int i = 0; i < targetHlods.Count; ++i)
-            //{
-            //    GameObject obj = PrefabUtility.GetOutermostPrefabInstanceRoot(targetHlods[i].gameObject);
-            //    if (obj == null)
-            //        continue;
+            var controller = hlod.GetComponent<ControllerBase>();
+            if (controller == null)
+                yield break;
 
-            //    PrefabUtility.UnpackPrefabInstance(obj, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            //}
+            try
+            {
+                EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", 0.0f);
 
-            //for (int i = 0; i < targetHlods.Count; ++i)
-            //{
-            //    List<GameObject> hlodTargets = ObjectUtils.HLODTargets(targetHlods[i].HighRoot);
+                var generatedObjects = hlod.GeneratedObjects;
+                for (int i = 0; i < generatedObjects.Count; ++i)
+                {
+                    if (generatedObjects[i] == null)
+                        continue;
+                    var path = AssetDatabase.GetAssetPath(generatedObjects[i]);
+                    if (string.IsNullOrEmpty(path) == false)
+                    {
+                        AssetDatabase.DeleteAsset(path);
+                    }
 
-            //    for (int ti = 0; ti < hlodTargets.Count; ++ti)
-            //    {
-            //        ObjectUtils.HierarchyMove(hlodTargets[ti], targetHlods[i].HighRoot, hlod.gameObject );
-            //    }
+                    EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
+                }
+                generatedObjects.Clear();
 
-            //    if ( targetHlods[i] != hlod )
-            //        Object.DestroyImmediate(targetHlods[i].gameObject);
-            //}
-
-            //Object.DestroyImmediate(hlod.HighRoot);
-            //Object.DestroyImmediate(hlod.LowRoot);
-
-            yield break;
-            
+                Object.DestroyImmediate(controller);
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+            }
         }
     }
 }

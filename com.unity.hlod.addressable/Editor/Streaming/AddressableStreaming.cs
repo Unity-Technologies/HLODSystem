@@ -64,6 +64,7 @@ namespace Unity.HLODSystem.Streaming
                 for (int oi = 0; oi < infos[i].combinedGameObjects.Count; ++oi)
                 {
                     List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, m_hlod.name, infos[i].combinedGameObjects[oi]);
+                    m_hlod.GeneratedObjects.AddRange(createdMeshes);
 
                     foreach (var mesh in createdMeshes)
                     {

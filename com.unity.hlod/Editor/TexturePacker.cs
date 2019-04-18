@@ -78,6 +78,11 @@ namespace Unity.HLODSystem
             return null;
         }
 
+        public TextureAtlas[] GetAllAtlases()
+        {
+            return atlasGroups.Select(t => t.Atlas).ToArray();
+        }
+
         public void Pack(int packTextureSize, int maxPieceSize)
         {
             //First, we should separate each group by count.
@@ -177,7 +182,7 @@ namespace Unity.HLODSystem
             int index = 1;
             foreach (var group in atlasGroups)
             {
-                var name = path + Path.DirectorySeparatorChar + prefixName + index++ + ".png";
+                var name = path + prefixName + index++ + ".png";
                 group.Atlas.PacktedTexture = SaveTexture(group.Atlas.PacktedTexture, name);
             }
         }
