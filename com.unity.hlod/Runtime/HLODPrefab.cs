@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq.Expressions;
+﻿using System.Collections.Generic;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -17,8 +15,8 @@ namespace Unity.HLODSystem
         [SerializeField]
         private bool m_isEdit = false;
 
-
         private GameObject m_instantiatePrefab;
+        private bool m_needUpdate = false;
 
 
         public GameObject Prefab
@@ -44,19 +42,45 @@ namespace Unity.HLODSystem
             get { return m_isEdit; }
         }
 
+        void Start()
+        {
+            List<GameObject> childList = new List<GameObject>();
+            foreach (Transform child in transform)
+            {
+                if (child.gameObject != m_instantiatePrefab)
+                    childList.Add(child.gameObject);
+            }
+
+            for (int i = 0; i < childList.Count; ++i)
+            {
+                DestroyImmediate(childList[i]);
+            }
+
+            
+        }
 
         void OnEnable()
         {
-            UpdatePrefab();
+            //for the avoid editor crash.
+            //if the update prefab in here, editor will be crash. I don't know why.            
+            m_needUpdate = true;
         }
         void OnDisable()
         {
             DestroyPrefab();
         }
 
+        void Update()
+        {
+            if (m_needUpdate)
+            {
+                UpdatePrefab();
+                m_needUpdate = false;
+            }
+        }
+
         void UpdatePrefab()
         {
-
             if (m_prefab == null)
                 return;
 
@@ -73,6 +97,7 @@ namespace Unity.HLODSystem
             }
             else
             {
+                PrefabUtility.UnpackPrefabInstance(m_instantiatePrefab, PrefabUnpackMode.OutermostRoot, InteractionMode.AutomatedAction);
                 m_instantiatePrefab.hideFlags = HideFlags.HideAndDontSave;
 
                 int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
@@ -82,11 +107,12 @@ namespace Unity.HLODSystem
                 foreach (var hlod in FindHLODinPrefab(m_instantiatePrefab))
                 {
                     HLODManager.Instance.RegisterHLOD(hlod);
+                    hlod.StartUseInEditor();
                 }
             }
           
 
-            m_instantiatePrefab.transform.parent = transform;
+            m_instantiatePrefab.transform.SetParent(transform, false);
         }
 
         void DestroyPrefab()
@@ -97,26 +123,17 @@ namespace Unity.HLODSystem
             foreach (var hlod in FindHLODinPrefab(m_instantiatePrefab))
             {
                 HLODManager.Instance.UnregisterHLOD(hlod);
+                hlod.StopUseInEditor();
             }
             m_instantiatePrefab.SetActive(false);
             DestroyImmediate(m_instantiatePrefab);
 
         }
 
-        static List<HLOD> FindHLODinPrefab(GameObject prefab)
+        static HLOD[] FindHLODinPrefab(GameObject prefab)
         {
             List<HLOD> prefabHlods  = new List<HLOD>();
-            HLOD[] hlods = prefab.GetComponentsInChildren<HLOD>();
-
-            for ( int i = 0; i < hlods.Length; ++i )
-            {
-                GameObject root = PrefabUtility.GetNearestPrefabInstanceRoot(hlods[i]);
-                if ( root == prefab )
-                    prefabHlods.Add(hlods[i]);
-            }
-
-            return prefabHlods;
-
+            return prefab.GetComponentsInChildren<HLOD>();
         }
 
         static void ChangeLayersRecursively(Transform trans, int layer)

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
 using Unity.HLODSystem.Simplifier;
+using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using Debug = UnityEngine.Debug;
@@ -26,52 +28,127 @@ namespace Unity.HLODSystem
             HLOD hlod = root.AddComponent<HLOD>();
             return hlod;           
         }
+
+        private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects, float thresholdSize)
+        {
+            List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
+
+            for (int i = 0; i < gameObjects.Count; ++i)
+            {
+                GameObject obj = gameObjects[i];
+                LODGroup lodGroup = obj.GetComponent<LODGroup>();
+
+                Renderer[] renderers;
+
+                if (lodGroup != null)
+                {
+                    renderers = lodGroup.GetLODs().Last().renderers;
+                }
+                else
+                {
+                    renderers = obj.GetComponents<Renderer>();
+                }
+
+                for (int ri = 0; ri < renderers.Length; ++ri)
+                {
+                    MeshRenderer mr = renderers[ri] as MeshRenderer;
+
+                    if (mr == null)
+                        continue;
+
+                    float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
+                    if (max < thresholdSize)
+                        continue;
+
+                    meshRenderers.Add(mr);
+                }
+            }
+
+            return meshRenderers;
+        }
+
+        private static List<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float thresholdSize)
+        {
+            List<HLODBuildInfo> results = new List<HLODBuildInfo>();
+            Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
+            Queue<int> parentQueue = new Queue<int>();
+            Queue<string> nameQueue = new Queue<string>();
+
+            trevelQueue.Enqueue(root);
+            parentQueue.Enqueue(-1);
+            nameQueue.Enqueue("");
+            
+
+            while (trevelQueue.Count > 0)
+            {
+                int currentNodeIndex = results.Count;
+                string name = nameQueue.Dequeue();
+                SpaceNode node = trevelQueue.Dequeue();
+                HLODBuildInfo info = new HLODBuildInfo
+                {
+                    name = name,
+                    parentIndex = parentQueue.Dequeue(),
+                    target = node
+                };
+
+                if (node.ChildTreeNodes != null)
+                {
+                    for (int i = 0; i < node.ChildTreeNodes.Count; ++i)
+                    {
+                        trevelQueue.Enqueue(node.ChildTreeNodes[i]);
+                        parentQueue.Enqueue(currentNodeIndex);
+                        nameQueue.Enqueue(name + "_" + (i + 1));
+                    }
+                }
+
+                results.Add(info);
+
+                //it should add to every parent.
+                List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects, thresholdSize);
+                int distance = 0;
+
+                while (currentNodeIndex >= 0)
+                {
+                    var curInfo = results[currentNodeIndex];
+                    
+                    curInfo.renderers.AddRange(meshRenderers);
+                    curInfo.distances.AddRange(Enumerable.Repeat(distance,meshRenderers.Count));
+
+                    currentNodeIndex = curInfo.parentIndex;
+                    distance += 1;
+                }
+
+            }
+
+            return results;
+        }
+
         public static IEnumerator Create(HLOD hlod)
         {
             Stopwatch sw = new Stopwatch();
-            List<HLOD> targetHlods = null;
-           
+
             AssetDatabase.Refresh();
             AssetDatabase.SaveAssets();
 
             sw.Reset();
             sw.Start();
-            hlod.CalcBounds();
-            if (hlod.RecursiveGeneration == true)
-            {
-                if (hlod.Bounds.size.x > hlod.MinSize)
-                {
-                    ISplitter splitter = new OctSplitter();
-                    splitter.Split(hlod);
-                }
 
-                //GetComponentsInChildren is not working.
-                //so, I made it manually.
-                targetHlods = ObjectUtils.GetComponentsInChildren<HLOD>(hlod.gameObject);
-            }
-            else
-            {
-                targetHlods = new List<HLOD>();
-                targetHlods.Add(hlod);
-            }
-           
-            for (int i = 0; i < targetHlods.Count; ++i)
-            {
-                var curHlod = targetHlods[i];
-                curHlod.HighRoot = CreateHigh(curHlod.gameObject);
-                curHlod.LowRoot = CreateLow(curHlod, curHlod.HighRoot);
+            Bounds bounds = hlod.GetBounds();
 
-                curHlod.HighRoot.transform.SetParent(curHlod.transform);
-                curHlod.LowRoot.transform.SetParent(curHlod.transform);
-            }
+            List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
+            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(hlod.transform.position, 5.0f, hlod.MinSize);
+            SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlodTargets);
+
+            List<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.ThresholdSize);           
+            
             Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
             sw.Reset();
             sw.Start();
-
-            for (int i = 0; i < targetHlods.Count; ++i)
+            
+            ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType, new object[]{hlod});
+            for (int i = 0; i < buildInfos.Count; ++i)
             {
-                ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(targetHlods[i].SimplifierType);
-                yield return new BranchCoroutine(simplifier.Simplify(targetHlods[i]));
+                yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
             }
 
             yield return new WaitForBranches();
@@ -79,142 +156,65 @@ namespace Unity.HLODSystem
             sw.Reset();
             sw.Start();
 
-            IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType);
-            batcher.Batch(targetHlods.Last(), targetHlods.Select(h => h.LowRoot).ToArray());
+            
+            IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[]{hlod});
+            batcher.Batch(buildInfos);
             Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
             sw.Reset();
             sw.Start();
 
-            for (int i = 0; i < targetHlods.Count; ++i)
+            try
             {
-                IStreamingBuilder builder = (IStreamingBuilder)Activator.CreateInstance(targetHlods[i].StreamingType);
-                builder.Build(targetHlods[i], targetHlods[i] == hlod);
+                AssetDatabase.StartAssetEditing();
+                IStreamingBuilder builder =
+                    (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] {hlod});
+                builder.Build(rootNode, buildInfos);
+                Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+                sw.Reset();
+                sw.Start();
             }
-            Debug.Log("[HLOD] Streaming: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-
-            for (int i = 0; i < targetHlods.Count; ++i)
+            finally
             {
-                PrefabUtils.SavePrefab(targetHlods[i]);
+
+                AssetDatabase.StopAssetEditing();
+                Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
             }
-            Debug.Log("[HLOD] SavePrefab: " + sw.Elapsed.ToString("g"));
-            
-        }
 
-        public static IEnumerator Update(HLOD hlod)
-        {
-            yield return Destroy(hlod);
-            yield return Create(hlod);
-
+            //hlod.Root = rootNode;
         }
 
         public static IEnumerator Destroy(HLOD hlod)
         {
-            List<HLOD> targetHlods = ObjectUtils.GetComponentsInChildren<HLOD>(hlod.gameObject).ToList();
 
-            for (int i = 0; i < targetHlods.Count; ++i)
+            var controller = hlod.GetComponent<ControllerBase>();
+            if (controller == null)
+                yield break;
+
+            try
             {
-                GameObject obj = PrefabUtility.GetOutermostPrefabInstanceRoot(targetHlods[i].gameObject);
-                if (obj == null)
-                    continue;
+                EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", 0.0f);
 
-                PrefabUtility.UnpackPrefabInstance(obj, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            }
-
-            for (int i = 0; i < targetHlods.Count; ++i)
-            {
-                List<GameObject> hlodTargets = ObjectUtils.HLODTargets(targetHlods[i].HighRoot);
-
-                for (int ti = 0; ti < hlodTargets.Count; ++ti)
+                var generatedObjects = hlod.GeneratedObjects;
+                for (int i = 0; i < generatedObjects.Count; ++i)
                 {
-                    ObjectUtils.HierarchyMove(hlodTargets[ti], targetHlods[i].HighRoot, hlod.gameObject );
+                    if (generatedObjects[i] == null)
+                        continue;
+                    var path = AssetDatabase.GetAssetPath(generatedObjects[i]);
+                    if (string.IsNullOrEmpty(path) == false)
+                    {
+                        AssetDatabase.DeleteAsset(path);
+                    }
+
+                    EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
                 }
+                generatedObjects.Clear();
 
-                if ( targetHlods[i] != hlod )
-                    Object.DestroyImmediate(targetHlods[i].gameObject);
+                Object.DestroyImmediate(controller);
             }
-
-            Object.DestroyImmediate(hlod.HighRoot);
-            Object.DestroyImmediate(hlod.LowRoot);
-
-            yield break;
-            
-        }
-
-
-        
-
-        static void DestroyPrefab(HLOD hlod)
-        {
-
-        }
-
-        
-        static GameObject CreateHigh(GameObject root)
-        {
-            GameObject high = new GameObject("High");
-
-            while (root.transform.childCount > 0)
+            finally
             {
-                Transform child = root.transform.GetChild(0);
-                child.SetParent(high.transform);
+                EditorUtility.ClearProgressBar();
             }
-
-            return high;
         }
-
-        static GameObject CreateLow(HLOD hlod, GameObject highGameObject)
-        {
-            GameObject low = new GameObject("Low");
-
-            List<Renderer> renderers = new List<Renderer>();
-
-            //Convert gameobject to MeshRenderer.
-            //This gameObjects are mixed LODGroup and MeshRenderer.
-            List<GameObject> gameObjects = ObjectUtils.HLODTargets(highGameObject);
-            for (int i = 0; i < gameObjects.Count; ++i)
-            {
-                var lodGroup = gameObjects[i].GetComponent<LODGroup>();
-                if (lodGroup != null)
-                {
-                    renderers.AddRange(lodGroup.GetLODs().Last().renderers);
-                    continue;
-                }
-
-                var renderer = gameObjects[i].GetComponent<Renderer>();
-                if (renderer != null)
-                {
-                    renderers.Add(renderer);
-                }
-            }
-
-            for (int i = 0; i < renderers.Count; ++i)
-            {
-                Renderer renderer = renderers[i];
-                if (renderer == null)
-                    continue;
-
-                float max = Mathf.Max(renderer.bounds.size.x, renderer.bounds.size.y, renderer.bounds.size.z);
-                if (max < hlod.ThresholdSize)
-                    continue;
-
-                MeshFilter filter = renderer.GetComponent<MeshFilter>();
-                GameObject rendererObject = new GameObject(renderers[i].name, typeof(MeshFilter), typeof(MeshRenderer), typeof(LowMeshHolder));
-
-                EditorUtility.CopySerialized(filter, rendererObject.GetComponent<MeshFilter>());
-                EditorUtility.CopySerialized(renderer, rendererObject.GetComponent<MeshRenderer>());
-                var holder = rendererObject.AddComponent<Utils.SimplificationDistanceHolder>();
-                holder.OriginGameObject = renderer.gameObject;
-
-                rendererObject.transform.SetParent(low.transform);
-                rendererObject.transform.SetPositionAndRotation(renderer.transform.position, renderer.transform.rotation);
-                rendererObject.transform.localScale = renderer.transform.lossyScale;
-            }
-
-            
-            return low;
-        }
-
     }
 }

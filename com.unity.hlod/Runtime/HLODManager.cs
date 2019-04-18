@@ -34,7 +34,8 @@ namespace Unity.HLODSystem
         }
         public void UnregisterHLOD(HLOD hlod)
         {
-            m_activeHLODs.Remove(hlod);
+            if ( m_activeHLODs != null)
+                m_activeHLODs.Remove(hlod);
         }
 
         private List<HLOD> m_activeHLODs = null;
@@ -44,7 +45,9 @@ namespace Unity.HLODSystem
 #if UNITY_EDITOR
             if (EditorApplication.isPlaying == false)
             {
-                if (cam != Camera.current)
+                if (SceneView.currentDrawingSceneView == null)
+                    return;
+                if (cam != SceneView.currentDrawingSceneView.camera)
                     return;
             }
             else
@@ -60,25 +63,9 @@ namespace Unity.HLODSystem
             if (m_activeHLODs == null)
                 return;
 
-            var cameraTransform = cam.transform;
-            var cameraPosition = cameraTransform.position;
-
-            float preRelative = 0.0f;
-            if (cam.orthographic)
-            {
-                preRelative = 0.5f / cam.orthographicSize;
-            }
-            else
-            {
-                float halfAngle = Mathf.Tan(Mathf.Deg2Rad * cam.fieldOfView * 0.5F);
-                preRelative = 0.5f / halfAngle;
-            }
-            preRelative = preRelative * QualitySettings.lodBias;
-
             for (int i = 0; i < m_activeHLODs.Count; ++i)
             {
-                if ( m_activeHLODs[i] != null )
-                    m_activeHLODs[i].UpdateCull(cam.orthographic, cameraPosition, preRelative);
+                m_activeHLODs[i].UpdateCull(cam);
             }
         }
     }

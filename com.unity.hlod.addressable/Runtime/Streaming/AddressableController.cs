@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
 {
@@ -15,222 +12,261 @@ namespace Unity.HLODSystem.Streaming
         [Serializable]
         public class ChildObject
         {
+            public GameObject GameObject;
+
             public AssetReference Reference;
 
-            public GameObject Parent;
+            public Transform Parent;
             public Vector3 Position;
             public Quaternion Rotation;
             public Vector3 Scale;
         }
 
         [SerializeField]
-        [HideInInspector]
-        private List<ChildObject> m_childObjects = new List<ChildObject>();
-        [SerializeField]
-        [HideInInspector]
-        private List<HLOD> m_childHlods = new List<HLOD>();
+        private List<ChildObject> m_highObjects = new List<ChildObject>();
 
         [SerializeField]
-        private List<GameObject> m_instantitedObjects = new List<GameObject>();
+        private List<AssetReference> m_lowObjects = new List<AssetReference>();
 
-        [SerializeField]
-        private int m_maxInstantiateCount = 10;
+        
 
-        private List<AssetReference> m_loadedReferences = new List<AssetReference>();
+        private Dictionary<int, GameObject> m_createdHighObjects = new Dictionary<int, GameObject>();
+        private Dictionary<int, GameObject> m_createdLowObjects = new Dictionary<int, GameObject>();
 
-        public int MaxInstantiateCount
+        
+        private GameObject m_hlodMeshesRoot;
+        void Start()
         {
-            set { m_maxInstantiateCount = value; }
-            get { return m_maxInstantiateCount; }
+           OnStart();
         }
 
-        public void AddHLOD(HLOD hlod)
+        
+        public override void OnStart()
         {
-            m_childHlods.Add(hlod);
+            HLOD hlod;
+            hlod = GetComponent<HLOD>();
+
+            m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
+            m_hlodMeshesRoot.transform.SetParent(hlod.transform, false);
+
+#if UNITY_EDITOR
+            Install();
+#endif
+
         }
 
-        public void AddObject(AssetReference reference, Transform objectTransform)
+        public override void OnStop()
         {
-            if (reference == null || objectTransform == null)
-                return;
+        }
+
+
+
+        public override void Install()
+        {
+            for (int i = 0; i < m_highObjects.Count; ++i)
+            {
+                if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKey.isValid)
+                {
+                    DestoryObject(m_highObjects[i].GameObject);
+                }
+                else if (m_highObjects[i].GameObject != null)
+                {
+                    m_highObjects[i].GameObject.SetActive(false);
+                }
+            }
+        }
+
+        public int AddHighObject(AssetReference reference, GameObject origin)
+        {
+            int id = m_highObjects.Count;
 
             ChildObject obj = new ChildObject();
+            obj.GameObject = origin;
             obj.Reference = reference;
-            obj.Parent = objectTransform.parent.gameObject;
-            obj.Position = objectTransform.position;
-            obj.Rotation = objectTransform.rotation;
-            obj.Scale = objectTransform.localScale;
+            obj.Parent = origin.transform.parent;
+            obj.Position = origin.transform.localPosition;
+            obj.Rotation = origin.transform.localRotation;
+            obj.Scale = origin.transform.localScale;
 
-            m_childObjects.Add(obj);
+            m_highObjects.Add(obj);
+            return id;
         }
 
-
-        public override IEnumerator Load()
+        public int AddHighObject(GameObject gameObject)
         {
-            if (m_instantitedObjects.Count > 0)
-                yield break;
+            int id = m_highObjects.Count;
 
-            for (int i = 0; i < m_childHlods.Count; ++i)
-            {
-                var lowRoot = m_childHlods[i].LowRoot;
-                if (lowRoot == null)
-                    continue;
-                var controller = lowRoot.GetComponent<ControllerBase>();
-                if (controller == null)
-                    continue;
+            ChildObject obj = new ChildObject();
+            obj.GameObject = gameObject;
 
-                yield return controller.Load();
-            }
-
-            yield return CreateChildObjects(false);
+            m_highObjects.Add(obj);
+            return id;
+        }
+        public int AddLowObject(AssetReference hlodMesh)
+        {
+            int id = m_lowObjects.Count;
+            m_lowObjects.Add(hlodMesh);
+            return id;
         }
 
-        public override void Show()
+        public override IEnumerator GetHighObject(int id, Action<GameObject> callback)
         {
-            for (int i = 0; i < m_childHlods.Count; ++i)
+            GameObject ret = null;
+            int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
+            if (layer < 0 || layer > 31)
+                layer = 0;
+
+            if (m_createdHighObjects.ContainsKey(id))
             {
-                var lowRoot = m_childHlods[i].LowRoot;
-                if (lowRoot == null)
-                    continue;
-                var controller = lowRoot.GetComponent<ControllerBase>();
-                if (controller == null)
-                    continue;
-
-                controller.Show();
-            }
-
-            for (int i = 0; i < m_instantitedObjects.Count; ++i)
-            {
-                m_instantitedObjects[i].SetActive(true);
-            }
-
-            gameObject.SetActive(true);
-        }
-
-        public override void Hide()
-        {
-            for (int i = 0; i < m_childHlods.Count; ++i)
-            {
-                var lowRoot = m_childHlods[i].LowRoot;
-                if (lowRoot == null)
-                    continue;
-                var controller = lowRoot.GetComponent<ControllerBase>();
-                if (controller == null)
-                    continue;
-
-                controller.Hide();
-            }
-
-            for (int i = 0; i < m_instantitedObjects.Count; ++i)
-            {
-#if UNITY_EDITOR
-                DestroyImmediate(m_instantitedObjects[i]);
-#else
-
-                Destroy(m_instantitedObjects[i]);
-#endif
-            }
-
-            m_instantitedObjects.Clear();
-
-            for (int i = 0; i < m_loadedReferences.Count; ++i)
-            {
-                Cache.AddressableCache.Unload(m_loadedReferences[i]);
-            }
-            m_loadedReferences.Clear();
-
-            gameObject.SetActive(false);
-        }
-
-        public override void Enable()
-        {
-            if (enabled == true)
-                return;
-
-            for (int i = 0; i < m_instantitedObjects.Count; ++i)
-            {
-#if UNITY_EDITOR
-                DestroyImmediate(m_instantitedObjects[i]);
-#else
-                Destroy(m_instantitedObjects[i]);
-#endif
-            }
-            m_instantitedObjects.Clear();
-            enabled = true;
-        }
-        public override void Disable()
-        {
-            if (enabled == false)
-                return;
-
-            CreateChildObjectsByCallback(true);
-            enabled = false;
-        }
-
-        private void LoadDoneObject(GameObject prefab, ChildObject obj, bool active)
-        {
-            if (prefab == null)
-                return;
-
-            GameObject instance = Instantiate(prefab, obj.Parent.transform);
-            instance.transform.position = obj.Position;
-            instance.transform.rotation = obj.Rotation;
-            instance.transform.localScale = obj.Scale;
-            instance.SetActive(active);
-
-            m_instantitedObjects.Add(instance);
-        }
-
-        private IEnumerator CreateChildObjects(bool active)
-        {
-            int instantiateCount = 0;
-            for (int i = 0; i < m_childObjects.Count; ++i)
-            {
-#if UNITY_EDITOR
-                if (EditorApplication.isPlaying == false)
-                {
-                    GameObject prefab = (GameObject) m_childObjects[i].Reference.editorAsset;
-                    LoadDoneObject(prefab, m_childObjects[i], active);
-                    continue;
-                }
-#endif
-                var objectInfo = m_childObjects[i];
-                var ao = Cache.AddressableCache.Load(objectInfo.Reference);
-                m_loadedReferences.Add(objectInfo.Reference);
-                if (ao.Result == null)
-                    yield return ao;
-                if (ao.Result == null)
-                {
-                    Debug.LogError("Failed to load object: " + objectInfo.Reference);
-                }
-
-                LoadDoneObject((GameObject)ao.Result, objectInfo, active);
-                if (++instantiateCount >= MaxInstantiateCount)
-                {
-                    instantiateCount = 0;
+                //this id being loaded
+                while (m_createdHighObjects[id] == null)
                     yield return null;
-                }
 
+                ret = m_createdHighObjects[id];
             }
+            else
+            {
+                //marking to this id being loaded.
+                m_createdHighObjects.Add(id, null);
+
+                GameObject go = null;
+
+                if (m_highObjects[id].GameObject != null)
+                {
+                    go = m_highObjects[id].GameObject;
+                    ChangeLayersRecursively(go.transform, layer);
+                }
+                else
+                {
+                    GameObject asset = null;
+#if UNITY_EDITOR
+                    asset = m_highObjects[id].Reference.editorAsset as GameObject;
+#else
+                    var op = m_highObjects[id].Reference.LoadAsset<GameObject>();
+                    yield return op;
+                    asset = op.Result;
+#endif
+
+                    go = Instantiate(asset, m_highObjects[id].Parent.transform);
+                    go.SetActive(false);
+                    go.transform.localPosition = m_highObjects[id].Position;
+                    go.transform.localRotation = m_highObjects[id].Rotation;
+                    go.transform.localScale = m_highObjects[id].Scale;
+
+                    ChangeLayersRecursively(go.transform, layer);
+
+                }
+                m_createdHighObjects[id] = go;
+
+                ret = go;
+
+                
+            }
+
+            callback(ret);
         }
 
-        private void CreateChildObjectsByCallback(bool active)
+        public override IEnumerator GetLowObject(int id, Action<GameObject> callback)
         {
-            for (int i = 0; i < m_childObjects.Count; ++i)
+            GameObject ret = null;
+            int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
+            if (layer < 0 || layer > 31)
+                layer = 0;
+
+            if (m_createdLowObjects.ContainsKey(id))
             {
+                //this id being loaded
+                while (m_createdLowObjects[id] == null)
+                    yield return null;
+
+                ret = m_createdLowObjects[id];
+            }
+            else
+            {
+                m_createdLowObjects.Add(id, null);
+
+                HLODMesh mesh = null;
+
 #if UNITY_EDITOR
-                if (EditorApplication.isPlaying == false)
-                {
-                    GameObject prefab = (GameObject) m_childObjects[i].Reference.editorAsset;
-                    LoadDoneObject(prefab, m_childObjects[i], active);
-                    continue;
-                }
+                mesh = m_lowObjects[id].editorAsset as HLODMesh;
+#else
+
+                var op = m_lowObjects[id].LoadAsset<HLODMesh>();
+                yield return op;
+                mesh = op.Result;
 #endif
-                var objectInfo = m_childObjects[i];
-                Addressables.LoadAsset<UnityEngine.Object>(objectInfo.Reference).Completed += o =>
-                {
-                    LoadDoneObject((GameObject)o.Result, objectInfo, active);
-                };
+
+                GameObject go = new GameObject(mesh.name);
+                go.SetActive(false);
+                go.transform.SetParent(m_hlodMeshesRoot.transform, false);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh.ToMesh();
+                go.AddComponent<MeshRenderer>().material = mesh.Material;
+                
+                ChangeLayersRecursively(go.transform, layer);
+
+                m_createdLowObjects[id] = go;
+
+                ret = go;
+            }
+
+            callback(ret);
+
+            
+        }
+
+        public override void ReleaseHighObject(int id)
+        {
+            if (m_highObjects[id].Reference == null || m_highObjects[id].Reference.RuntimeKey.isValid == false)
+            {
+                if ( m_createdHighObjects[id] != null)
+                    m_createdHighObjects[id].SetActive(false);
+
+            }
+            else
+            {
+                DestoryObject(m_createdHighObjects[id]);
+                if (m_highObjects[id].Reference.Asset != null) 
+                    m_highObjects[id].Reference.ReleaseAsset();
+            }
+
+            m_createdHighObjects.Remove(id);
+        }
+        public override void ReleaseLowObject(int id)
+        {
+            GameObject go = m_createdLowObjects[id];
+            m_createdLowObjects.Remove(id);
+
+            if (go != null)
+            {
+
+                Mesh mesh = go.GetComponent<MeshFilter>().sharedMesh;
+                if (mesh != null)
+                    DestoryObject(mesh);
+                DestoryObject(go);
+            }
+
+            if (m_lowObjects[id].Asset != null)
+                m_lowObjects[id].ReleaseAsset();
+        }
+
+        private void DestoryObject(Object obj)
+        {
+#if UNITY_EDITOR
+            if ( UnityEditor.EditorApplication.isPlaying)
+                Destroy(obj);
+            else
+                DestroyImmediate(obj);
+#else
+            Destroy(obj);
+#endif
+        }
+
+        static void ChangeLayersRecursively(Transform trans, int layer)
+        {
+            trans.gameObject.layer = layer;
+            foreach (Transform child in trans)
+            {
+                ChangeLayersRecursively(child, layer);
             }
         }
     }

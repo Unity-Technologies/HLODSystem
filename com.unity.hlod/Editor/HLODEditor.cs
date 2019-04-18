@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Linq;
+using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
@@ -17,14 +17,10 @@ namespace Unity.HLODSystem
             public static GUIContent GenerateButtonEnable = new GUIContent("Generate", "Generate a HLOD mesh.");
             public static GUIContent GenerateButtonDisable = new GUIContent("Generate", "Generate is only allow in prefab mode.");
             public static GUIContent GenerateButtonExists = new GUIContent("Generate", "HLOD already generated.");
-            public static GUIContent UpdateButtonEnable = new GUIContent("Update", "Update a HLOD mesh.");
-            public static GUIContent UpdateButtonDisable = new GUIContent("Update", "Update is only allow in prefab mode.");
-            public static GUIContent UpdateButtonNotExists = new GUIContent("Update", "You need to generate HLOD before the update.");
             public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destory a HLOD mesh.");
             public static GUIContent DestroyButtonDisable = new GUIContent("Destroy", "Destory is only allow in prefab mode.");
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "You need to generate HLOD before the destroy.");
-        }
-        private SerializedProperty m_RecursiveGenerationProperty;
+        }        
         private SerializedProperty m_MinSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
         private SerializedProperty m_CullDistanceProperty;
@@ -46,14 +42,13 @@ namespace Unity.HLODSystem
         {
             if (LayerMask.NameToLayer(HLOD.HLODLayerStr) == -1)
             {
-                Utils.TagUtils.AddLayer(HLOD.HLODLayerStr);
-                Tools.lockedLayers |= LayerMask.NameToLayer(HLOD.HLODLayerStr);
+                TagUtils.AddLayer(HLOD.HLODLayerStr);
+                Tools.lockedLayers |= 1 << LayerMask.NameToLayer(HLOD.HLODLayerStr);
             }
         }
 
         void OnEnable()
-        {
-            m_RecursiveGenerationProperty = serializedObject.FindProperty("m_RecursiveGeneration");
+        {            
             m_MinSizeProperty = serializedObject.FindProperty("m_MinSize");
             m_LODDistanceProperty = serializedObject.FindProperty("m_LODDistance");
             m_CullDistanceProperty = serializedObject.FindProperty("m_CullDistance");
@@ -85,13 +80,7 @@ namespace Unity.HLODSystem
                 return;
             }
 
-            EditorGUILayout.PropertyField(m_RecursiveGenerationProperty);
-            if ( m_RecursiveGenerationProperty.boolValue )
-            {
-                EditorGUI.indentLevel += 1;
-                EditorGUILayout.PropertyField(m_MinSizeProperty);
-                EditorGUI.indentLevel -= 1;
-            }
+            EditorGUILayout.PropertyField(m_MinSizeProperty);
 
             m_LODSlider.Draw();
             EditorGUILayout.PropertyField(m_ThresholdSizeProperty);
@@ -159,7 +148,6 @@ namespace Unity.HLODSystem
 
 
             GUIContent generateButton = Styles.GenerateButtonEnable;
-            GUIContent updateButton = Styles.UpdateButtonNotExists;
             GUIContent destroyButton = Styles.DestroyButtonNotExists;
 
             if (PrefabStageUtility.GetCurrentPrefabStage() == null ||
@@ -168,13 +156,11 @@ namespace Unity.HLODSystem
                 //generate is only allow in prefab mode.
                 GUI.enabled = false;
                 generateButton = Styles.GenerateButtonDisable;
-                updateButton = Styles.UpdateButtonDisable;
                 destroyButton = Styles.DestroyButtonDisable;
             }
-            else if (hlod.HighRoot != null && hlod.LowRoot != null)
+            else if (hlod.GetComponent<ControllerBase>() != null)
             {
                 generateButton = Styles.GenerateButtonExists;
-                updateButton = Styles.UpdateButtonEnable;
                 destroyButton = Styles.DestroyButtonEnable;
             }
 
@@ -184,12 +170,6 @@ namespace Unity.HLODSystem
             if (GUILayout.Button(generateButton))
             {
                 CoroutineRunner.RunCoroutine(HLODCreator.Create(hlod));
-            }
-
-            GUI.enabled = updateButton == Styles.UpdateButtonEnable;
-            if (GUILayout.Button(updateButton))
-            {
-                CoroutineRunner.RunCoroutine(HLODCreator.Update(hlod));
             }
 
             GUI.enabled = destroyButton == Styles.DestroyButtonEnable;

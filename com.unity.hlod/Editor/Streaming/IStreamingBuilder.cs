@@ -6,7 +6,7 @@ namespace Unity.HLODSystem.Streaming
 {
     public interface IStreamingBuilder
     {
-        void Build(HLOD hlod, bool isRoot);
-        
+        void Build(SpaceManager.SpaceNode rootNode, List<HLODBuildInfo> infos);
+
     }
 }

@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Utils
 {
-  
     public class CustomCoroutine : IEnumerator
     {
         class AsyncOperationEnumerator : IEnumerator
@@ -33,7 +32,7 @@ namespace Unity.HLODSystem.Utils
             }
         }
         private Stack<IEnumerator> m_routineStack = new Stack<IEnumerator>();
-        private List<CustomCoroutine> m_branchList = new List<CustomCoroutine>();
+        private List<IEnumerator> m_branchList = new List<IEnumerator>();
 
         public CustomCoroutine(IEnumerator routine)
         {
@@ -99,7 +98,7 @@ namespace Unity.HLODSystem.Utils
 
         private IEnumerator WaitForBranchesImpl()
         {
-            CustomCoroutine[] branches = m_branchList.ToArray();
+            IEnumerator[] branches = m_branchList.ToArray();
             for (int i = 0; i < branches.Length; ++i)
             {
                 yield return branches[i];
@@ -113,7 +112,7 @@ namespace Unity.HLODSystem.Utils
     //so, if it run on editor, it have to run coroutine manually.
     public class CoroutineRunner : MonoBehaviour
     {
-        public static CustomCoroutine RunCoroutine(IEnumerator coroutine)
+        public static IEnumerator RunCoroutine(IEnumerator coroutine)
         {
             return Run(coroutine);
         }
@@ -146,12 +145,12 @@ namespace Unity.HLODSystem.Utils
             return coroutine;
         }
 #else
-        private static IEnumerator CoroutineImpl(Coroutine coroutine)
-        {
-            yield return coroutine;
-        }
         private static GameObject gameObjectInstance = null;
-        private static CustomCoroutine Run(IEnumerator routine)
+        private static IEnumerator Wrapping(Coroutine c)
+        {
+            yield return c;
+        }
+        private static IEnumerator Run(IEnumerator routine)
         {
             if (gameObjectInstance == null)
             {
@@ -162,7 +161,7 @@ namespace Unity.HLODSystem.Utils
 
             var runner = gameObjectInstance.GetComponent<CoroutineRunner>();
             var coroutine = runner.StartCoroutine(routine);
-            return new CustomCoroutine(CoroutineImpl(coroutine));
+            return Wrapping(coroutine);
         }
 #endif
     }

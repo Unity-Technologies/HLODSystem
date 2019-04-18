@@ -1,31 +1,35 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Simplifier
 {
     abstract class SimplifierBase : ISimplifier
     {
-        public IEnumerator Simplify(HLOD hlod)
+        private HLOD m_hlod;
+        public SimplifierBase(HLOD hlod)
         {
-            var root = hlod.LowRoot;
-
-            foreach (Transform child in root.transform)
+            m_hlod = hlod;
+        }
+        public IEnumerator Simplify(HLODBuildInfo buildInfo)
+        {
+            buildInfo.simplifiedMeshes = new List<Mesh>(buildInfo.renderers.Count);
+            for (int i = 0; i < buildInfo.renderers.Count; ++i)
             {
-                var meshFilter = child.GetComponent<MeshFilter>();
-
+                var meshFilter = buildInfo.renderers[i].GetComponent<MeshFilter>();
                 var mesh = meshFilter.sharedMesh;
-                var holder = meshFilter.GetComponent<Utils.SimplificationDistanceHolder>();
 
                 int triangleCount = mesh.triangles.Length / 3;
-                float maxQuality = Mathf.Min((float)hlod.SimplifyMaxPolygonCount / (float)triangleCount, hlod.SimplifyPolygonRatio);
-                float minQuality = Mathf.Max((float)hlod.SimplifyMinPolygonCount / (float)triangleCount, 0.0f);
+                float maxQuality = Mathf.Min((float)m_hlod.SimplifyMaxPolygonCount / (float)triangleCount, m_hlod.SimplifyPolygonRatio);
+                float minQuality = Mathf.Max((float)m_hlod.SimplifyMinPolygonCount / (float)triangleCount, 0.0f);
 
-                var ratio = CalcRatio(maxQuality, holder, hlod);
+                var ratio = maxQuality * Mathf.Pow(m_hlod.SimplifyPolygonRatio, buildInfo.distances[i]);
                 ratio = Mathf.Max(ratio, minQuality);
 
-
+                
                 while (Cache.SimplifiedCache.IsGenerating(GetType(), mesh, ratio) == true)
                 {
                     yield return null;
@@ -42,34 +46,11 @@ namespace Unity.HLODSystem.Simplifier
                     
                 }
 
-                meshFilter.sharedMesh = simplifiedMesh;
-            }
+                buildInfo.simplifiedMeshes.Add(simplifiedMesh);
+            }            
         }
 
         protected abstract IEnumerator GetSimplifiedMesh(Mesh origin, float quality, Action<Mesh> resultCallback);
-        private float CalcRatio(float initRatio, Utils.SimplificationDistanceHolder holder, HLOD hlod)
-        {
-            float ratio = initRatio;
-
-            if (holder == null || holder.OriginGameObject == null)
-                return ratio;
-
-            var transform = holder.OriginGameObject.transform;
-            
-            while (transform.gameObject != hlod.gameObject)
-            {
-                var curHlod = transform.GetComponent<HLOD>();
-                if (curHlod != null)
-                {
-                    ratio = ratio * curHlod.SimplifyPolygonRatio;
-                }
-
-                transform = transform.parent;
-            }
-
-            holder.Ratio = ratio;
-            return ratio;
-        }
 
         protected static void OnGUIBase(HLOD hlod)
         {

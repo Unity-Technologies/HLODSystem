@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -31,6 +32,45 @@ namespace Unity.HLODSystem.Utils
             return result.ToList();
         }
 
+        
+        public static List<HLODMesh> SaveHLODMesh(string path, string name, GameObject gameObject)
+        {
+            List<HLODMesh> result = new List<HLODMesh>();
+
+            path = Path.GetDirectoryName(path) + "/";
+            path = path + name;
+
+            
+            //store hlod meshes
+            var meshFilters = gameObject.GetComponentsInChildren<MeshFilter>();
+
+            for (int f = 0; f < meshFilters.Length; ++f)
+            {
+                var mesh = meshFilters[f].sharedMesh;
+
+                var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
+                var material = meshRenderer.sharedMaterial;
+
+                HLODMesh hlodmesh = ScriptableObject.CreateInstance<HLODMesh>();
+                hlodmesh.FromMesh(mesh);
+                hlodmesh.Material = material;
+              
+                string meshName = path + meshFilters[f].gameObject.name;
+
+                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(material)))
+                {
+                    AssetDatabase.CreateAsset(material, meshName + ".mat");
+                }
+                AssetDatabase.CreateAsset(hlodmesh, meshName + ".asset");
+                
+
+                GameObject.DestroyImmediate(meshFilters[f].gameObject);
+                result.Add(hlodmesh);
+
+            }
+
+            return result;
+        }
         public static List<GameObject> HLODTargets(GameObject root)
         {
             List<GameObject> targets = new List<GameObject>();
@@ -60,60 +100,6 @@ namespace Unity.HLODSystem.Utils
             return targets;
         }
 
-        public static GameObject CopyGameObjectWithComponent(GameObject source)
-        {
-            GameObject target = new GameObject(source.name);
-
-            var allComponents = source.GetComponents<Component>();
-            for (int i = 0; i < allComponents.Length; ++i)
-            {
-                System.Type type = allComponents[i].GetType();
-                Component component = target.GetComponent(type);
-                if ( component == null)
-                    component = target.AddComponent(type);
-
-                EditorUtility.CopySerialized(allComponents[i], component);
-            }
-
-            return target;
-        }
-
-        public static void HierarchyMove(GameObject source, GameObject sourceRoot, GameObject target)
-        {
-            Stack<Transform> traceStack = new Stack<Transform>();
-            traceStack.Push(source.transform);
-
-            while (traceStack.Peek().parent != sourceRoot.transform)
-            {
-                traceStack.Push(traceStack.Peek().parent);
-            }
-
-            Transform parent = target.transform;
-            //Make hierarchy into target.
-            //last one is source. So, we don't need to process last one.
-            while (traceStack.Count > 1)
-            {
-                Transform curTransform = traceStack.Pop();
-                Transform newParent = parent.Find(curTransform.name);
-                if (newParent == null)
-                {
-                    GameObject go = CopyGameObjectWithComponent(curTransform.gameObject);
-                    go.transform.SetParent(parent);
-                    newParent = go.transform;
-                }
-                
-                parent = newParent;
-            }
-
-            Transform oldParent = source.transform.parent;
-            source.transform.SetParent(parent);
-
-            //remove the object if empty because moves object.
-            if (oldParent.childCount == 0)
-            {
-                Object.DestroyImmediate(oldParent.gameObject);
-            }
-        }
     }
 
 }
