@@ -172,15 +172,23 @@ namespace Unity.HLODSystem
 
         public void StartUseInEditor()
         {
+            var controller = GetComponent<ControllerBase>();
+            if (controller == null)
+                return;
+
             Awake();
             Start();
 
-            GetComponent<ControllerBase>().OnStart();
+            controller.OnStart();
         }
 
         public void StopUseInEditor()
         {
-            GetComponent<ControllerBase>().OnStop();
+            var controller = GetComponent<ControllerBase>();
+            if (controller == null)
+                return;
+
+            controller.OnStop();
 
             m_root.Cull();
             m_spaceManager = null;
