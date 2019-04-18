@@ -12,7 +12,8 @@ namespace Unity.HLODSystem.Streaming
         private List<GameObject> m_gameObjectList = new List<GameObject>();
         [SerializeField]
         private List<HLODMesh> m_hlodMeshes = new List<HLODMesh>();
-
+        [SerializeField]
+        [HideInInspector]
         private List<GameObject> m_createdHlodMeshObjects = new List<GameObject>();
 
         public int AddHighObject(GameObject gameObject)
@@ -47,21 +48,39 @@ namespace Unity.HLODSystem.Streaming
             yield break;
         }
 
-        private HLOD m_hlod;
-        private GameObject m_hlodMeshesRoot;
         void Start()
         {
-            m_hlod = GetComponent<HLOD>();
-            m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            m_hlodMeshesRoot.transform.SetParent(m_hlod.transform, false);
-            
+            OnStart();
+        }
+
+        public override void OnStart()
+        {
+#if UNITY_EDITOR
+            Install();
+#endif
+
+        }
+
+        public override void OnStop()
+        {
+
+        }
+
+
+
+        public override void Install()
+        {
+            HLOD hlod = GetComponent<HLOD>();
+            GameObject hlodMeshesRoot = new GameObject("HLODMeshesRoot");
+            hlodMeshesRoot.transform.SetParent(hlod.transform, false);
+
             for (int i = 0; i < m_hlodMeshes.Count; ++i)
             {
                 GameObject go = new GameObject(m_hlodMeshes[i].name);
 
                 go.AddComponent<MeshFilter>().sharedMesh = m_hlodMeshes[i].ToMesh();
                 go.AddComponent<MeshRenderer>().material = m_hlodMeshes[i].Material;
-                go.transform.SetParent(m_hlodMeshesRoot.transform, false);
+                go.transform.SetParent(hlodMeshesRoot.transform, false);
 
                 go.SetActive(false);
 

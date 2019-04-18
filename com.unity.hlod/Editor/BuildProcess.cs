@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.HLODSystem.Streaming;
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine.SceneManagement;
-using Object = System.Object;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
@@ -25,9 +26,12 @@ namespace Unity.HLODSystem
                 var prefabs = roots[i].GetComponentsInChildren<HLODPrefab>();
                 for (int pi = 0; pi < prefabs.Length; ++pi)
                 {
-                    GameObject obj = PrefabUtility.InstantiatePrefab(prefabs[pi].Prefab) as GameObject;
-                    obj.transform.parent = prefabs[pi].transform;
+                    prefabs[pi].IsEdit = false;
+                    GameObject obj = Object.Instantiate(prefabs[pi].Prefab) as GameObject;
+                    obj.transform.SetParent(prefabs[pi].transform, false);
                     instantiatePrefabs.Add(obj);
+
+                    Object.DestroyImmediate(prefabs[pi]);
                 }
             }
 
@@ -37,6 +41,12 @@ namespace Unity.HLODSystem
                 hlods.AddRange(roots[i].GetComponentsInChildren<HLOD>());
             }
 
+            for (int i = 0; i < hlods.Count; ++i)
+            {
+                var controller = hlods[i].GetComponent<ControllerBase>();
+                if ( controller != null )
+                    controller.Install();
+            }
 
         }
     }

@@ -141,7 +141,6 @@ namespace Unity.HLODSystem
             ControllerBase controller = GetComponent<ControllerBase>();
             m_root.Initialize(controller, m_spaceManager, m_activeManager);
             m_activeManager.Activate(m_root);
-
         }
 
         void OnEnable()
@@ -160,12 +159,28 @@ namespace Unity.HLODSystem
 
 
 #if UNITY_EDITOR
+        public void StartUseInEditor()
+        {
+            Awake();
+            Start();
+
+            GetComponent<ControllerBase>().OnStart();
+        }
+
+        public void StopUseInEditor()
+        {
+            GetComponent<ControllerBase>().OnStop();
+
+            m_root.Cull();
+            m_spaceManager = null;
+            m_activeManager = null;
+        }
         private void OnDrawGizmosSelected()
         {
             if (UnityEditor.Selection.activeGameObject == gameObject && m_root != null)
             {
                 Gizmos.color = Color.red;
-                //Gizmos.DrawWireCube(m_root.Bounds.center, m_root.Bounds.size);
+                Gizmos.DrawWireCube(m_root.Bounds.center, m_root.Bounds.size);
             }
         }
 #endif
@@ -207,7 +222,16 @@ namespace Unity.HLODSystem
                 return;
 
             m_spaceManager.UpdateCamera(camera);
-            m_activeManager.UpdateActiveNodes();
+
+            if (m_spaceManager.IsCull(m_root.Bounds) == true)
+            {
+                m_root.Cull();
+            }
+            else
+            {
+                m_activeManager.UpdateActiveNodes();
+            }
+            
          
         }
 

@@ -34,7 +34,8 @@ namespace Unity.HLODSystem
         }
         public void UnregisterHLOD(HLOD hlod)
         {
-            m_activeHLODs.Remove(hlod);
+            if ( m_activeHLODs != null)
+                m_activeHLODs.Remove(hlod);
         }
 
         private List<HLOD> m_activeHLODs = null;
@@ -44,7 +45,9 @@ namespace Unity.HLODSystem
 #if UNITY_EDITOR
             if (EditorApplication.isPlaying == false)
             {
-                if (cam != Camera.current)
+                if (SceneView.currentDrawingSceneView == null)
+                    return;
+                if (cam != SceneView.currentDrawingSceneView.camera)
                     return;
             }
             else

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Linq;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
@@ -45,8 +44,8 @@ namespace Unity.HLODSystem
         {
             if (LayerMask.NameToLayer(HLOD.HLODLayerStr) == -1)
             {
-                Utils.TagUtils.AddLayer(HLOD.HLODLayerStr);
-                Tools.lockedLayers |= LayerMask.NameToLayer(HLOD.HLODLayerStr);
+                TagUtils.AddLayer(HLOD.HLODLayerStr);
+                Tools.lockedLayers |= 1 << LayerMask.NameToLayer(HLOD.HLODLayerStr);
             }
         }
 

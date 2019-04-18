@@ -83,8 +83,11 @@ namespace Unity.HLODSystem
             m_controller = controller;
             m_spaceManager = spaceManager;
             m_activeManager = activeManager;
+        }
 
-            m_bounds.center += controller.transform.position;
+        public void Cull()
+        {
+            Release();
         }
 
         #region FSM functions
@@ -94,6 +97,7 @@ namespace Unity.HLODSystem
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
                 m_childTreeNodes[i].Release();
+                m_activeManager.Deactivate(m_childTreeNodes[i]);
             }
 
         }

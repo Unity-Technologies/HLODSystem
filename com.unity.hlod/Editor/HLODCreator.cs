@@ -29,7 +29,7 @@ namespace Unity.HLODSystem
             return hlod;           
         }
 
-        private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects)
+        private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects, float thresholdSize)
         {
             List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
 
@@ -52,15 +52,22 @@ namespace Unity.HLODSystem
                 for (int ri = 0; ri < renderers.Length; ++ri)
                 {
                     MeshRenderer mr = renderers[ri] as MeshRenderer;
-                    if ( mr != null )
-                        meshRenderers.Add(mr);
+
+                    if (mr == null)
+                        continue;
+
+                    float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
+                    if (max < thresholdSize)
+                        continue;
+
+                    meshRenderers.Add(mr);
                 }
             }
 
             return meshRenderers;
         }
 
-        private static List<HLODBuildInfo> CreateBuildInfo(SpaceNode root)
+        private static List<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float thresholdSize)
         {
             List<HLODBuildInfo> results = new List<HLODBuildInfo>();
             Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
@@ -97,7 +104,7 @@ namespace Unity.HLODSystem
                 results.Add(info);
 
                 //it should add to every parent.
-                List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects);
+                List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects, thresholdSize);
                 int distance = 0;
 
                 while (currentNodeIndex >= 0)
@@ -132,7 +139,7 @@ namespace Unity.HLODSystem
             ISpaceSplitter spliter = new QuadTreeSpaceSplitter(hlod.transform.position, 5.0f, hlod.MinSize);
             SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlodTargets);
 
-            List<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode);           
+            List<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.ThresholdSize);           
             
             Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
             sw.Reset();
