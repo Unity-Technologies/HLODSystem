@@ -86,6 +86,12 @@ namespace Unity.HLODSystem
             
             m_Packer.Pack(options.PackTextureSize, options.LimitTextureSize);
             m_Packer.SaveTextures(GetPrefabDirectory(), m_hlod.name);
+
+            var savedAtlases = m_Packer.GetAllAtlases();
+            for (int i = 0; i < savedAtlases.Length; ++i)
+            {
+                m_hlod.GeneratedObjects.Add(savedAtlases[i].PacktedTexture);
+            }
         }
 
         
@@ -238,6 +244,7 @@ namespace Unity.HLODSystem
             {
                 string materialPath = Path.ChangeExtension(texturePath, "mat");
                 AssetDatabase.CreateAsset(material, materialPath);
+                m_hlod.GeneratedObjects.Add(material);
             }
 
 

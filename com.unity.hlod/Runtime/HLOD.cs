@@ -6,6 +6,7 @@ using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
@@ -53,6 +54,9 @@ namespace Unity.HLODSystem
 
         [SerializeField]
         private float m_SimplifyThresholdSize = 5.0f;
+
+        [SerializeField]
+        private List<Object> m_generatedObjects = new List<Object>();
 
         private ISpaceManager m_spaceManager;
         private ActiveHLODTreeNodeManager m_activeManager;
@@ -130,6 +134,8 @@ namespace Unity.HLODSystem
             get { return m_ThresholdSize; }
         }
 
+        
+
         void Awake()
         {
             m_spaceManager = new QuadTreeSpaceManager(this);
@@ -159,22 +165,36 @@ namespace Unity.HLODSystem
 
 
 #if UNITY_EDITOR
+        public List<Object> GeneratedObjects
+        {
+            get { return m_generatedObjects; }
+        }
+
         public void StartUseInEditor()
         {
+            var controller = GetComponent<ControllerBase>();
+            if (controller == null)
+                return;
+
             Awake();
             Start();
 
-            GetComponent<ControllerBase>().OnStart();
+            controller.OnStart();
         }
 
         public void StopUseInEditor()
         {
-            GetComponent<ControllerBase>().OnStop();
+            var controller = GetComponent<ControllerBase>();
+            if (controller == null)
+                return;
+
+            controller.OnStop();
 
             m_root.Cull();
             m_spaceManager = null;
             m_activeManager = null;
         }
+
         private void OnDrawGizmosSelected()
         {
             if (UnityEditor.Selection.activeGameObject == gameObject && m_root != null)
