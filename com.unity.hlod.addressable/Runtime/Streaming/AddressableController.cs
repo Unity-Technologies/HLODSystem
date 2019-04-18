@@ -236,7 +236,15 @@ namespace Unity.HLODSystem.Streaming
             GameObject go = m_createdLowObjects[id];
             m_createdLowObjects.Remove(id);
 
-            DestoryObject(go);
+            if (go != null)
+            {
+
+                Mesh mesh = go.GetComponent<MeshFilter>().sharedMesh;
+                if (mesh != null)
+                    DestoryObject(mesh);
+                DestoryObject(go);
+            }
+
             if (m_lowObjects[id].Asset != null)
                 m_lowObjects[id].ReleaseAsset();
         }
