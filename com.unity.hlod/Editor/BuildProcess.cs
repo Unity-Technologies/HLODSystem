@@ -44,8 +44,19 @@ namespace Unity.HLODSystem
             for (int i = 0; i < hlods.Count; ++i)
             {
                 var controller = hlods[i].GetComponent<ControllerBase>();
-                if ( controller != null )
-                    controller.Install();
+
+                if (controller != null)
+                {
+                    if (hlods[i].enabled)
+                    {
+                        controller.enabled = true;
+                        controller.Install();
+                    }
+                    else
+                    {
+                        controller.enabled = false;
+                    }
+                }
             }
 
         }
