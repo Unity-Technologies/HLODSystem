@@ -158,8 +158,10 @@ namespace Unity.HLODSystem
                     yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
                 }
 
-                yield return new WaitForBranches();
-                
+                yield return new WaitForBranches(progress=>
+                {
+                    EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes", 0.25f + progress * 0.25f);
+                });
                 Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
                 sw.Reset();
                 sw.Start();
