@@ -67,7 +67,7 @@ namespace Unity.HLODSystem.Utils
                     }
                     else if (cur is WaitForBranches)
                     {
-                        m_routineStack.Push(WaitForBranchesImpl());
+                        m_routineStack.Push(WaitForBranchesImpl(cur as WaitForBranches));
                     }
                     else
                     {
@@ -96,12 +96,13 @@ namespace Unity.HLODSystem.Utils
         public object Current { get { return m_routineStack.Count > 0 ? m_routineStack.Peek().Current : null; } }
 
 
-        private IEnumerator WaitForBranchesImpl()
+        private IEnumerator WaitForBranchesImpl(WaitForBranches obj)
         {
             IEnumerator[] branches = m_branchList.ToArray();
             for (int i = 0; i < branches.Length; ++i)
             {
                 yield return branches[i];
+                obj.OnProgress((float)i / (float)branches.Length);
             }
         }
     }

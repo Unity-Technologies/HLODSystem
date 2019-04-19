@@ -1,10 +1,12 @@
-﻿using UnityEditor;
+﻿using System;
+using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor.Experimental.SceneManagement;
 using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
@@ -43,18 +45,23 @@ namespace Unity.HLODSystem
             m_hlod = hlod;
         }
         
-        public void Batch(List<HLODBuildInfo> targets)
+        public void Batch(List<HLODBuildInfo> targets, Action<float> onProgress)
         {
             dynamic options = m_hlod.BatcherOptions;
-            PackingTexture(targets, options);
+            if (onProgress != null)
+                onProgress(0.0f);
+
+            PackingTexture(targets, options, onProgress);
 
             for (int i = 0; i < targets.Count; ++i)
             {
                 Combine(targets[i], options);
+                if (onProgress != null)
+                    onProgress(0.5f + ((float) i / (float) targets.Count) * 0.5f);
             }
         }
 
-        private void PackingTexture(List<HLODBuildInfo> targets, dynamic options)
+        private void PackingTexture(List<HLODBuildInfo> targets, dynamic options, Action<float> onProgress)
         {
             for (int i = 0; i < targets.Count; ++i)
             {
@@ -81,11 +88,15 @@ namespace Unity.HLODSystem
 
 
                 m_Packer.AddTextureGroup(targets[i], textures.ToArray());
+
+                if (onProgress != null)
+                    onProgress(((float) i / targets.Count) * 0.1f);
             }
 
-            
             m_Packer.Pack(options.PackTextureSize, options.LimitTextureSize);
+            if ( onProgress != null) onProgress(0.3f);
             m_Packer.SaveTextures(GetPrefabDirectory(), m_hlod.name);
+            if ( onProgress != null) onProgress(0.5f);
 
             var savedAtlases = m_Packer.GetAllAtlases();
             for (int i = 0; i < savedAtlases.Length; ++i)

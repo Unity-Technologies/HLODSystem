@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
@@ -21,7 +22,7 @@ namespace Unity.HLODSystem.Streaming
             m_hlod = hlod;
         }
 
-        public void Build(SpaceNode rootNode, List<HLODBuildInfo> infos)
+        public void Build(SpaceNode rootNode, List<HLODBuildInfo> infos, Action<float> onProgress)
         {
             string path = "";
             PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);
@@ -30,6 +31,9 @@ namespace Unity.HLODSystem.Streaming
 
             var defaultController = m_hlod.gameObject.AddComponent<DefaultController>();
             HLODTreeNode convertedRootNode = ConvertNode(rootNode);
+
+            if (onProgress != null)
+                onProgress(0.0f);
 
             //I think it is better to do when convert nodes.
             //But that is not easy because of the structure.
@@ -55,6 +59,9 @@ namespace Unity.HLODSystem.Streaming
                         hlodTreeNode.LowObjectIds.Add(lowId);
                     }
                 }
+
+                if (onProgress != null)
+                    onProgress((float)i / (float)infos.Count);
             }
 
             m_hlod.Root = convertedRootNode;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -23,11 +24,14 @@ namespace Unity.HLODSystem
             m_hlod = hlod;
         }
   
-        public void Batch(List<HLODBuildInfo> targets)
+        public void Batch(List<HLODBuildInfo> targets, Action<float> onProgress)
         {
             for (int i = 0; i < targets.Count; ++i)
             {
                 Combine(targets[i]);
+
+                if (onProgress != null)
+                    onProgress((float) i / (float)targets.Count);
             }
 
         }
