@@ -168,7 +168,10 @@ namespace Unity.HLODSystem
 
 
                 IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[] { hlod });
-                batcher.Batch(buildInfos);
+                batcher.Batch(buildInfos, progress =>
+                {
+                    EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.", 0.5f + progress * 0.25f);
+                });
                 Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
                 sw.Reset();
                 sw.Start();
@@ -178,7 +181,10 @@ namespace Unity.HLODSystem
                     AssetDatabase.StartAssetEditing();
                     IStreamingBuilder builder =
                         (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType, new object[] { hlod });
-                    builder.Build(rootNode, buildInfos);
+                    builder.Build(rootNode, buildInfos, progress =>
+                    {
+                        EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.", 0.75f + progress * 0.25f);
+                    });
                     Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
                     sw.Reset();
                     sw.Start();
@@ -207,6 +213,7 @@ namespace Unity.HLODSystem
             try
             {
                 EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", 0.0f);
+                AssetDatabase.StartAssetEditing();
 
                 var generatedObjects = hlod.GeneratedObjects;
                 for (int i = 0; i < generatedObjects.Count; ++i)
@@ -227,6 +234,7 @@ namespace Unity.HLODSystem
             }
             finally
             {
+                AssetDatabase.StopAssetEditing();
                 EditorUtility.ClearProgressBar();
             }
         }
