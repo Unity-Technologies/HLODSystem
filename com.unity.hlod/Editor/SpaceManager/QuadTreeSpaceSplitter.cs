@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -28,10 +28,13 @@ namespace Unity.HLODSystem.SpaceManager
             m_looseSize = looseSize;
             m_minSize = minSize;
         }
-        public SpaceNode CreateSpaceTree(Bounds initBounds, List<GameObject> targetObjects)
+        public SpaceNode CreateSpaceTree(Bounds initBounds, List<GameObject> targetObjects, Action<float> onProgress)
         {
             SpaceNode rootNode = new SpaceNode();
             rootNode.Bounds = initBounds;
+
+            if ( onProgress != null)
+                onProgress(0.0f);
 
             for (int oi = 0; oi < targetObjects.Count; ++oi)
             {
@@ -81,7 +84,10 @@ namespace Unity.HLODSystem.SpaceManager
 
                     target.Objects.Add(targetObjects[oi]);
                     break;
-                }                
+                }        
+                
+                if ( onProgress != null)
+                    onProgress((float)oi/ (float)targetObjects.Count);
             }
             
             return rootNode;

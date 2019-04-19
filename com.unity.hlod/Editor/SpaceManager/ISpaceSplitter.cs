@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,7 +9,7 @@ namespace Unity.HLODSystem.SpaceManager
         /**
          * @return created root space tree
          */
-        SpaceNode CreateSpaceTree(Bounds initBounds, List<GameObject> targetObjects);
+        SpaceNode CreateSpaceTree(Bounds initBounds, List<GameObject> targetObjects, Action<float> onProgress);
     }
 
 }

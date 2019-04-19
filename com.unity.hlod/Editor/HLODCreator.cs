@@ -125,61 +125,73 @@ namespace Unity.HLODSystem
 
         public static IEnumerator Create(HLOD hlod)
         {
-            Stopwatch sw = new Stopwatch();
-
-            AssetDatabase.Refresh();
-            AssetDatabase.SaveAssets();
-
-            sw.Reset();
-            sw.Start();
-
-            Bounds bounds = hlod.GetBounds();
-
-            List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
-            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(hlod.transform.position, 5.0f, hlod.MinSize);
-            SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlodTargets);
-
-            List<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.ThresholdSize);           
-            
-            Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-            
-            ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType, new object[]{hlod});
-            for (int i = 0; i < buildInfos.Count; ++i)
-            {
-                yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
-            }
-
-            yield return new WaitForBranches();
-            Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-
-            
-            IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[]{hlod});
-            batcher.Batch(buildInfos);
-            Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
-            sw.Reset();
-            sw.Start();
-
             try
             {
-                AssetDatabase.StartAssetEditing();
-                IStreamingBuilder builder =
-                    (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] {hlod});
-                builder.Build(rootNode, buildInfos);
-                Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+
+
+                Stopwatch sw = new Stopwatch();
+
+                AssetDatabase.Refresh();
+                AssetDatabase.SaveAssets();
+
                 sw.Reset();
                 sw.Start();
+
+                Bounds bounds = hlod.GetBounds();
+
+                List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
+                ISpaceSplitter spliter = new QuadTreeSpaceSplitter(hlod.transform.position, 5.0f, hlod.MinSize);
+                SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlodTargets, progress =>
+                {
+                    EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);
+                });
+
+                List<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.ThresholdSize);
+
+                Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
+                sw.Reset();
+                sw.Start();
+
+                ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType, new object[] { hlod });
+                for (int i = 0; i < buildInfos.Count; ++i)
+                {
+                    yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
+                }
+
+                yield return new WaitForBranches();
+                
+                Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
+                sw.Reset();
+                sw.Start();
+
+
+                IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[] { hlod });
+                batcher.Batch(buildInfos);
+                Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
+                sw.Reset();
+                sw.Start();
+
+                try
+                {
+                    AssetDatabase.StartAssetEditing();
+                    IStreamingBuilder builder =
+                        (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType, new object[] { hlod });
+                    builder.Build(rootNode, buildInfos);
+                    Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+                    sw.Reset();
+                    sw.Start();
+                }
+                finally
+                {
+
+                    AssetDatabase.StopAssetEditing();
+                    Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
+                }
             }
             finally
             {
-
-                AssetDatabase.StopAssetEditing();
-                Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
+                EditorUtility.ClearProgressBar();
             }
-
             //hlod.Root = rootNode;
         }
 
