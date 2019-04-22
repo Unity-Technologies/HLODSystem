@@ -37,6 +37,11 @@ namespace Unity.HLODSystem
         private Type[] m_StreamingTypes;
         private string[] m_StreamingNames;
 
+        private bool isShowCommon = true;
+        private bool isShowBatcher = true;
+        private bool isShowSimplifier = true;
+        private bool isShowStreaming = true;
+
         [InitializeOnLoadMethod]
         static void InitTagTagUtils()
         {
@@ -80,71 +85,94 @@ namespace Unity.HLODSystem
                 return;
             }
 
-            EditorGUILayout.PropertyField(m_MinSizeProperty);
-
-            m_LODSlider.Draw();
-            EditorGUILayout.PropertyField(m_ThresholdSizeProperty);
-
-            if (m_BatcherTypes.Length > 0)
+            isShowCommon = EditorGUILayout.BeginFoldoutHeaderGroup(isShowCommon, "Common");
+            if (isShowCommon == true)
             {
-                int batcherIndex = Math.Max(Array.IndexOf(m_BatcherTypes, hlod.BatcherType), 0);
-                batcherIndex = EditorGUILayout.Popup("Batcher", batcherIndex, m_BatcherNames);
-                hlod.BatcherType = m_BatcherTypes[batcherIndex];
 
-                var info = m_BatcherTypes[batcherIndex].GetMethod("OnGUI");
-                if (info != null)
+                EditorGUILayout.PropertyField(m_MinSizeProperty);
+
+                m_LODSlider.Draw();
+                EditorGUILayout.PropertyField(m_ThresholdSizeProperty);
+            }
+            EditorGUILayout.EndFoldoutHeaderGroup();
+
+
+            isShowSimplifier = EditorGUILayout.BeginFoldoutHeaderGroup(isShowSimplifier, "Simplifier");
+            if (isShowSimplifier == true)
+            {
+                if (m_SimplifierTypes.Length > 0)
                 {
-                    if (info.IsStatic == true)
+                    int simplifierIndex = Math.Max(Array.IndexOf(m_SimplifierTypes, hlod.SimplifierType), 0);
+                    simplifierIndex = EditorGUILayout.Popup("Simplifier", simplifierIndex, m_SimplifierNames);
+                    hlod.SimplifierType = m_SimplifierTypes[simplifierIndex];
+
+                    var info = m_SimplifierTypes[simplifierIndex].GetMethod("OnGUI");
+                    if (info != null)
                     {
-                        info.Invoke(null, new object[] {hlod});
+                        if (info.IsStatic == true)
+                        {
+                            info.Invoke(null, new object[] {hlod});
+                        }
                     }
                 }
-            }
-            else
-            {
-                EditorGUILayout.LabelField("Can not find Batchers.");
-            }
-
-            if (m_SimplifierTypes.Length > 0)
-            {
-                int simplifierIndex = Math.Max(Array.IndexOf(m_SimplifierTypes, hlod.SimplifierType), 0);
-                simplifierIndex = EditorGUILayout.Popup("Simplifier", simplifierIndex, m_SimplifierNames);
-                hlod.SimplifierType = m_SimplifierTypes[simplifierIndex];
-
-                var info = m_SimplifierTypes[simplifierIndex].GetMethod("OnGUI");
-                if (info != null)
+                else
                 {
-                    if (info.IsStatic == true)
-                    {
-                        info.Invoke(null, new object[] {hlod});
-                    }
+                    EditorGUILayout.LabelField("Can not find Simplifiers.");
                 }
             }
-            else
+            EditorGUILayout.EndFoldoutHeaderGroup();
+
+            isShowBatcher = EditorGUILayout.BeginFoldoutHeaderGroup(isShowBatcher, "Batcher");
+            if (isShowBatcher == true)
             {
-                EditorGUILayout.LabelField("Can not find Simplifiers.");
-            }
-
-
-            if (m_StreamingTypes.Length > 0)
-            {
-                int streamingIndex = Math.Max(Array.IndexOf(m_StreamingTypes, hlod.StreamingType), 0);
-                streamingIndex = EditorGUILayout.Popup("Streaming", streamingIndex, m_StreamingNames);
-                hlod.StreamingType = m_StreamingTypes[streamingIndex];
-
-                var info = m_StreamingTypes[streamingIndex].GetMethod("OnGUI");
-                if (info != null)
+                if (m_BatcherTypes.Length > 0)
                 {
-                    if (info.IsStatic == true)
+                    int batcherIndex = Math.Max(Array.IndexOf(m_BatcherTypes, hlod.BatcherType), 0);
+                    batcherIndex = EditorGUILayout.Popup("Batcher", batcherIndex, m_BatcherNames);
+                    hlod.BatcherType = m_BatcherTypes[batcherIndex];
+
+                    var info = m_BatcherTypes[batcherIndex].GetMethod("OnGUI");
+                    if (info != null)
                     {
-                        info.Invoke(null, new object[] {hlod});
+                        if (info.IsStatic == true)
+                        {
+                            info.Invoke(null, new object[] {hlod});
+                        }
                     }
                 }
+                else
+                {
+                    EditorGUILayout.LabelField("Can not find Batchers.");
+                }
             }
-            else
+            EditorGUILayout.EndFoldoutHeaderGroup();
+
+
+
+            isShowStreaming = EditorGUILayout.BeginFoldoutHeaderGroup(isShowStreaming, "Streaming");
+            if (isShowStreaming == true)
             {
-                EditorGUILayout.LabelField("Can not find StreamingSetters.");
+                if (m_StreamingTypes.Length > 0)
+                {
+                    int streamingIndex = Math.Max(Array.IndexOf(m_StreamingTypes, hlod.StreamingType), 0);
+                    streamingIndex = EditorGUILayout.Popup("Streaming", streamingIndex, m_StreamingNames);
+                    hlod.StreamingType = m_StreamingTypes[streamingIndex];
+
+                    var info = m_StreamingTypes[streamingIndex].GetMethod("OnGUI");
+                    if (info != null)
+                    {
+                        if (info.IsStatic == true)
+                        {
+                            info.Invoke(null, new object[] { hlod });
+                        }
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("Can not find StreamingSetters.");
+                }
             }
+            EditorGUILayout.EndFoldoutHeaderGroup();
 
 
             GUIContent generateButton = Styles.GenerateButtonEnable;
