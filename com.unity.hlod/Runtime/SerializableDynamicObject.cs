@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Runtime.Serialization;
-using System.Security.Permissions;
 using UnityEngine;
 
 namespace Unity.HLODSystem
@@ -10,18 +8,55 @@ namespace Unity.HLODSystem
     [Serializable]
     public class SerializableDynamicObject : DynamicObject, ISerializationCallbackReceiver
     {
-        [Serializable]
-        public class SerializeItem
+
+        interface ISerializeItem
         {
-            [SerializeField]
-            public string TypeStr;
+            void SetName(string name);
+            string GetName();
+
+            object GetData();
+        }
+        [Serializable]
+        class SerializeItem<T> : ISerializeItem
+        {
             [SerializeField]
             public string Name;
             [SerializeField]
+            public T Data;
+
+
+            public void SetName(string name)
+            {
+                Name = name;
+            }
+            public string GetName()
+            {
+                return Name;
+            }
+
+
+            public void SetData(T data)
+            {
+                Data = data;
+            }
+            public object GetData()
+            {
+                return Data;
+            }
+        }
+
+        [Serializable]
+        class JsonSerializedData
+        {
+            [SerializeField]
+            public string Type;
+            [SerializeField]
             public string Data;
         }
+
         [SerializeField]
-        private List<SerializeItem> m_SerializeItems = new List<SerializeItem>();
+        private List<JsonSerializedData> m_SerializeItems = new List<JsonSerializedData>();
+
         private Dictionary<string, object> m_DynamicContext = new Dictionary<string, object>();
 
         public bool ContainsKey(string key)
@@ -64,12 +99,24 @@ namespace Unity.HLODSystem
                 if (pair.Value == null)
                     continue;
 
-                SerializeItem item = new SerializeItem();
-                item.TypeStr = pair.Value.GetType().AssemblyQualifiedName;
-                item.Name = pair.Key;
-                item.Data = pair.Value.ToString();
+                Type genericClass = typeof(SerializeItem<>);
+                Type constructedClass = genericClass.MakeGenericType(pair.Value.GetType());
 
-                m_SerializeItems.Add(item);
+                ISerializeItem item = Activator.CreateInstance(constructedClass) as ISerializeItem;
+                if (item == null)
+                    continue;
+
+                var methodInfo = constructedClass.GetMethod("SetData");
+                methodInfo.Invoke(item, new object[]{pair.Value});
+
+                item.SetName(pair.Key);
+
+                JsonSerializedData data = new JsonSerializedData();
+                data.Type = item.GetType().AssemblyQualifiedName;
+                data.Data = JsonUtility.ToJson(item);
+
+                m_SerializeItems.Add(data);
+
             }
         }
 
@@ -79,15 +126,18 @@ namespace Unity.HLODSystem
 
             for (int i = 0; i < m_SerializeItems.Count; ++i)
             {
-                Type type = Type.GetType(m_SerializeItems[i].TypeStr);
+                if (string.IsNullOrEmpty(m_SerializeItems[i].Type))
+                    continue;
+
+                Type type = Type.GetType(m_SerializeItems[i].Type);
                 if (type == null)
                     continue;
 
-                object converted = Convert.ChangeType(m_SerializeItems[i].Data, type);
-                if (converted == null)
+                var data = JsonUtility.FromJson(m_SerializeItems[i].Data, type) as ISerializeItem;
+                if (data == null)
                     continue;
 
-                m_DynamicContext.Add(m_SerializeItems[i].Name, converted);
+                m_DynamicContext.Add(data.GetName(), data.GetData());
             }
 
             m_SerializeItems.Clear();
