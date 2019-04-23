@@ -194,6 +194,8 @@ namespace Unity.HLODSystem
 
 
 
+            EditorGUILayout.Space();
+
             GUI.enabled = generateButton == Styles.GenerateButtonEnable;
             if (GUILayout.Button(generateButton))
             {
