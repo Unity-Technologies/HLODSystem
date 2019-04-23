@@ -13,14 +13,46 @@ namespace Unity.HLODSystem
     {
         public class TextureAtlas
         {
-            public Texture2D PacktedTexture;
-            public Texture2D[] Textures;
+            public Texture2D[] PackedTexture;
+            public MultipleTexture[] MultipleTextures;
             public Rect[] UVs;
         };
+
+        public class MultipleTexture
+        {
+            public List<Texture2D> textureList = new List<Texture2D>();
+        }
+
+        class MultipleTextureComparer : IEqualityComparer<MultipleTexture>
+        {
+            public bool Equals(MultipleTexture x, MultipleTexture y)
+            {
+                if (x.textureList.Count != y.textureList.Count) return false;
+
+                for (int i = 0; i < x.textureList.Count; ++i)
+                {
+                    if (x.textureList[i] != y.textureList[i])
+                        return false;
+                }
+
+                return true;
+            }
+
+            public int GetHashCode(MultipleTexture obj)
+            {
+                string hashcode = "";
+                for (int i = 0; i < obj.textureList.Count; ++i)
+                {
+                    hashcode += obj.textureList[i].GetHashCode();
+                }
+
+                return hashcode.GetHashCode();
+            }
+        }
         class Group
         {
             public object obj;
-            public HashSet<Texture2D> textures;
+            public HashSet<MultipleTexture> multipleTextures;
         }
         class AtlasGroup
         {
@@ -30,7 +62,7 @@ namespace Unity.HLODSystem
         class PackTexture
         {
             public List<object> Objects;
-            public HashSet<Texture2D> Textures;
+            public HashSet<MultipleTexture> MultipleTextures;
             public int PackableTextureCount;
         }
         class Score
@@ -41,7 +73,7 @@ namespace Unity.HLODSystem
 
             public static Score GetScore(PackTexture lhs, PackTexture rhs)
             {
-                int match = lhs.Textures.Intersect(rhs.Textures).Count();
+                int match = lhs.MultipleTextures.Intersect(rhs.MultipleTextures).Count();
                 return new Score()
                 {
                     Lhs = lhs,
@@ -59,11 +91,12 @@ namespace Unity.HLODSystem
 
         }
 
-        public void  AddTextureGroup(object obj, Texture2D[] textures)
+         
+        public void AddTextureGroup(object obj, MultipleTexture[] textures)
         {
             Group group = new Group();
             group.obj = obj;
-            group.textures = new HashSet<Texture2D>(textures);
+            group.multipleTextures = new HashSet<MultipleTexture>(textures, new MultipleTextureComparer());
 
             groups.Add(group);
         }
@@ -91,7 +124,7 @@ namespace Unity.HLODSystem
             for (int i = 0; i < groups.Count; ++i)
             {
                 Group group = groups[i];
-                int maximum = GetMaximumTextureCount(packTextureSize, maxPieceSize, group.textures.Count);
+                int maximum = GetMaximumTextureCount(packTextureSize, maxPieceSize, group.multipleTextures.Count);
                 if ( groupCluster.ContainsKey(maximum) == false )
                     groupCluster[maximum] = new List<Group>();
 
@@ -109,7 +142,7 @@ namespace Unity.HLODSystem
                     packTextures.Add(new PackTexture()
                     {
                         Objects = new List<object>() {group.obj},
-                        Textures = new HashSet<Texture2D>(group.textures),
+                        MultipleTextures = new HashSet<MultipleTexture>(group.multipleTextures, new MultipleTextureComparer()),
                         PackableTextureCount = maximum
                     });                    
                 }
@@ -127,8 +160,8 @@ namespace Unity.HLODSystem
 
                 for (int i = 0; i < scoreList.Count; ++i)
                 {
-                    HashSet<Texture2D> unionTextures = new HashSet<Texture2D>(scoreList[i].Lhs.Textures.Union(scoreList[i].Rhs.Textures));
-                    if (unionTextures.Count <= maximum)
+                    HashSet<MultipleTexture> unionMultipleTextures = new HashSet<MultipleTexture>(scoreList[i].Lhs.MultipleTextures.Union(scoreList[i].Rhs.MultipleTextures), new MultipleTextureComparer());
+                    if (unionMultipleTextures.Count <= maximum)
                     {
                         PackTexture lhs = scoreList[i].Lhs;
                         PackTexture rhs = scoreList[i].Rhs;
@@ -138,7 +171,7 @@ namespace Unity.HLODSystem
                         PackTexture newPackTexture = new PackTexture()
                         {
                             Objects = newObjects,
-                            Textures = unionTextures,
+                            MultipleTextures = unionMultipleTextures,
                             PackableTextureCount = maximum
                         };
 
@@ -176,34 +209,36 @@ namespace Unity.HLODSystem
                 Debug.Log("Packing count : " + maximum + ", textures : " + packTextures.Count);
             }
         }
-
-        public void SaveTextures(string path, string prefixName)
-        {
-            int index = 1;
-            foreach (var group in atlasGroups)
-            {
-                var name = path + prefixName + index++ + ".png";
-                group.Atlas.PacktedTexture = SaveTexture(group.Atlas.PacktedTexture, name);
-            }
-        }
-
         private TextureAtlas MakeTextureAtlas(PackTexture packTexture, int packTextureSize)
         {
             TextureAtlas atlas = new TextureAtlas();
-            Texture2D packtedTexture = new Texture2D(packTextureSize, packTextureSize, TextureFormat.RGBA32, false);
+            //Texture2D packedTexture = new Texture2D(packTextureSize, packTextureSize, TextureFormat.RGBA32, false);
 
             int itemCount = (int) Math.Sqrt(packTexture.PackableTextureCount);
             int itemSize = packTextureSize / itemCount;
 
+            int packedTextureCount = 0;
             int index = 0;
 
-            atlas.UVs = new Rect[packTexture.Textures.Count];
-            atlas.Textures = packTexture.Textures.ToArray();
-
-            foreach (var texture in atlas.Textures)
+            foreach( var multipleTexture in packTexture.MultipleTextures)
             {
-                int width, height;
-                Color[] buffer = GetTextureColors(texture, itemSize, out width, out height);
+                packedTextureCount = Math.Max(packedTextureCount, multipleTexture.textureList.Count);
+            }
+
+            Texture2D[] packedTexture = new Texture2D[packedTextureCount];
+            for (int i = 0; i < packedTextureCount; ++i)
+            {
+                packedTexture[i] = new Texture2D(packTextureSize, packTextureSize, TextureFormat.RGBA32, false);
+                
+            }
+
+            atlas.UVs = new Rect[packTexture.MultipleTextures.Count];
+            atlas.MultipleTextures = packTexture.MultipleTextures.ToArray();
+
+            foreach (var texture in atlas.MultipleTextures)
+            {
+                int width = 0, height = 0;
+                Color[] buffer = GetTextureColors(texture.textureList[0], itemSize, out width, out height);
 
                 int col = index % itemCount;
                 int row = index / itemCount;
@@ -211,7 +246,7 @@ namespace Unity.HLODSystem
                 int x = col * itemSize;
                 int y = row * itemSize;
 
-                packtedTexture.SetPixels(x, y, width, height, buffer);
+                packedTexture[0].SetPixels(x, y, width, height, buffer);
 
                 atlas.UVs[index] = new Rect(
                     (float)x / (float)packTextureSize,
@@ -220,10 +255,28 @@ namespace Unity.HLODSystem
                     (float)height / (float)packTextureSize);
 
                 index += 1;
+
+                for (int i = 1; i < texture.textureList.Count; ++i)
+                {
+                    int extWidth = 0, extHeight = 0;
+                    Color[] extBuffer = GetTextureColors(texture.textureList[i], itemSize, out extWidth, out extHeight);
+
+                    if (extWidth != width || extHeight != height)
+                    {
+                        Debug.Log("Resize texture: " + width + "_" + extWidth + ", " + height + "_" + extHeight);
+                        extBuffer = ResizeImage(extBuffer, extWidth, extHeight, width, height);
+                    }
+
+                    packedTexture[i].SetPixels(x, y, width, height, extBuffer);
+                }
             }
 
-            packtedTexture.Apply();
-            atlas.PacktedTexture = packtedTexture;
+            for (int i = 0; i < packedTexture.Length; ++i)
+            {
+                packedTexture[i].Apply();
+            }
+
+            atlas.PackedTexture = packedTexture;
             return atlas;
         }
 
@@ -273,6 +326,28 @@ namespace Unity.HLODSystem
             return resizeTexture.GetPixels();
         }
 
+        private static Color[] ResizeImage(Color[] originBuffer, int originWidth, int originHeight, int targetWidth,
+            int targetHeight)
+        {
+            Color[] result = new Color[targetWidth * targetHeight];
+
+            float widthRatio = (float)originWidth / (float)targetWidth;
+            float heightRatio = (float)originHeight / (float)targetHeight;
+
+            for (int y = 0; y < targetHeight; ++y)
+            {
+                for (int x = 0; x < targetWidth; ++x)
+                {
+                    int sourceX = (int)(x * widthRatio);
+                    int sourceY = (int)(y * heightRatio);
+                    result[y * targetWidth + x] = originBuffer[sourceY * originWidth + sourceX];
+                }
+            }
+
+            return result;
+
+        }
+
         private static int GetMaximumTextureCount(int packTextureSize, int maxPieceSize, int textureCount)
         {
             int minTextureCount = packTextureSize / maxPieceSize;
@@ -285,22 +360,6 @@ namespace Unity.HLODSystem
                 minTextureCount = minTextureCount * 4;
 
             return minTextureCount;
-        }
-
-        static Texture2D SaveTexture(Texture2D texture, string path)
-        {           
-            var dirPath = Path.GetDirectoryName(path);
-            if (Directory.Exists(path) == false)
-            {
-                Directory.CreateDirectory(dirPath);
-            }
-
-            
-            byte[] binary = texture.EncodeToPNG();
-            File.WriteAllBytes(path,binary);
-
-            AssetDatabase.ImportAsset(path);
-            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
     }
