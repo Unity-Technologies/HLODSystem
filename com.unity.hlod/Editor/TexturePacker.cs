@@ -283,47 +283,66 @@ namespace Unity.HLODSystem
         
         private Color[] GetTextureColors(Texture2D texture, int maxItemSize, out int width, out int height)
         {
+           
             //make to texture readable.
             var assetImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
             var textureImporter = assetImporter as TextureImporter;
-            if (textureImporter && !textureImporter.isReadable)
+            TextureImporterType type = TextureImporterType.Default;
+            if (textureImporter)
             {
+                type = textureImporter.textureType;
                 textureImporter.isReadable = true;
+                textureImporter.textureType = TextureImporterType.Default;
                 textureImporter.SaveAndReimport();
             }
-      
-            int sideSize = Math.Max(texture.width, texture.height);
-
-            //if texture can put into an atlas by original size, go ahead.
-            //Also, check mipmap is able to put into an atlas.
-            for (int i = 0; i < texture.mipmapCount; ++i)
+            try
             {
-                if ((sideSize >> i) <= maxItemSize)
+
+
+                int sideSize = Math.Max(texture.width, texture.height);
+
+                //if texture can put into an atlas by original size, go ahead.
+                //Also, check mipmap is able to put into an atlas.
+                for (int i = 0; i < texture.mipmapCount; ++i)
                 {
-                    width = texture.width >> i;
-                    height = texture.height >> i;
-                    return texture.GetPixels(i);
+                    if ((sideSize >> i) <= maxItemSize)
+                    {
+                        width = texture.width >> i;
+                        height = texture.height >> i;
+
+                        return texture.GetPixels(i);
+                    }
+                }
+
+                //we should resize texture and return it buffers.
+                float ratio = (float)texture.width / (float)texture.height;
+                if (ratio > 1.0f)
+                {
+                    width = maxItemSize;
+                    height = (int)(maxItemSize / ratio);
+                }
+                else
+                {
+                    width = (int)(maxItemSize / ratio);
+                    height = maxItemSize;
+                }
+
+                Texture2D resizeTexture = new Texture2D(texture.width, texture.height, texture.format, false);
+                Graphics.CopyTexture(texture, resizeTexture);
+                resizeTexture.Resize(width, height);
+
+                return resizeTexture.GetPixels();
+
+            }
+            finally
+            {
+                if (textureImporter)
+                {
+                    textureImporter.isReadable = false;
+                    textureImporter.textureType = type;
+                    textureImporter.SaveAndReimport();
                 }
             }
-
-            //we should resize texture and return it buffers.
-            float ratio = (float)texture.width / (float)texture.height;
-            if (ratio > 1.0f)
-            {
-                width = maxItemSize;
-                height = (int)(maxItemSize / ratio);
-            }
-            else
-            {
-                width = (int) (maxItemSize / ratio);
-                height = maxItemSize;
-            }
-
-            Texture2D resizeTexture = new Texture2D(texture.width, texture.height, texture.format, false);
-            Graphics.CopyTexture(texture, resizeTexture);
-            resizeTexture.Resize(width, height);
-
-            return resizeTexture.GetPixels();
         }
 
         private static Color[] ResizeImage(Color[] originBuffer, int originWidth, int originHeight, int targetWidth,
