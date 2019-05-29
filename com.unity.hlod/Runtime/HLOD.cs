@@ -26,6 +26,7 @@ namespace Unity.HLODSystem
         private float m_ThresholdSize = 5.0f;
 
         private Type m_BatcherType;
+        
         private Type m_SimplifierType;
         private Type m_StreamingType;
 
@@ -39,22 +40,14 @@ namespace Unity.HLODSystem
         [SerializeField]
         private string m_StreamingTypeStr;
 
+        
+        [SerializeField]
+        private SerializableDynamicObject m_SimplifierOptions = new SerializableDynamicObject();
         [SerializeField]
         private SerializableDynamicObject m_BatcherOptions = new SerializableDynamicObject();
         [SerializeField]
         private SerializableDynamicObject m_StreamingOptions = new SerializableDynamicObject();
-
-        [SerializeField]
-        private float m_SimplifyPolygonRatio = 0.8f;
-
-        [SerializeField]
-        private int m_SimplifyMinPolygonCount = 10;
-        [SerializeField]
-        private int m_SimplifyMaxPolygonCount = 500;
-
-        [SerializeField]
-        private float m_SimplifyThresholdSize = 5.0f;
-
+        
         [SerializeField]
         private List<Object> m_generatedObjects = new List<Object>();
 
@@ -110,22 +103,9 @@ namespace Unity.HLODSystem
             get { return m_StreamingOptions; }
         }
 
-        public float SimplifyPolygonRatio
+        public SerializableDynamicObject SimplifierOptions
         {
-            set { m_SimplifyPolygonRatio = value; }
-            get { return m_SimplifyPolygonRatio; }
-        }
-
-        public int SimplifyMinPolygonCount
-        {
-            set { m_SimplifyMinPolygonCount = value; }
-            get { return m_SimplifyMinPolygonCount; }
-        }
-
-        public int SimplifyMaxPolygonCount
-        {
-            set { m_SimplifyMaxPolygonCount = value; }
-            get { return m_SimplifyMaxPolygonCount; }
+            get { return m_SimplifierOptions; }
         }
 
         public float ThresholdSize

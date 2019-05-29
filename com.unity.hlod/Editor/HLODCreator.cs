@@ -152,7 +152,7 @@ namespace Unity.HLODSystem
                 sw.Reset();
                 sw.Start();
 
-                ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType, new object[] { hlod });
+                ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType, new object[] { hlod.SimplifierOptions });
                 for (int i = 0; i < buildInfos.Count; ++i)
                 {
                     yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));

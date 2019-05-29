@@ -17,7 +17,7 @@ namespace Unity.HLODSystem.Simplifier
             SimplifierTypes.RegisterType(typeof(UnityMeshSimplifier));
         }
 
-        public UnityMeshSimplifier(HLOD hlod) : base(hlod)
+        public UnityMeshSimplifier(SerializableDynamicObject simplifierOptions): base(simplifierOptions)
         {
         }
 
@@ -67,9 +67,9 @@ namespace Unity.HLODSystem.Simplifier
 
         
 
-        public static void OnGUI(HLOD hlod)
+        public static void OnGUI(SerializableDynamicObject simplifierOptions)
         {
-            OnGUIBase(hlod);
+            OnGUIBase(simplifierOptions);
         }
     }
 }
