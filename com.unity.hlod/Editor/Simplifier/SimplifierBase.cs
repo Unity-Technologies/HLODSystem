@@ -16,41 +16,39 @@ namespace Unity.HLODSystem.Simplifier
         }
         public IEnumerator Simplify(HLODBuildInfo buildInfo)
         {
-            buildInfo.simplifiedMeshes = new List<Mesh>(buildInfo.renderers.Count);
-            for (int i = 0; i < buildInfo.renderers.Count; ++i)
+            for (int i = 0; i < buildInfo.WorkingObjects.Count; ++i)
             {
-                var meshFilter = buildInfo.renderers[i].GetComponent<MeshFilter>();
-                var mesh = meshFilter.sharedMesh;
+                Utils.WorkingMesh mesh = buildInfo.WorkingObjects[i].Mesh;
 
                 int triangleCount = mesh.triangles.Length / 3;
                 float maxQuality = Mathf.Min((float)m_options.SimplifyMaxPolygonCount / (float)triangleCount, (float)m_options.SimplifyPolygonRatio);
                 float minQuality = Mathf.Max((float)m_options.SimplifyMinPolygonCount / (float)triangleCount, 0.0f);
 
-                var ratio = maxQuality * Mathf.Pow((float)m_options.SimplifyPolygonRatio, buildInfo.distances[i]);
+                var ratio = maxQuality * Mathf.Pow((float)m_options.SimplifyPolygonRatio, buildInfo.Distances[i]);
                 ratio = Mathf.Max(ratio, minQuality);
 
                 
-                while (Cache.SimplifiedCache.IsGenerating(GetType(), mesh, ratio) == true)
-                {
-                    yield return null;
-                }
-                Mesh simplifiedMesh = Cache.SimplifiedCache.Get(GetType(), mesh, ratio);
-                if (simplifiedMesh == null)
-                {
-                    Cache.SimplifiedCache.MarkGenerating(GetType(), mesh, ratio);
+//                while (Cache.SimplifiedCache.IsGenerating(GetType(), mesh, ratio) == true)
+//                {
+//                    yield return null;
+//                }
+//                Mesh simplifiedMesh = Cache.SimplifiedCache.Get(GetType(), mesh, ratio);
+//                if (simplifiedMesh == null)
+//                {
+//                    Cache.SimplifiedCache.MarkGenerating(GetType(), mesh, ratio);
                     yield return GetSimplifiedMesh(mesh, ratio, (m) =>
                     {
-                        simplifiedMesh = m;
+                        mesh = m;
                     });
-                    Cache.SimplifiedCache.Update(GetType(), mesh, simplifiedMesh, ratio);
+//                    Cache.SimplifiedCache.Update(GetType(), mesh, simplifiedMesh, ratio);
                     
-                }
+//                }
 
-                buildInfo.simplifiedMeshes.Add(simplifiedMesh);
+                buildInfo.WorkingObjects[i].SetMesh(mesh);
             }            
         }
 
-        protected abstract IEnumerator GetSimplifiedMesh(Mesh origin, float quality, Action<Mesh> resultCallback);
+        protected abstract IEnumerator GetSimplifiedMesh(Utils.WorkingMesh origin, float quality, Action<Utils.WorkingMesh> resultCallback);
 
         protected static void OnGUIBase(SerializableDynamicObject simplifierOptions)
         {

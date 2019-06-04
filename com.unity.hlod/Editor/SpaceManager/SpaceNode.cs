@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Unity.HLODSystem.Utils;
 using UnityEngine;
 
 namespace Unity.HLODSystem.SpaceManager
@@ -13,14 +14,10 @@ namespace Unity.HLODSystem.SpaceManager
             return spaceNode;
         }
 
-        [SerializeField]
         private Bounds m_bounds;
-        [SerializeField]
         private List<SpaceNode> m_childTreeNodes;
-
-        [SerializeField]
         private List<GameObject> m_objcets = new List<GameObject>();
-
+        
 
         public Bounds Bounds
         {

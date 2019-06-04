@@ -62,6 +62,7 @@ namespace Unity.HLODSystem
 
         private void PackingTexture(List<HLODBuildInfo> targets, dynamic options, Action<float> onProgress)
         {
+            /*
             List<TextureInfo> textureInfoList = options.TextureInfoList;
 
             for (int i = 0; i < targets.Count; ++i)
@@ -124,6 +125,7 @@ namespace Unity.HLODSystem
             {
                 m_hlod.GeneratedObjects.AddRange(savedAtlases[i].PackedTexture);
             }
+            */
         }
 
         static Texture2D  SaveTexture(Texture2D texture, string path, bool isNormal)
@@ -162,6 +164,7 @@ namespace Unity.HLODSystem
 
         private void Combine(HLODBuildInfo info, dynamic options)
         {
+            /*
             var renderers = info.renderers;
             var atlas = m_Packer.GetAtlas(info);
             var atlasLookup = new Dictionary<Texture2D, Rect>();
@@ -181,12 +184,12 @@ namespace Unity.HLODSystem
                 if (mf == null)
                     continue;
 
-                var mesh = ConvertMesh(mf, info.simplifiedMeshes[i], atlasLookup, textureInfoList[0]);
+                var mesh = ConvertMesh(mf, info.WorkingMeshes[i], atlasLookup, textureInfoList[0]);
 
                 for (int j = 0; j < mesh.subMeshCount; ++j)
                 {
                     var ci = new CombineInstance();
-                    ci.mesh = mesh;
+                    ci.mesh = mesh.ToMesh();
                     ci.subMeshIndex = j;
 
                     Matrix4x4 mat = mf.transform.localToWorldMatrix;
@@ -212,69 +215,71 @@ namespace Unity.HLODSystem
             meshRenderer.material = GetMaterial(options, atlas.PackedTexture);
 
             info.combinedGameObjects.Add(go);
+            */
         }
 
 
-        private Mesh ConvertMesh(MeshFilter filter, Mesh mesh, Dictionary<Texture2D, Rect> atlasLookup, TextureInfo mainInfo)
+        private Utils.WorkingMesh ConvertMesh(MeshFilter filter, Utils.WorkingMesh mesh, Dictionary<Texture2D, Rect> atlasLookup, TextureInfo mainInfo)
         {
             var defaultTexture = GetDefaultTexture(mainInfo.Type);
 
-            var ret = Object.Instantiate(mesh);
-            var meshRenderer = filter.GetComponent<MeshRenderer>();
-            var sharedMaterials = meshRenderer.sharedMaterials;
+//            var ret = mesh.Clone();
+//            var meshRenderer = filter.GetComponent<MeshRenderer>();
+//            var sharedMaterials = meshRenderer.sharedMaterials;
+//
+//            var uv = mesh.uv;
+//            var updated = new bool[uv.Length];
+//
+//            var triangles = new List<int>();
+//            // Some meshes have submeshes that either aren't expected to render or are missing a material, so go ahead and skip
+//            var subMeshCount = Mathf.Min(mesh.subMeshCount, sharedMaterials.Length);
+//
+//            for (int j = 0; j < subMeshCount; j++)
+//            {
+//                var sharedMaterial = sharedMaterials[j];
+//                var mainTexture = defaultTexture;
+//
+//                if (sharedMaterial)
+//                {
+//                    var texture = sharedMaterial.GetTexture(mainInfo.InputName) as Texture2D;
+//                    if (texture)
+//                        mainTexture = texture;
+//                }
+//
+//                if (mesh.GetTopology(j) != MeshTopology.Triangles)
+//                {
+//                    Debug.LogWarning("Mesh must have triangles", filter);
+//                    continue;
+//                }
+//
+//                triangles.Clear();
+//                mesh.GetTriangles(triangles, j);
+//                var uvOffset = atlasLookup[mainTexture];
+//                foreach (var t in triangles)
+//                {
+//                    if (!updated[t])
+//                    {
+//                        var uvCoord = uv[t];
+//                        if (mainTexture == defaultTexture)
+//                        {
+//                            // Sample at center of white texture to avoid sampling edge colors incorrectly
+//                            uvCoord.x = 0.5f;
+//                            uvCoord.y = 0.5f;
+//                        }
+//
+//                        uvCoord.x = Mathf.Lerp(uvOffset.xMin, uvOffset.xMax, uvCoord.x);
+//                        uvCoord.y = Mathf.Lerp(uvOffset.yMin, uvOffset.yMax, uvCoord.y);
+//                        uv[t] = uvCoord;
+//                        updated[t] = true;
+//                    }
+//                }
+//            }
+//
+//            ret.uv = uv;
+//            ret.uv2 = null;
 
-            var uv = mesh.uv;
-            var updated = new bool[uv.Length];
-
-            var triangles = new List<int>();
-            // Some meshes have submeshes that either aren't expected to render or are missing a material, so go ahead and skip
-            var subMeshCount = Mathf.Min(mesh.subMeshCount, sharedMaterials.Length);
-
-            for (int j = 0; j < subMeshCount; j++)
-            {
-                var sharedMaterial = sharedMaterials[j];
-                var mainTexture = defaultTexture;
-
-                if (sharedMaterial)
-                {
-                    var texture = sharedMaterial.GetTexture(mainInfo.InputName) as Texture2D;
-                    if (texture)
-                        mainTexture = texture;
-                }
-
-                if (mesh.GetTopology(j) != MeshTopology.Triangles)
-                {
-                    Debug.LogWarning("Mesh must have triangles", filter);
-                    continue;
-                }
-
-                triangles.Clear();
-                mesh.GetTriangles(triangles, j);
-                var uvOffset = atlasLookup[mainTexture];
-                foreach (var t in triangles)
-                {
-                    if (!updated[t])
-                    {
-                        var uvCoord = uv[t];
-                        if (mainTexture == defaultTexture)
-                        {
-                            // Sample at center of white texture to avoid sampling edge colors incorrectly
-                            uvCoord.x = 0.5f;
-                            uvCoord.y = 0.5f;
-                        }
-
-                        uvCoord.x = Mathf.Lerp(uvOffset.xMin, uvOffset.xMax, uvCoord.x);
-                        uvCoord.y = Mathf.Lerp(uvOffset.yMin, uvOffset.yMax, uvCoord.y);
-                        uv[t] = uvCoord;
-                        updated[t] = true;
-                    }
-                }
-            }
-
-            ret.uv = uv;
-            ret.uv2 = null;
-
-            return ret;
+//            return ret;
+            return null;
         }
 
 

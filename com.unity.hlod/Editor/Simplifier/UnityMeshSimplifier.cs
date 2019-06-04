@@ -21,7 +21,7 @@ namespace Unity.HLODSystem.Simplifier
         {
         }
 
-        protected override IEnumerator GetSimplifiedMesh(Mesh origin, float quality, Action<Mesh> resultCallback)
+        protected override IEnumerator GetSimplifiedMesh(Utils.WorkingMesh origin, float quality, Action<Utils.WorkingMesh> resultCallback)
         {
             var meshSimplifier = new global::UnityMeshSimplifier.MeshSimplifier();
             meshSimplifier.Vertices = origin.vertices;
@@ -43,24 +43,23 @@ namespace Unity.HLODSystem.Simplifier
 
             meshSimplifier.SimplifyMesh(quality);
 
-            Mesh resultMesh = new Mesh();
-            resultMesh.vertices = meshSimplifier.Vertices;
-            resultMesh.normals = meshSimplifier.Normals;
-            resultMesh.tangents = meshSimplifier.Tangents;
-            resultMesh.uv = meshSimplifier.UV1;
-            resultMesh.uv2 = meshSimplifier.UV2;
-            resultMesh.uv3 = meshSimplifier.UV3;
-            resultMesh.uv4 = meshSimplifier.UV4;
-            resultMesh.colors = meshSimplifier.Colors;
-            resultMesh.subMeshCount = meshSimplifier.SubMeshCount;
-            for (var submesh = 0; submesh < resultMesh.subMeshCount; submesh++)
+            origin.vertices = meshSimplifier.Vertices;
+            origin.normals = meshSimplifier.Normals;
+            origin.tangents = meshSimplifier.Tangents;
+            origin.uv = meshSimplifier.UV1;
+            origin.uv2 = meshSimplifier.UV2;
+            origin.uv3 = meshSimplifier.UV3;
+            origin.uv4 = meshSimplifier.UV4;
+            origin.colors = meshSimplifier.Colors;
+            origin.subMeshCount = meshSimplifier.SubMeshCount;
+            for (var submesh = 0; submesh < origin.subMeshCount; submesh++)
             {
-                resultMesh.SetTriangles(meshSimplifier.GetSubMeshTriangles(submesh), submesh);
+                origin.SetTriangles(meshSimplifier.GetSubMeshTriangles(submesh), submesh);
             }
 
             if (resultCallback != null)
             {
-                resultCallback(resultMesh);
+                resultCallback(origin);
             }
             yield break;
         }

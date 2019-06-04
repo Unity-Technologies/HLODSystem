@@ -6,6 +6,7 @@ using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using Unity.Collections;
 using Unity.HLODSystem.Simplifier;
 using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
@@ -17,18 +18,6 @@ namespace Unity.HLODSystem
 {
     static class HLODCreator
     {
-        public static HLOD Setup(GameObject root)
-        {
-            if (root.GetComponent<HLOD>() != null)
-            {
-                Debug.LogWarning("It has already been set.");
-                return null;
-            }
-
-            HLOD hlod = root.AddComponent<HLOD>();
-            return hlod;           
-        }
-
         private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects, float thresholdSize)
         {
             List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
@@ -86,9 +75,9 @@ namespace Unity.HLODSystem
                 SpaceNode node = trevelQueue.Dequeue();
                 HLODBuildInfo info = new HLODBuildInfo
                 {
-                    name = name,
-                    parentIndex = parentQueue.Dequeue(),
-                    target = node
+                    Name = name,
+                    ParentIndex = parentQueue.Dequeue(),
+                    Target = node
                 };
 
                 if (node.ChildTreeNodes != null)
@@ -110,11 +99,19 @@ namespace Unity.HLODSystem
                 while (currentNodeIndex >= 0)
                 {
                     var curInfo = results[currentNodeIndex];
-                    
-                    curInfo.renderers.AddRange(meshRenderers);
-                    curInfo.distances.AddRange(Enumerable.Repeat(distance,meshRenderers.Count));
 
-                    currentNodeIndex = curInfo.parentIndex;
+                    for (int i = 0; i < meshRenderers.Count; ++i) 
+                    {
+                        //curInfo.renderers.Add(meshRenderers[i]);
+                        
+                        curInfo.WorkingObjects.Add(meshRenderers[i].ToWorkingObject(Allocator.Persistent));
+                        curInfo.Distances.Add(distance);
+                    }
+                    
+                    //curInfo.renderers.AddRange(meshRenderers);
+                    //curInfo.distances.AddRange(Enumerable.Repeat(distance,meshRenderers.Count));
+
+                    currentNodeIndex = curInfo.ParentIndex;
                     distance += 1;
                 }
 
@@ -146,41 +143,46 @@ namespace Unity.HLODSystem
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);
                 });
 
+
                 List<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.ThresholdSize);
-
-                Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
-                sw.Reset();
-                sw.Start();
-
-                ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType, new object[] { hlod.SimplifierOptions });
-                for (int i = 0; i < buildInfos.Count; ++i)
-                {
-                    yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
-                }
-
-                yield return new WaitForBranches(progress=>
-                {
-                    EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes", 0.25f + progress * 0.25f);
-                });
-                Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
-                sw.Reset();
-                sw.Start();
-
-
-                IBatcher batcher = (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[] { hlod });
-                batcher.Batch(buildInfos, progress =>
-                {
-                    EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.", 0.5f + progress * 0.25f);
-                });
-                Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
-                sw.Reset();
-                sw.Start();
 
                 try
                 {
-                    AssetDatabase.StartAssetEditing();
+                    Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
+                    sw.Reset();
+                    sw.Start();
+
+                    ISimplifier simplifier = (ISimplifier) Activator.CreateInstance(hlod.SimplifierType,
+                        new object[] {hlod.SimplifierOptions});
+                    for (int i = 0; i < buildInfos.Count; ++i)
+                    {
+                        yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
+                    }
+
+                    yield return new WaitForBranches(progress =>
+                    {
+                        EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes", 0.25f + progress * 0.25f);
+                    });
+                    Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
+                    sw.Reset();
+                    sw.Start();
+
+
+                    IBatcher batcher = (IBatcher) Activator.CreateInstance(hlod.BatcherType, new object[] {hlod});
+                    batcher.Batch(buildInfos,
+                        progress =>
+                        {
+                            EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
+                                0.5f + progress * 0.25f);
+                        });
+                    Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
+                    sw.Reset();
+                    sw.Start();
+
+
+                    //AssetDatabase.StartAssetEditing();
                     IStreamingBuilder builder =
-                        (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType, new object[] { hlod });
+                        (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] { hlod });
                     builder.Build(rootNode, buildInfos, progress =>
                     {
                         EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.", 0.75f + progress * 0.25f);
@@ -192,13 +194,23 @@ namespace Unity.HLODSystem
                 finally
                 {
 
-                    AssetDatabase.StopAssetEditing();
+                    //AssetDatabase.StopAssetEditing();
                     Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
+
+                    for (int i = 0; i < buildInfos.Count; ++i)
+                    {
+                        foreach (var obj in buildInfos[i].WorkingObjects)
+                        {
+                            obj.Dispose();
+                        }
+                    }
                 }
+                
             }
             finally
             {
                 EditorUtility.ClearProgressBar();
+                
             }
             //hlod.Root = rootNode;
         }
@@ -238,5 +250,6 @@ namespace Unity.HLODSystem
                 EditorUtility.ClearProgressBar();
             }
         }
+
     }
 }

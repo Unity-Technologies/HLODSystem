@@ -47,8 +47,8 @@ namespace Unity.HLODSystem.Streaming
             //But that is not easy because of the structure.
             for (int i = 0; i < infos.Count; ++i)
             {
-                var spaceNode = infos[i].target;
-                var hlodTreeNode = convertedTable[infos[i].target];
+                var spaceNode = infos[i].Target;
+                var hlodTreeNode = convertedTable[infos[i].Target];
 
                 for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
                 {
@@ -66,7 +66,7 @@ namespace Unity.HLODSystem.Streaming
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
 
-                for (int oi = 0; oi < infos[i].combinedGameObjects.Count; ++oi)
+                /*for (int oi = 0; oi < infos[i].combinedGameObjects.Count; ++oi)
                 {
                     List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, m_hlod.name, infos[i].combinedGameObjects[oi]);
                     m_hlod.GeneratedObjects.AddRange(createdMeshes);
@@ -77,7 +77,7 @@ namespace Unity.HLODSystem.Streaming
                         int lowId = addressableController.AddLowObject(address);
                         hlodTreeNode.LowObjectIds.Add(lowId);
                     }
-                }
+                }*/
 
                 if (onProgress != null)
                     onProgress((float)i/(float)infos.Count);

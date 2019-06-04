@@ -36,6 +36,28 @@ namespace Unity.HLODSystem.SpaceManager
             if ( onProgress != null)
                 onProgress(0.0f);
 
+			//space split first
+			Stack<SpaceNode> nodeStack = new Stack<SpaceNode>();
+			nodeStack.Push(rootNode);
+		
+			while(nodeStack.Count > 0 )
+			{
+				SpaceNode node = nodeStack.Pop();
+				if ( node.Bounds.size.x > m_minSize )
+				{
+					node.ChildTreeNodes = CreateChildSpaceNodes(node);
+					
+					for ( int i = 0; i < node.ChildTreeNodes.Count; ++i )
+					{
+						nodeStack.Push(node.ChildTreeNodes[i]);
+					}
+						
+				}
+			}
+
+            if (targetObjects == null)
+                return rootNode;
+
             for (int oi = 0; oi < targetObjects.Count; ++oi)
             {
                 Bounds? objectBounds = CalculateBounds(targetObjects[oi]);
@@ -46,14 +68,8 @@ namespace Unity.HLODSystem.SpaceManager
 
                 while (true)
                 {
-                    if (target.Bounds.size.x > m_minSize)
+                    if (target.ChildTreeNodes != null)
                     {
-                        if (target.ChildTreeNodes == null)
-                        {
-                            target.ChildTreeNodes = CreateChildSpaceNodes(target);
-                        }
-
-
                         //the object can be in the over 2 nodes.
                         //we should figure out which node is more close with the object.
                         int nearestChild = -1;
