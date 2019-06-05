@@ -19,11 +19,10 @@ namespace Unity.HLODSystem
         [SerializeField]
         private int[] m_triangles;
         [SerializeField]
-        private Material m_material;
+        private List<Material> m_material = new List<Material>();
 
-        public Material Material
+        public List<Material> Materials
         {
-            set { m_material = value; }
             get { return m_material; }
         }
 
@@ -33,7 +32,6 @@ namespace Unity.HLODSystem
             m_normals = new Vector3[mesh.vertexCount];
             m_uv = new Vector2[mesh.vertexCount];
             
-
             m_triangles = new int[mesh.triangles.Length];
 
             System.Array.Copy(mesh.vertices, m_vertices, mesh.vertexCount);

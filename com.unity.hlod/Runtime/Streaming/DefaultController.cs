@@ -79,7 +79,7 @@ namespace Unity.HLODSystem.Streaming
                 GameObject go = new GameObject(m_hlodMeshes[i].name);
 
                 go.AddComponent<MeshFilter>().sharedMesh = m_hlodMeshes[i].ToMesh();
-                go.AddComponent<MeshRenderer>().material = m_hlodMeshes[i].Material;
+                go.AddComponent<MeshRenderer>().sharedMaterials = m_hlodMeshes[i].Materials.ToArray();
                 go.transform.SetParent(hlodMeshesRoot.transform, false);
 
                 go.SetActive(false);

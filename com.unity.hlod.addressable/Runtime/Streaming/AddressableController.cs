@@ -200,7 +200,7 @@ namespace Unity.HLODSystem.Streaming
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh.ToMesh();
-                go.AddComponent<MeshRenderer>().material = mesh.Material;
+                //go.AddComponent<MeshRenderer>().material = mesh.Material;
                 
                 ChangeLayersRecursively(go.transform, layer);
 

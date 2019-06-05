@@ -71,6 +71,9 @@ namespace Unity.HLODSystem.Utils
 
         public void SetMesh(WorkingMesh mesh)
         {
+            if (m_mesh == mesh)
+                return;
+            
             if (m_mesh != null)
             {
                 m_mesh.Dispose();

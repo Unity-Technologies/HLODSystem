@@ -44,7 +44,7 @@ namespace Unity.HLODSystem
             m_hlod = hlod;
         }
         
-        public void Batch(List<HLODBuildInfo> targets, Action<float> onProgress)
+        public void Batch(Vector3 rootPosition, List<HLODBuildInfo> targets, Action<float> onProgress)
         {
             dynamic options = m_hlod.BatcherOptions;
             if (onProgress != null)

@@ -7,7 +7,7 @@ namespace Unity.HLODSystem
     public interface IBatcher
     {
         
-        void Batch(List<HLODBuildInfo> targets, Action<float> onProgress);
+        void Batch(Vector3 rootPosition, List<HLODBuildInfo> targets, Action<float> onProgress);
 
     }
 }

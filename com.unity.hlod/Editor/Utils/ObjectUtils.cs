@@ -38,9 +38,16 @@ namespace Unity.HLODSystem.Utils
             path = Path.GetDirectoryName(path) + "/";
             path = path + name;
             
+            
+            
             HLODMesh hlodMesh = ScriptableObject.CreateInstance<HLODMesh>();
             hlodMesh.FromMesh(gameObject.Mesh.ToMesh());
-            hlodMesh.Material = null;//gameObject.Materials
+
+            for (int i = 0; i < gameObject.Materials.Count; ++i)
+            {
+                Material mat = gameObject.Materials[i].ToMaterial();
+                hlodMesh.Materials.Add(mat);
+            }
 
             string meshName = path;
             AssetDatabase.CreateAsset(hlodMesh, meshName + ".asset");

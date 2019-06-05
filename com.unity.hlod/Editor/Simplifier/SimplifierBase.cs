@@ -38,13 +38,12 @@ namespace Unity.HLODSystem.Simplifier
 //                    Cache.SimplifiedCache.MarkGenerating(GetType(), mesh, ratio);
                     yield return GetSimplifiedMesh(mesh, ratio, (m) =>
                     {
-                        mesh = m;
+                        buildInfo.WorkingObjects[i].SetMesh(m);
                     });
 //                    Cache.SimplifiedCache.Update(GetType(), mesh, simplifiedMesh, ratio);
                     
 //                }
 
-                buildInfo.WorkingObjects[i].SetMesh(mesh);
             }            
         }
 

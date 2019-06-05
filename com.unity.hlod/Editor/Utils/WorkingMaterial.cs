@@ -56,6 +56,13 @@ namespace Unity.HLODSystem.Utils
             }
         }
 
+        public Material ToMaterial()
+        {
+            string path = AssetDatabase.GUIDToAssetPath(m_materialGuid.ToString("N"));
+            return AssetDatabase.LoadAssetAtPath<Material>(path);
+            
+        }
+
         public void Dispose()
         {
             foreach (var texture in m_textures.Values)
