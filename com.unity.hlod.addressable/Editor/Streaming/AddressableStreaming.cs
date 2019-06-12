@@ -65,19 +65,19 @@ namespace Unity.HLODSystem.Streaming
 
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
+                
+                
 
-                /*for (int oi = 0; oi < infos[i].combinedGameObjects.Count; ++oi)
+                for (int oi = 0; oi < infos[i].WorkingObjects.Count; ++oi)
                 {
-                    List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, m_hlod.name, infos[i].combinedGameObjects[oi]);
-                    m_hlod.GeneratedObjects.AddRange(createdMeshes);
+                    string currentHLODName = $"{this.m_hlod.name}{infos[i].Name}_{oi}";
+                    HLODMesh createdMesh = ObjectUtils.SaveHLODMesh(path, currentHLODName, infos[i].WorkingObjects[oi]);
+                    m_hlod.GeneratedObjects.Add(createdMesh);
 
-                    foreach (var mesh in createdMeshes)
-                    {
-                        var address = GetAssetReference(mesh);
-                        int lowId = addressableController.AddLowObject(address);
-                        hlodTreeNode.LowObjectIds.Add(lowId);
-                    }
-                }*/
+                    var address = GetAssetReference(createdMesh);
+                    int lowId = addressableController.AddLowObject(address);
+                    hlodTreeNode.LowObjectIds.Add(lowId);
+                }
 
                 if (onProgress != null)
                     onProgress((float)i/(float)infos.Count);

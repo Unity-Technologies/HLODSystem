@@ -56,11 +56,6 @@ namespace Unity.HLODSystem.Streaming
 
                     int lowId = defaultController.AddLowObject(createdMesh);
                     hlodTreeNode.LowObjectIds.Add(lowId);
-                    
-//                    foreach (var mesh in createdMeshes)
-//                    {
-//                        
-//                    }
                 }
 
                 if (onProgress != null)
