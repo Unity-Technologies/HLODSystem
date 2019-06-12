@@ -30,7 +30,7 @@ namespace Unity.HLODSystem.Streaming
         }
 
 
-        public void Build(SpaceManager.SpaceNode rootNode, List<HLODBuildInfo> infos, Action<float> onProgress)
+        public void Build(SpaceManager.SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, Action<float> onProgress)
         {
             string path = "";
             PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);

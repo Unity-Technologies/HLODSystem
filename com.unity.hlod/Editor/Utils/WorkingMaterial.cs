@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
@@ -21,7 +19,7 @@ namespace Unity.HLODSystem.Utils
     {
         private Allocator m_allocator;
         private Guid m_materialGuid;
-        private Dictionary<string, WorkingTexture> m_textures;
+        private DisposableDictionary<string, WorkingTexture> m_textures;
 
         public Guid GUID
         {
@@ -32,11 +30,35 @@ namespace Unity.HLODSystem.Utils
         {
             m_allocator = allocator;
             m_materialGuid = Guid.Empty;
-            m_textures = new Dictionary<string, WorkingTexture>();
+            m_textures = new DisposableDictionary<string, WorkingTexture>();
         }
         public WorkingMaterial(Allocator allocator, Guid materialGuid) : this(allocator)
         {
             m_materialGuid = materialGuid;
+        }
+
+        public WorkingMaterial Clone()
+        {
+            WorkingMaterial nwm = new WorkingMaterial(m_allocator);
+
+            nwm.m_materialGuid = m_materialGuid;
+            nwm.m_textures = new DisposableDictionary<string, WorkingTexture>();
+
+            foreach (var pair in m_textures)
+            {
+                nwm.m_textures.Add(pair.Key, pair.Value.Clone());
+            }
+
+            return nwm;
+        }
+        
+        public WorkingTexture GetTexture(string name)
+        {
+            WorkingTexture ret;
+            if (m_textures.TryGetValue(name, out ret))
+                return ret;
+
+            return null;
         }
 
         public void FromMaterial(Material mat)
@@ -65,12 +87,7 @@ namespace Unity.HLODSystem.Utils
 
         public void Dispose()
         {
-            foreach (var texture in m_textures.Values)
-            {
-                texture.Dispose();
-            }
-
-            m_textures.Clear();
+            m_textures.Dispose();
         }
     }
 }

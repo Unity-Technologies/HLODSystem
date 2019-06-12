@@ -541,6 +541,9 @@ namespace Unity.HLODSystem.Utils
         public void ApplyToMesh(Mesh mesh)
         {
             mesh.indexFormat = indexFormat;
+            if (vertices.Length > 65535)
+                mesh.indexFormat = IndexFormat.UInt32;
+            
             mesh.vertices = vertices;
             mesh.normals = normals;
             mesh.tangents = tangents;

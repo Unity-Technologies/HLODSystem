@@ -5,7 +5,6 @@ using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
-using UnityEngine;
 
 namespace Unity.HLODSystem.Streaming
 {
@@ -23,7 +22,7 @@ namespace Unity.HLODSystem.Streaming
             m_hlod = hlod;
         }
 
-        public void Build(SpaceNode rootNode, List<HLODBuildInfo> infos, Action<float> onProgress)
+        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, Action<float> onProgress)
         {
             string path = "";
             PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);

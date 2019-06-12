@@ -38,8 +38,6 @@ namespace Unity.HLODSystem.Utils
             path = Path.GetDirectoryName(path) + "/";
             path = path + name;
             
-            
-            
             HLODMesh hlodMesh = ScriptableObject.CreateInstance<HLODMesh>();
             hlodMesh.FromMesh(gameObject.Mesh.ToMesh());
 
@@ -53,37 +51,6 @@ namespace Unity.HLODSystem.Utils
             AssetDatabase.CreateAsset(hlodMesh, meshName + ".asset");
 
             return hlodMesh;
-            //store hlod meshes
-            //var meshFilters = gameObject.GetComponentsInChildren<MeshFilter>();
-
-//            for (int f = 0; f < meshFilters.Length; ++f)
-//            {
-////                var mesh = meshFilters[f].sharedMesh;
-////
-////                var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
-////                var material = meshRenderer.sharedMaterial;
-//
-//                HLODMesh hlodmesh = ScriptableObject.CreateInstance<HLODMesh>();
-//                hlodmesh.FromMesh(mesh);
-//                hlodmesh.Material = material;
-//              
-//                string meshName = path + meshFilters[f].gameObject.name;
-//
-//                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(material)))
-//                {
-//                    AssetDatabase.CreateAsset(material, meshName + ".mat");
-//                }
-//                AssetDatabase.CreateAsset(hlodmesh, meshName + ".asset");
-//                
-//
-//                GameObject.DestroyImmediate(meshFilters[f].gameObject);
-//                result.Add(hlodmesh);
-//
-//            }
-//
-//            return result;
-
-
         }
         public static List<GameObject> HLODTargets(GameObject root)
         {

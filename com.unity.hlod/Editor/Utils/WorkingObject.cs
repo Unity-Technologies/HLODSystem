@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using Unity.Collections;
-using UnityEditor;
 using UnityEngine;
 
 namespace Unity.HLODSystem.Utils
@@ -22,7 +19,7 @@ namespace Unity.HLODSystem.Utils
     public class WorkingObject : IDisposable
     {
         private WorkingMesh m_mesh;
-        private List<WorkingMaterial> m_materials;
+        private DisposableList<WorkingMaterial> m_materials;
         private Matrix4x4 m_localToWorld;
 
         private Allocator m_allocator;
@@ -32,7 +29,7 @@ namespace Unity.HLODSystem.Utils
             get { return m_mesh; }
         }
 
-        public List<WorkingMaterial> Materials
+        public DisposableList<WorkingMaterial> Materials
         {
             get { return m_materials; }
         }
@@ -46,7 +43,7 @@ namespace Unity.HLODSystem.Utils
         {
             m_allocator = allocator;
             m_mesh = null;
-            m_materials = new List<WorkingMaterial>();
+            m_materials = new DisposableList<WorkingMaterial>();
             m_localToWorld = Matrix4x4.identity;
         }
 
@@ -85,21 +82,13 @@ namespace Unity.HLODSystem.Utils
 
         public void AddMaterial(WorkingMaterial material)
         {
-            m_materials.Add(material);
+            m_materials.Add(material.Clone());
         }
 
         public void Dispose()
         {
-            if ( m_mesh != null)
-                m_mesh.Dispose();
-
-            for (int i = 0; i < m_materials.Count; ++i)
-            {
-                m_materials[i].Dispose();
-            }
-
-            
-
+            m_mesh?.Dispose();
+            m_materials?.Dispose();
         }
     }
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections;
 using UnityEditor;
@@ -21,7 +20,20 @@ namespace Unity.HLODSystem.Utils
     public class WorkingTexture : IDisposable
     {
         private WorkingTextureBuffer m_buffer;
-        
+
+        public int Width
+        {
+            get { return m_buffer.Widht; }
+        }
+
+        public int Height
+        {
+            get { return m_buffer.Height; }
+        }
+        private WorkingTexture()
+        {
+            
+        }
         public WorkingTexture(Allocator allocator, int width, int height)
         {
             m_buffer = WorkingTextureBufferManager.Instance.Create(allocator, width, height);
@@ -32,22 +44,106 @@ namespace Unity.HLODSystem.Utils
             m_buffer = WorkingTextureBufferManager.Instance.Get(allocator, source);
         }
 
+        public void Dispose()
+        {
+            m_buffer.Release();
+        }
+
+        public WorkingTexture Clone()
+        {
+            WorkingTexture nwt = new WorkingTexture();
+            nwt.m_buffer = m_buffer;
+            nwt.m_buffer.AddRef();
+
+            return nwt;
+        }
+
+        public Texture2D ToTexture()
+        {
+            return m_buffer.ToTexture();
+        }
+        
+        public Guid GetGUID()
+        {
+            return m_buffer.GetGUID(); 
+                
+        }
+
         public void SetPixel(int x, int y, Color color)
         {
+            MakeWriteable();
+            
+            m_buffer.SetPixel(x, y, color);
+
+        }
+        //{
             //int pos = y * m_width + x;
 
             //m_pixels[pos] = color;
-        }
+        //}
 
         public Color GetPixel(int x, int y)
         {
             return m_buffer.GetPixel(x, y);
         }
+
+        public void Blit(WorkingTexture source, int x, int y)
+        {
+            MakeWriteable();
+           
+            m_buffer.Blit(source.m_buffer, x, y);
+        }
         
 
-        public void Dispose()
+        
+      
+
+        public WorkingTexture Resize(Allocator allocator, int newWidth, int newHeight)
         {
-            m_buffer.Release();
+            WorkingTexture wt = new WorkingTexture(allocator, newWidth, newHeight);
+
+            float xWeight = (float) (m_buffer.Widht - 1) / (float) (newWidth - 1);
+            float yWeight = (float) (m_buffer.Height - 1) / (float) (newHeight - 1);
+
+            for (int y = 0; y < newHeight; ++y)
+            {
+                for (int x = 0; x < newWidth; ++x)
+                {
+                    float xpos = x * xWeight;
+                    float ypos = y * yWeight;
+
+                    wt.SetPixel(x, y, GetPixel(xpos, ypos));
+                }
+            }
+            
+            return wt;
+        }
+
+        private Color GetPixel(float x, float y)
+        {
+            int x1 = Mathf.FloorToInt(x);
+            int x2 = Mathf.CeilToInt(x);
+
+            int y1 = Mathf.FloorToInt(y);
+            int y2 = Mathf.CeilToInt(y);
+
+            float xWeight = x - x1;
+            float yWeight = y - y1;
+
+            Color c1 = Color.Lerp(GetPixel(x1, y1), GetPixel(x2, y1), xWeight);
+            Color c2 = Color.Lerp(GetPixel(x1, y2), GetPixel(x2, y2), xWeight);
+
+            return Color.Lerp(c1, c2, yWeight);
+        }
+
+        private void MakeWriteable()
+        {
+            if (m_buffer.GetRefCount() > 1)
+            {
+                WorkingTextureBuffer newBuffer = WorkingTextureBufferManager.Instance.Clone(m_buffer);
+                m_buffer.Release();
+                m_buffer = newBuffer;
+            }
         }
     }
 
@@ -91,6 +187,13 @@ namespace Unity.HLODSystem.Utils
             return buffer;
         }
 
+        public WorkingTextureBuffer Clone(WorkingTextureBuffer buffer)
+        {
+            WorkingTextureBuffer nb = buffer.Clone();
+            nb.AddRef();
+            return nb;
+        }
+
         public void Destroy(WorkingTextureBuffer buffer)
         {
             if (buffer.HasSource())
@@ -102,6 +205,7 @@ namespace Unity.HLODSystem.Utils
     
     public class WorkingTextureBuffer : IDisposable
     {
+        private Allocator m_allocator;
         private int m_width;
         private int m_height;
         
@@ -109,13 +213,21 @@ namespace Unity.HLODSystem.Utils
 
         private int m_refCount;
         private Texture2D m_source;
+
+        private Guid m_guid;
+
+        public int Widht => m_width;
+        public int Height => m_height;
+
         public WorkingTextureBuffer(Allocator allocator, int width, int height)
         {
+            m_allocator = allocator;
             m_width = width;
             m_height = height;
             m_pixels = new NativeArray<Color>( width * height, allocator);
             m_refCount = 0;
             m_source = null;
+            m_guid = Guid.NewGuid();
         }
 
         public WorkingTextureBuffer(Allocator allocator, Texture2D source) 
@@ -123,6 +235,26 @@ namespace Unity.HLODSystem.Utils
         {
             m_source = source;
             CopyFrom(source);
+            m_guid = GUIDUtils.ObjectToGUID(source);
+        }
+
+        public WorkingTextureBuffer Clone()
+        {
+            WorkingTextureBuffer buffer = new WorkingTextureBuffer(m_allocator, m_width, m_height);
+            buffer.Blit(this, 0, 0);
+            return buffer;
+        }
+        public Texture2D ToTexture()
+        {
+            Texture2D texture = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
+            texture.SetPixels(m_pixels.ToArray());
+            texture.Apply();
+            
+            return texture;
+        }
+        public Guid GetGUID()
+        {
+            return m_guid;
         }
 
         public bool HasSource()
@@ -149,6 +281,11 @@ namespace Unity.HLODSystem.Utils
                 Dispose();
             }
         }
+
+        public int GetRefCount()
+        {
+            return m_refCount;
+        }
         
         public void Dispose()
         {
@@ -156,9 +293,36 @@ namespace Unity.HLODSystem.Utils
                 m_pixels.Dispose();
         }
 
+        public void SetPixel(int x, int y, Color color)
+        {
+            m_pixels[y * m_width + x] = color;
+        }
+
         public Color GetPixel(int x, int y)
         {
             return m_pixels[y * m_width + x];
+        }
+
+        public void Blit(WorkingTextureBuffer source, int x, int y)
+        {
+            int width = source.m_width;
+            int height = source.m_height;
+
+            for (int sy = 0; sy < height; ++sy)
+            {
+                int ty = y + sy;
+                if ( ty < 0 || ty >= m_height )
+                    continue;
+
+                for (int sx = 0; sx < width; ++sx)
+                {
+                    int tx = x + sx;
+                    if (tx < 0 || tx >= m_width)
+                        continue;
+
+                    SetPixel(tx, ty, source.GetPixel(sx, sy));
+                }
+            }
         }
         
         private void CopyFrom(Texture2D texture)
