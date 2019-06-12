@@ -59,19 +59,16 @@ namespace Unity.HLODSystem.Utils
             List<LODGroup> lodGroups = GetComponentsInChildren<LODGroup>(root);
             //This contains all of the mesh renderers, so we need to remove the duplicated mesh renderer which in the LODGroup.
             List<MeshRenderer> meshRenderers = GetComponentsInChildren<MeshRenderer>(root).ToList();
-
-            //Remove low meshes.
-            meshRenderers.RemoveAll(r => r.GetComponent<LowMeshHolder>() != null);
             
-
             for (int i = 0; i < lodGroups.Count; ++i)
             {
                 LOD[] lods = lodGroups[i].GetLODs();
                 targets.Add(lodGroups[i].gameObject);
 
-                for (int li = 0; li < lods.Length; ++li)
+                var childMeshRenderers = lodGroups[i].GetComponentsInChildren<MeshRenderer>();
+                for (int ri = 0; ri < childMeshRenderers.Length; ++ri)
                 {
-                    meshRenderers.RemoveAll(r => lods[li].renderers.Contains(r));
+                    meshRenderers.Remove(childMeshRenderers[ri]);
                 }
             }
 
