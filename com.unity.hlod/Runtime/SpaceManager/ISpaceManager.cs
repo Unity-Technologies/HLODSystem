@@ -7,11 +7,11 @@ namespace Unity.HLODSystem.SpaceManager
 
     public interface ISpaceManager
     {
-        void UpdateCamera(Camera cam);
+        void UpdateCamera(Transform hlodTransform, Camera cam);
 
-        bool IsHigh(Bounds bounds);
+        bool IsHigh(float lodDistance, Bounds bounds);
 
-        bool IsCull(Bounds bounds);
+        bool IsCull(float cullDistance, Bounds bounds);
     }
 
 }

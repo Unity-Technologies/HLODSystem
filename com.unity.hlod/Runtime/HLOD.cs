@@ -13,8 +13,6 @@ namespace Unity.HLODSystem
     public class HLOD : MonoBehaviour, ISerializationCallbackReceiver
     {
         public const string HLODLayerStr = "HLOD";
-        [SerializeField]
-        private HLODTreeNode m_root;
 
         [SerializeField]
         private float m_MinSize = 30.0f;
@@ -51,18 +49,10 @@ namespace Unity.HLODSystem
         [SerializeField]
         private List<Object> m_generatedObjects = new List<Object>();
 
-        private ISpaceManager m_spaceManager;
-        private ActiveHLODTreeNodeManager m_activeManager;
 
         public float MinSize
         {
             get { return m_MinSize; }
-        }
-
-        public HLODTreeNode Root
-        {
-            set { m_root = value; }
-            get { return m_root; }
         }
 
         public float LODDistance
@@ -115,41 +105,13 @@ namespace Unity.HLODSystem
         }
 
         
-
-        void Awake()
-        {
-            m_spaceManager = new QuadTreeSpaceManager(this);
-            m_activeManager = new ActiveHLODTreeNodeManager();
-        }
-
-        void Start()
-        {
-            ControllerBase controller = GetComponent<ControllerBase>();
-            m_root.Initialize(controller, m_spaceManager, m_activeManager);
-            m_activeManager.Activate(m_root);
-        }
-
-        void OnEnable()
-        {
-            HLODManager.Instance.RegisterHLOD(this);
-        }
-
-        void OnDisable()
-        {
-            HLODManager.Instance.UnregisterHLOD(this);
-        }
-        private void OnDestroy()
-        {
-            HLODManager.Instance.UnregisterHLOD(this);
-        }
-
-
 #if UNITY_EDITOR
         public List<Object> GeneratedObjects
         {
             get { return m_generatedObjects; }
         }
 
+        /*
         public void StartUseInEditor()
         {
             var controller = GetComponent<ControllerBase>();
@@ -182,7 +144,7 @@ namespace Unity.HLODSystem
                 Gizmos.color = Color.red;
                 Gizmos.DrawWireCube(m_root.Bounds.center, m_root.Bounds.size);
             }
-        }
+        }*/
 #endif
 
         Bounds CalcLocalBounds(Renderer renderer)
@@ -216,24 +178,7 @@ namespace Unity.HLODSystem
             return ret;
         }
 
-        public void UpdateCull(Camera camera)
-        {
-            if (m_spaceManager == null)
-                return;
-
-            m_spaceManager.UpdateCamera(camera);
-
-            if (m_spaceManager.IsCull(m_root.Bounds) == true)
-            {
-                m_root.Cull();
-            }
-            else
-            {
-                m_activeManager.UpdateActiveNodes();
-            }
-            
-         
-        }
+    
 
         public void OnBeforeSerialize()
         {

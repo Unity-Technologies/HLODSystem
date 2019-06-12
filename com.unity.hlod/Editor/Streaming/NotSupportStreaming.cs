@@ -62,7 +62,9 @@ namespace Unity.HLODSystem.Streaming
                     onProgress((float)i / (float)infos.Count);
             }
 
-            m_hlod.Root = convertedRootNode;
+            defaultController.Root = convertedRootNode;
+            defaultController.CullDistance = m_hlod.CullDistance;
+            defaultController.LODDistance = m_hlod.LODDistance;
         }
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
