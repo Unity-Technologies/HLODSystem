@@ -87,6 +87,26 @@ namespace Unity.HLODSystem.Utils
             return m_buffer.GetPixel(x, y);
         }
 
+        public Color GetPixel(float u, float v)
+        {
+            float x = u * (Width - 1);
+            float y = v * (Height - 1);
+            
+            int x1 = Mathf.FloorToInt(x);
+            int x2 = Mathf.CeilToInt(x);
+
+            int y1 = Mathf.FloorToInt(y);
+            int y2 = Mathf.CeilToInt(y);
+
+            float xWeight = x - x1;
+            float yWeight = y - y1;
+
+            Color c1 = Color.Lerp(GetPixel(x1, y1), GetPixel(x2, y1), xWeight);
+            Color c2 = Color.Lerp(GetPixel(x1, y2), GetPixel(x2, y2), xWeight);
+
+            return Color.Lerp(c1, c2, yWeight);
+        }
+
         public void Blit(WorkingTexture source, int x, int y)
         {
             MakeWriteable();
@@ -112,29 +132,17 @@ namespace Unity.HLODSystem.Utils
                     float xpos = x * xWeight;
                     float ypos = y * yWeight;
 
-                    wt.SetPixel(x, y, GetPixel(xpos, ypos));
+                    float u = xpos / Width;
+                    float v = ypos / Height;
+
+                    wt.SetPixel(x, y, GetPixel(u, v));
                 }
             }
             
             return wt;
         }
 
-        private Color GetPixel(float x, float y)
-        {
-            int x1 = Mathf.FloorToInt(x);
-            int x2 = Mathf.CeilToInt(x);
-
-            int y1 = Mathf.FloorToInt(y);
-            int y2 = Mathf.CeilToInt(y);
-
-            float xWeight = x - x1;
-            float yWeight = y - y1;
-
-            Color c1 = Color.Lerp(GetPixel(x1, y1), GetPixel(x2, y1), xWeight);
-            Color c2 = Color.Lerp(GetPixel(x1, y2), GetPixel(x2, y2), xWeight);
-
-            return Color.Lerp(c1, c2, yWeight);
-        }
+       
 
         private void MakeWriteable()
         {

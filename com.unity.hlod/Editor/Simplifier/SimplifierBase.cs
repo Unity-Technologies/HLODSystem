@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -45,6 +46,18 @@ namespace Unity.HLODSystem.Simplifier
 //                }
 
             }            
+        }
+
+        public void SimplifyImmidiate(HLODBuildInfo buildInfo)
+        {
+            
+            IEnumerator routine = Simplify(buildInfo);
+            CustomCoroutine coroutine = new CustomCoroutine(routine);
+            while (coroutine.MoveNext())
+            {
+                
+            }
+            
         }
 
         protected abstract IEnumerator GetSimplifiedMesh(Utils.WorkingMesh origin, float quality, Action<Utils.WorkingMesh> resultCallback);

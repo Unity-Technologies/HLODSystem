@@ -23,6 +23,7 @@ namespace Unity.HLODSystem.Utils
 
         public Guid GUID
         {
+            set { m_materialGuid = value;}
             get { return m_materialGuid; }
         }
 
@@ -51,21 +52,32 @@ namespace Unity.HLODSystem.Utils
 
             return nwm;
         }
-        
+
+        public void AddTexture(string name, WorkingTexture texture)
+        {
+            lock (m_textures)
+            {
+                m_textures.Add(name, texture);
+            }
+        }
         public WorkingTexture GetTexture(string name)
         {
-            WorkingTexture ret;
-            if (m_textures.TryGetValue(name, out ret))
-                return ret;
+            lock (m_textures)
+            {
+                WorkingTexture ret;
+                if (m_textures.TryGetValue(name, out ret))
+                    return ret;
 
-            return null;
+                return null;
+            }
         }
 
         public void FromMaterial(Material mat)
         {
             string materialPath = AssetDatabase.GetAssetPath(mat);
             m_materialGuid = Guid.Parse(AssetDatabase.AssetPathToGUID(materialPath));
-            m_textures.Clear();
+            m_textures.Dispose();
+            m_textures = new DisposableDictionary<string, WorkingTexture>();
                 
             string[] names = mat.GetTexturePropertyNames();
             for (int i = 0; i < names.Length; ++i)

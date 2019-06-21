@@ -23,5 +23,10 @@ namespace Unity.HLODSystem.Simplifier
         {
             yield break;
         }
+
+        public void SimplifyImmidiate(HLODBuildInfo buildInfo)
+        {
+            
+        }
     }
 }

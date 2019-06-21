@@ -561,6 +561,8 @@ namespace Unity.HLODSystem.Utils
             }
             mesh.name = name;
             mesh.bounds = bounds;
+            
+            mesh.RecalculateBounds();
         }
     }
 }
