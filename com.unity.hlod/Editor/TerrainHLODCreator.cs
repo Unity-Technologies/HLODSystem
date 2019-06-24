@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Http.Headers;
-using System.Security.AccessControl;
 using Unity.Collections;
 using Unity.HLODSystem.Simplifier;
 using Unity.HLODSystem.SpaceManager;
@@ -58,6 +56,8 @@ namespace Unity.HLODSystem
 
 
         }
+
+      
 
         private TerrainHLOD m_hlod;
         
@@ -443,11 +443,144 @@ namespace Unity.HLODSystem
 
             return mesh;
         }
+        
+        
 
-//        private WorkingMesh MakeFillHoleMesh()
-//        {
-//            
-//        }
+        public class EdgeGroup
+        {
+            public int Begin = -1;
+            public int End = -1;
+            public List<Vector2Int> EdgeList = new List<Vector2Int>();
+        }
+
+        private WorkingMesh MakeFillHoleMesh(WorkingMesh source)
+        {
+            int totalTris = 0;
+            List<int[]> newTris = new List<int[]>();
+            
+            for (int si = 0; si < source.subMeshCount; ++si)
+            {
+                List<int> tris = source.GetTriangles(si).ToList();
+                List<Vector2Int> edgeList = GetEdgeList(tris);
+                
+                
+                List<EdgeGroup> groups = new List<EdgeGroup>();
+                for (int i = 0; i < edgeList.Count; ++i)
+                {
+                    EdgeGroup group = new EdgeGroup();
+                    group.Begin = edgeList[i].x;
+                    group.End = edgeList[i].y;
+                    group.EdgeList.Add(edgeList[i]);
+                
+                    groups.Add(group);
+                }
+
+                bool isFinish = false;
+
+                while (isFinish == false)
+                {
+                    isFinish = true;
+
+                    for (int gi1 = 0; gi1 < groups.Count; ++gi1)
+                    {
+                        for (int gi2 = gi1 + 1; gi2 < groups.Count; ++gi2)
+                        {
+                            EdgeGroup g1 = groups[gi1];
+                            EdgeGroup g2 = groups[gi2];
+
+                            if (g1.End == g2.Begin)
+                            {
+                                g1.End = g2.End;
+                                g1.EdgeList.AddRange(g2.EdgeList);
+
+                                groups[gi2] = groups[groups.Count - 1];
+                                groups.RemoveAt(groups.Count - 1);
+
+                                gi2 -= 1;
+                                isFinish = false;
+                            }
+                            else if (g1.Begin == g2.End)
+                            {
+                                g2.End = g1.End;
+                                g2.EdgeList.AddRange(g1.EdgeList);
+
+                                groups[gi1] = groups[gi2];
+                                groups[gi2] = groups[groups.Count - 1];
+                                groups.RemoveAt(groups.Count - 1);
+
+                                gi2 -= 1;
+                                isFinish = false;
+                            }
+                        }
+                    }
+                }
+
+                for (int gi = 0; gi < groups.Count; ++gi)
+                {
+                    EdgeGroup group = groups[gi];
+                    for (int ei1 = 1; ei1 < group.EdgeList.Count-1; ++ei1)
+                    {
+                        for (int ei2 = ei1 + 1; ei2 < group.EdgeList.Count; ++ei2)
+                        {
+                            if (group.EdgeList[ei1].x == group.EdgeList[ei2].y)
+                            {
+                                EdgeGroup ng = new EdgeGroup();
+                                ng.Begin = group.EdgeList[ei1].x;
+                                ng.End = group.EdgeList[ei2].y;
+
+                                for (int i = ei1; i <= ei2; ++i)
+                                {
+                                    ng.EdgeList.Add(group.EdgeList[i]);
+                                }
+
+                                for (int i = ei2; i >= ei1; --i)
+                                {
+                                    group.EdgeList.RemoveAt(i);
+                                }
+                                
+                                groups.Add(ng);
+
+                                ei1 = 0; // goto first
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (groups.Count == 0)
+                    continue;
+                
+                groups.Sort((g1, g2) => { return g2.EdgeList.Count - g1.EdgeList.Count; });
+                
+                //first group( longest group ) is outline. 
+                for (int i = 1; i < groups.Count; ++i)
+                {
+                    EdgeGroup group = groups[i];
+                    for (int ei = 1; ei < group.EdgeList.Count - 1; ++ei)
+                    {
+                        tris.Add(group.Begin);
+                        tris.Add(group.EdgeList[ei].y);
+                        tris.Add(group.EdgeList[ei].x);
+                    }
+                
+                }
+
+                totalTris += tris.Count;
+                newTris.Add(tris.ToArray());
+            }
+            
+            WorkingMesh mesh = new WorkingMesh(Allocator.Persistent, source.vertexCount, totalTris, source.subMeshCount, 0);
+            mesh.vertices = source.vertices;
+            mesh.normals = source.normals;
+            mesh.uv = source.uv;
+
+            for (int i = 0; i < newTris.Count; ++i)
+            {
+                mesh.SetTriangles(newTris[i], i);
+            }
+
+            return mesh;
+        }
 
         private DisposableList<HLODBuildInfo> CreateBuildInfo(TerrainData data, SpaceNode root)
         {
@@ -622,12 +755,6 @@ namespace Unity.HLODSystem
 
                         EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes", 0.0f);
                         yield return m_queue.WaitFinish();
-                        
-//                        yield return new WaitForBranches(progress =>
-//                        {
-//                            EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes",
-//                                0.25f + progress * 0.25f);
-//                        });
 
                         Debug.Log("[TerrainHLOD] Simplify: " + sw.Elapsed.ToString("g"));
                         sw.Reset();
@@ -642,9 +769,10 @@ namespace Unity.HLODSystem
                                 for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
                                 {
                                     WorkingObject o = info.WorkingObjects[oi];
-                                    WorkingMesh m = MakeBorder(o.Mesh, info.Heightmap, 2);
-                                    
-                                    o.SetMesh(m);
+                                    using (WorkingMesh m = MakeBorder(o.Mesh, info.Heightmap, 2))
+                                    {
+                                        o.SetMesh(MakeFillHoleMesh(m));
+                                    }
                                 }
                             });
                         }
