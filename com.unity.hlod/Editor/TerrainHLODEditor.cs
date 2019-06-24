@@ -197,7 +197,7 @@ namespace Unity.HLODSystem
                     {
                         if (info.IsStatic == true)
                         {
-                            info.Invoke(null, new object[] { hlod });
+                            info.Invoke(null, new object[] { hlod.StreamingOptions });
                         }
                     }
                 }

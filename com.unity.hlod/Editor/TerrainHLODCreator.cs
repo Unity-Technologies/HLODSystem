@@ -82,7 +82,7 @@ namespace Unity.HLODSystem
             return new Bounds(data.size * 0.5f, data.size);
         }
 
-        private WorkingObject CreateBakedTerrain(HLODBuildInfo info, Bounds bounds)
+        private WorkingObject CreateBakedTerrain(Bounds bounds, out Heightmap heightmap)
         {
             WorkingObject wo = new WorkingObject(Allocator.Persistent);
             int beginX = Mathf.RoundToInt(bounds.min.x / m_size.x * (m_heightmap.Width-1));
@@ -93,16 +93,18 @@ namespace Unity.HLODSystem
             int width = endX - beginX + 1;
             int height = endZ - beginZ + 1;
 
-            info.Heightmap = m_heightmap.GetHeightmap(beginX, beginZ, width, height);
+            Heightmap subHeightmap =m_heightmap.GetHeightmap(beginX, beginZ, width, height);
+            heightmap = subHeightmap;
+            
             m_queue.EnqueueJob(() =>
             {
-                WorkingMesh mesh = CreateBakedGeometry(info.Heightmap, bounds);
+                WorkingMesh mesh = CreateBakedGeometry(subHeightmap, bounds);
                 wo.SetMesh(mesh);
             });
 
             m_queue.EnqueueJob(() =>
             {
-                WorkingMaterial material = CreateBakedMaterial(info, bounds); 
+                WorkingMaterial material = CreateBakedMaterial(bounds); 
                 wo.Materials.Add(material);
             });
 
@@ -171,7 +173,7 @@ namespace Unity.HLODSystem
             return mesh;
         }
 
-        private WorkingMaterial CreateBakedMaterial(HLODBuildInfo info, Bounds bounds)
+        private WorkingMaterial CreateBakedMaterial(Bounds bounds)
         {
             Guid guid = Guid.Empty;
             if (Guid.TryParse(m_hlod.MaterialGUID, out guid) == false)
@@ -183,14 +185,14 @@ namespace Unity.HLODSystem
 
             m_queue.EnqueueJob(()=>
             {
-                WorkingTexture albedo = BakeAlbedo(info, bounds, m_hlod.TextureSize);
+                WorkingTexture albedo = BakeAlbedo( bounds, m_hlod.TextureSize);
                 material.AddTexture(m_hlod.AlbedoPropertyName, albedo);
             });
 
             return material;
         }
 
-        private WorkingTexture BakeAlbedo(HLODBuildInfo info, Bounds bounds, int resolution)
+        private WorkingTexture BakeAlbedo(Bounds bounds, int resolution)
         {
             WorkingTexture albedoTexture = new WorkingTexture(Allocator.Persistent, resolution, resolution);
             
@@ -612,20 +614,20 @@ namespace Unity.HLODSystem
                     ContainerObject = ScriptableObject.CreateInstance<HLODAsset>()
                 };
 
-                if (node.ChildTreeNodes != null)
+
+                for (int i = 0; i < node.GetChildCount(); ++i)
                 {
-                    for (int i = 0; i < node.ChildTreeNodes.Count; ++i)
-                    {
-                        trevelQueue.Enqueue(node.ChildTreeNodes[i]);
-                        parentQueue.Enqueue(currentNodeIndex);
-                        nameQueue.Enqueue(name + "_" + (i + 1));
-                        depthQueue.Enqueue(depth +1);
-                    }
+                    trevelQueue.Enqueue(node.GetChild(i));
+                    parentQueue.Enqueue(currentNodeIndex);
+                    nameQueue.Enqueue(name + "_" + (i + 1));
+                    depthQueue.Enqueue(depth + 1);
                 }
 
                 string path = $"{m_outputDir}{m_outputName}{name}.asset";
                 AssetDatabase.CreateAsset(info.ContainerObject, path);
-                info.WorkingObjects.Add(CreateBakedTerrain(info, node.Bounds));
+                Heightmap createdHeightmap;
+                info.WorkingObjects.Add(CreateBakedTerrain(node.Bounds, out createdHeightmap));
+                info.Heightmap = createdHeightmap;
                 info.Distances.Add(depth);
                 results.Add(info);
 
@@ -729,9 +731,10 @@ namespace Unity.HLODSystem
                     {
                         m_layers.Add(new Layer(data.terrainLayers[i]));
                     }
-                    
+
+
                     QuadTreeSpaceSplitter splitter =
-                        new QuadTreeSpaceSplitter(m_hlod.transform.position, 0.0f, m_hlod.MinSize);
+                        new QuadTreeSpaceSplitter(m_hlod.transform.position, 0.0f, m_hlod.MinSize * 2.0f);
 
                     SpaceNode rootNode = splitter.CreateSpaceTree(GetBounds(data), null, progress => { });
 
@@ -788,43 +791,64 @@ namespace Unity.HLODSystem
                             SaveBuildInfo(buildInfos[i]);
                         }
                         Debug.Log("[TerrainHLOD] SaveBuildInfo: " + sw.Elapsed.ToString("g"));
-
+                        
                         AssetDatabase.SaveAssets();
 
                         for (int i = 0; i < buildInfos.Count; ++i)
                         {
-                            GameObject go = new GameObject(buildInfos[i].Name);
-                            go.AddComponent<MeshFilter>().sharedMesh = buildInfos[i].WorkingObjects[0].Mesh.ToMesh();
-                            go.AddComponent<MeshRenderer>().sharedMaterial =
-                                buildInfos[i].WorkingObjects[0].Materials[0].ToMaterial();
-                            go.transform.SetParent(m_hlod.transform);
+                            SpaceNode node = buildInfos[i].Target; 
+                            if (node.HasChild() == false)
+                            {
+                                SpaceNode parent = node.ParentNode;
+                                node.ParentNode = null;
+                                
+                                GameObject go = new GameObject(buildInfos[i].Name);
+                                string assetPath = $"{m_outputDir}{m_outputName}{buildInfos[i].Name}.asset";
+                                string prefabPath = $"{m_outputDir}{m_outputName}{buildInfos[i].Name}.prefab";
+                                
+                                
+
+                                go.AddComponent<MeshFilter>().sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
+                                go.AddComponent<MeshRenderer>().sharedMaterial =
+                                    AssetDatabase.LoadAssetAtPath<Material>(assetPath);
+                                
+                                go.transform.SetParent(m_hlod.transform, false);
+
+                                PrefabUtility.SaveAsPrefabAssetAndConnect(go, prefabPath,InteractionMode.AutomatedAction);
+                                
+                                parent.Objects.Add(go);
+                                buildInfos.RemoveAt(i);
+                                i -= 1;
+                            }
+                        }
+
+                      
+                        //controller
+                        try
+                        {
+                            //AssetDatabase.StartAssetEditing();
+                            IStreamingBuilder builder =
+                                (IStreamingBuilder) Activator.CreateInstance(m_hlod.StreamingType, new object[] {m_hlod.StreamingOptions });
+                            
+                            builder.Build(rootNode, buildInfos, m_hlod.gameObject, m_hlod.CullDistance, m_hlod.LODDistance, 
+                                progress =>
+                                {
+                                    EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
+                                        0.75f + progress * 0.25f);
+                                });
+                            Debug.Log("[TerrainHLOD] Build: " + sw.Elapsed.ToString("g"));
+                            sw.Reset();
+                            sw.Start();
+                        }
+                        finally
+                        {
+                            //AssetDatabase.StopAssetEditing();
+                            Debug.Log("[TerrainHLOD] Importing: " + sw.Elapsed.ToString("g"));
                         }
 
                     }
                 }
-                /*
-                //remove seam and hole
-                
-                //controller
-                try
-                {
-                    AssetDatabase.StartAssetEditing();
-                    IStreamingBuilder builder = null;
-                        //(IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType, new object[] { hlod });
-                    builder.Build(rootNode, buildInfos, progress =>
-                    {
-                        EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.", 0.75f + progress * 0.25f);
-                    });
-                    Debug.Log("[TerrainHLOD] Build: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
-                }
-                finally
-                {
-
-                    AssetDatabase.StopAssetEditing();
-                    Debug.Log("[TerrainHLOD] Importing: " + sw.Elapsed.ToString("g"));
-                }*/
+               
 
             }
             finally

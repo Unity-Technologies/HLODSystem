@@ -21,23 +21,20 @@ namespace Unity.HLODSystem.Streaming
         {
             StreamingBuilderTypes.RegisterType(typeof(AddressableStreaming));
         }
-
         
-        private HLOD m_hlod;
-        public AddressableStreaming(HLOD hlod)
+        public AddressableStreaming(SerializableDynamicObject streamingOptions)
         {
-            m_hlod = hlod;
         }
 
 
-        public void Build(SpaceManager.SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, Action<float> onProgress)
+        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, Action<float> onProgress)
         {
             string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);
+            PrefabStage stage = PrefabStageUtility.GetPrefabStage(root);
             path = stage.prefabAssetPath;
             path = Path.GetDirectoryName(path) + "/";
 
-            var addressableController = m_hlod.gameObject.AddComponent<AddressableController>();
+            var addressableController = root.AddComponent<AddressableController>();
             HLODTreeNode convertedRootNode = ConvertNode(rootNode);
 
             if (onProgress != null)
@@ -70,9 +67,9 @@ namespace Unity.HLODSystem.Streaming
 
                 for (int oi = 0; oi < infos[i].WorkingObjects.Count; ++oi)
                 {
-                    string currentHLODName = $"{this.m_hlod.name}{infos[i].Name}_{oi}";
+                    string currentHLODName = $"{root.name}{infos[i].Name}_{oi}";
                     HLODMesh createdMesh = ObjectUtils.SaveHLODMesh(path, currentHLODName, infos[i].WorkingObjects[oi]);
-                    m_hlod.GeneratedObjects.Add(createdMesh);
+                    //m_hlod.GeneratedObjects.Add(createdMesh);
 
                     var address = GetAssetReference(createdMesh);
                     int lowId = addressableController.AddLowObject(address);
@@ -84,8 +81,8 @@ namespace Unity.HLODSystem.Streaming
             }
 
             addressableController.Root = convertedRootNode;
-            addressableController.CullDistance = m_hlod.CullDistance;
-            addressableController.LODDistance = m_hlod.LODDistance;
+            addressableController.CullDistance = cullDistance;
+            addressableController.LODDistance = lodDistance;
         }
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
@@ -108,16 +105,16 @@ namespace Unity.HLODSystem.Streaming
                 convertedTable[spaceNode] = hlodTreeNode;
 
                 hlodTreeNode.Bounds = spaceNode.Bounds;
-                if (spaceNode.ChildTreeNodes != null)
+                if (spaceNode.HasChild() == true)
                 {
-                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.ChildTreeNodes.Count);
-                    for (int i = 0; i < spaceNode.ChildTreeNodes.Count; ++i)
+                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.GetChildCount());
+                    for (int i = 0; i < spaceNode.GetChildCount(); ++i)
                     {
                         var treeNode = new HLODTreeNode();
                         childTreeNodes.Add(treeNode);
 
                         hlodTreeNodes.Enqueue(treeNode);
-                        spaceNodes.Enqueue(spaceNode.ChildTreeNodes[i]);
+                        spaceNodes.Enqueue(spaceNode.GetChild(i));
                     }
 
                     hlodTreeNode.ChildNodes = childTreeNodes;
@@ -129,21 +126,21 @@ namespace Unity.HLODSystem.Streaming
         }
 
 
-        public static void OnGUI(HLOD hlod)
+        public static void OnGUI(SerializableDynamicObject streamingOptions)
         {
-            dynamic options = hlod.StreamingOptions;
+            //dynamic options = hlod.StreamingOptions;
 
-            if (options.LastLowInMemory == null)
-                options.LastLowInMemory = false;
-            if (options.MaxInstantiateCount == null)
-                options.MaxInstantiateCount = 10;
-
-            EditorGUI.indentLevel += 1;
-            options.LastLowInMemory = EditorGUILayout.Toggle("Last low in memory", options.LastLowInMemory);
-            options.MaxInstantiateCount =
-                EditorGUILayout.IntSlider("Max instantiate count per frame", options.MaxInstantiateCount, 1, 100, null);
-            
-            EditorGUI.indentLevel -= 1;
+//            if (options.LastLowInMemory == null)
+//                options.LastLowInMemory = false;
+//            if (options.MaxInstantiateCount == null)
+//                options.MaxInstantiateCount = 10;
+//
+//            EditorGUI.indentLevel += 1;
+//            options.LastLowInMemory = EditorGUILayout.Toggle("Last low in memory", options.LastLowInMemory);
+//            options.MaxInstantiateCount =
+//                EditorGUILayout.IntSlider("Max instantiate count per frame", options.MaxInstantiateCount, 1, 100, null);
+//            
+//            EditorGUI.indentLevel -= 1;
         }
 
         private AssetReference GetAssetReference(Object obj)

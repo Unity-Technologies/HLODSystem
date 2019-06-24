@@ -45,11 +45,12 @@ namespace Unity.HLODSystem.SpaceManager
 				SpaceNode node = nodeStack.Pop();
 				if ( node.Bounds.size.x > m_minSize )
 				{
-					node.ChildTreeNodes = CreateChildSpaceNodes(node);
+                    List<SpaceNode> childNodes = CreateChildSpaceNodes(node);
 					
-					for ( int i = 0; i < node.ChildTreeNodes.Count; ++i )
-					{
-						nodeStack.Push(node.ChildTreeNodes[i]);
+					for ( int i = 0; i < childNodes.Count; ++i )
+                    {
+                        childNodes[i].ParentNode = node;
+						nodeStack.Push(childNodes[i]);
 					}
 						
 				}
@@ -68,18 +69,18 @@ namespace Unity.HLODSystem.SpaceManager
 
                 while (true)
                 {
-                    if (target.ChildTreeNodes != null)
+                    if (target.HasChild())
                     {
                         //the object can be in the over 2 nodes.
                         //we should figure out which node is more close with the object.
                         int nearestChild = -1;
                         float nearestDistance = float.MaxValue;
 
-                        for (int ci = 0; ci < target.ChildTreeNodes.Count; ++ci)
+                        for (int ci = 0; ci < target.GetChildCount(); ++ci)
                         {
-                            if (objectBounds.Value.IsPartOf(target.ChildTreeNodes[ci].Bounds))
+                            if (objectBounds.Value.IsPartOf(target.GetChild(ci).Bounds))
                             {
-                                float dist = Vector3.Distance(target.ChildTreeNodes[ci].Bounds.center, objectBounds.Value.center);
+                                float dist = Vector3.Distance(target.GetChild(ci).Bounds.center, objectBounds.Value.center);
 
                                 if (dist < nearestDistance)
                                 {
@@ -93,7 +94,7 @@ namespace Unity.HLODSystem.SpaceManager
                         //this means the object is small to add in the current node.
                         if (nearestChild >= 0)
                         {
-                            target = target.ChildTreeNodes[nearestChild];
+                            target = target.GetChild(nearestChild);
                             continue;
                         }
                     }

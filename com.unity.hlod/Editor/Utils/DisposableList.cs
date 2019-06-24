@@ -55,6 +55,11 @@ namespace Unity.HLODSystem.Utils
 
         public bool Remove(T item)
         {
+            if (item != null)
+            {
+                item.Dispose();
+            }
+
             return m_list.Remove(item);
         }
 
@@ -83,6 +88,11 @@ namespace Unity.HLODSystem.Utils
 
         public void RemoveAt(int index)
         {
+            if (m_list[index] != null)
+            {
+                m_list[index].Dispose();
+            }
+
             m_list.RemoveAt(index);
         }
 

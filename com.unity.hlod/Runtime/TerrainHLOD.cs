@@ -15,6 +15,7 @@ namespace Unity.HLODSystem
         [SerializeField] private float m_LODDistance = 0.3f;
         [SerializeField] private float m_CullDistance = 0.01f;
         [SerializeField] private SerializableDynamicObject m_SimplifierOptions = new SerializableDynamicObject();
+        [SerializeField] private SerializableDynamicObject m_StreamingOptions = new SerializableDynamicObject();
 
         [SerializeField] private string m_materialGUID = "";
         [SerializeField] private int m_textureSize = 64;
@@ -47,10 +48,25 @@ namespace Unity.HLODSystem
         {
             get { return m_MinSize; }
         }
+
+        public float LODDistance
+        {
+            get { return m_LODDistance; }
+        }
+
+        public float CullDistance
+        {
+            get { return m_CullDistance; }
+        }
         
         public SerializableDynamicObject SimplifierOptions
         {
             get { return m_SimplifierOptions; }
+        }
+
+        public SerializableDynamicObject StreamingOptions
+        {
+            get { return m_StreamingOptions; }
         }
 
         public int TextureSize

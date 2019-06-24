@@ -55,7 +55,7 @@ namespace Unity.HLODSystem
                 heightmap.m_size = new Vector3(m_scale.x * (width-1), m_size.y, m_scale.z * (height-1));
                 heightmap.m_scale = m_scale;
 
-                heightmap.m_heights = new float[width, height];
+                heightmap.m_heights = new float[height, width];
 
                 for (int x = 0; x < width; ++x)
                 {

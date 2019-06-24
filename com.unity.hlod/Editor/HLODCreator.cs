@@ -80,15 +80,14 @@ namespace Unity.HLODSystem
                     Target = node
                 };
 
-                if (node.ChildTreeNodes != null)
+
+                for (int i = 0; i < node.GetChildCount(); ++i)
                 {
-                    for (int i = 0; i < node.ChildTreeNodes.Count; ++i)
-                    {
-                        trevelQueue.Enqueue(node.ChildTreeNodes[i]);
-                        parentQueue.Enqueue(currentNodeIndex);
-                        nameQueue.Enqueue(name + "_" + (i + 1));
-                    }
+                    trevelQueue.Enqueue(node.GetChild(i));
+                    parentQueue.Enqueue(currentNodeIndex);
+                    nameQueue.Enqueue(name + "_" + (i + 1));
                 }
+                
 
                 results.Add(info);
 
@@ -180,8 +179,8 @@ namespace Unity.HLODSystem
 
                         //AssetDatabase.StartAssetEditing();
                         IStreamingBuilder builder =
-                            (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] {hlod});
-                        builder.Build(rootNode, buildInfos,
+                            (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] { hlod.StreamingOptions});
+                        builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, 
                             progress =>
                             {
                                 EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
