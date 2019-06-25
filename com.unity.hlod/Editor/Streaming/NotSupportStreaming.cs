@@ -17,8 +17,11 @@ namespace Unity.HLODSystem.Streaming
             StreamingBuilderTypes.RegisterType(typeof(NotSupportStreaming), -1);
         }
 
-        public NotSupportStreaming(SerializableDynamicObject streamingOptions)
+        private IGeneratedResourceManager m_manager;
+
+        public NotSupportStreaming(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
         {
+            m_manager = manager;
         }
 
         public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, Action<float> onProgress)
@@ -51,7 +54,7 @@ namespace Unity.HLODSystem.Streaming
                 {
                     string currentHLODName = $"{root.name}{infos[i].Name}_{oi}";
                     HLODMesh createdMesh = ObjectUtils.SaveHLODMesh(path, currentHLODName, infos[i].WorkingObjects[oi]);
-                    //m_hlod.GeneratedObjects.Add(createdMesh);
+                    m_manager.AddGeneratedResource(createdMesh);
 
                     int lowId = defaultController.AddLowObject(createdMesh);
                     hlodTreeNode.LowObjectIds.Add(lowId);

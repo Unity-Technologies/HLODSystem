@@ -204,7 +204,6 @@ namespace Unity.HLODSystem
                 EditorUtility.ClearProgressBar();
                 
             }
-            //hlod.Root = rootNode;
         }
 
         public static IEnumerator Destroy(HLOD hlod)

@@ -2,13 +2,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
-    public class TerrainHLOD : MonoBehaviour
+    public class TerrainHLOD : MonoBehaviour, ISerializationCallbackReceiver, IGeneratedResourceManager
     {
         private Type m_SimplifierType;
         private Type m_StreamingType;
+
+        [SerializeField] private string m_SimplifierTypeStr = "";
+        [SerializeField] private string m_StreamingTypeStr = "";
 
         [SerializeField] private TerrainData m_TerrainData;
         [SerializeField] private float m_MinSize = 30.0f;
@@ -26,6 +30,9 @@ namespace Unity.HLODSystem
         [SerializeField] private string m_albedoPropertyName = "";
         [SerializeField] private string m_normalPropertyName = "";
         [SerializeField] private string m_maskPropertyName = "";
+        
+        [SerializeField]
+        private List<Object> m_generatedObjects = new List<Object>();
         //[SerializeField] private Material 
         
         public Type SimplifierType
@@ -109,6 +116,46 @@ namespace Unity.HLODSystem
         {
             set { m_maskPropertyName = value; }
             get { return m_maskPropertyName; }
+        }
+        
+        public List<Object> GeneratedObjects
+        {
+            get { return m_generatedObjects; }
+        }
+
+        public void OnBeforeSerialize()
+        {
+            if (m_SimplifierType != null)
+                m_SimplifierTypeStr = m_SimplifierType.AssemblyQualifiedName;
+            if (m_StreamingType != null)
+                m_StreamingTypeStr = m_StreamingType.AssemblyQualifiedName;
+        }
+
+        public void OnAfterDeserialize()
+        {
+            if (string.IsNullOrEmpty(m_SimplifierTypeStr))
+            {
+                m_SimplifierType = null;
+            }
+            else
+            {
+                m_SimplifierType = Type.GetType(m_SimplifierTypeStr);
+            }
+
+            if (string.IsNullOrEmpty(m_StreamingTypeStr))
+            {
+                m_StreamingType = null;
+            }
+            else
+            {
+                m_StreamingType = Type.GetType(m_StreamingTypeStr);
+            }
+
+        }
+
+        public void AddGeneratedResource(Object obj)
+        {
+            m_generatedObjects.Add(obj);
         }
     }
 }

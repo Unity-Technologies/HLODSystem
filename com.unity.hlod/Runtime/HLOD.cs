@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
-    public class HLOD : MonoBehaviour, ISerializationCallbackReceiver
+    public class HLOD : MonoBehaviour, ISerializationCallbackReceiver, IGeneratedResourceManager
     {
         public const string HLODLayerStr = "HLOD";
 
@@ -220,6 +220,12 @@ namespace Unity.HLODSystem
             }
             
         }
+
+        public void AddGeneratedResource(Object obj)
+        {
+            m_generatedObjects.Add(obj);
+        }
+
     }
 
 }

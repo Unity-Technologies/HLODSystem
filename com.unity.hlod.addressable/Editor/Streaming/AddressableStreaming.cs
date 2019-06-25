@@ -22,8 +22,11 @@ namespace Unity.HLODSystem.Streaming
             StreamingBuilderTypes.RegisterType(typeof(AddressableStreaming));
         }
         
-        public AddressableStreaming(SerializableDynamicObject streamingOptions)
+        private IGeneratedResourceManager m_manager;
+        
+        public AddressableStreaming(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
         {
+            m_manager = manager;
         }
 
 
@@ -69,7 +72,7 @@ namespace Unity.HLODSystem.Streaming
                 {
                     string currentHLODName = $"{root.name}{infos[i].Name}_{oi}";
                     HLODMesh createdMesh = ObjectUtils.SaveHLODMesh(path, currentHLODName, infos[i].WorkingObjects[oi]);
-                    //m_hlod.GeneratedObjects.Add(createdMesh);
+                    m_manager.AddGeneratedResource(createdMesh);
 
                     var address = GetAssetReference(createdMesh);
                     int lowId = addressableController.AddLowObject(address);

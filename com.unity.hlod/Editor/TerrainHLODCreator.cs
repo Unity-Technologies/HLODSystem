@@ -13,6 +13,7 @@ using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
@@ -25,7 +26,43 @@ namespace Unity.HLODSystem
         }
         public static IEnumerator Destroy(TerrainHLOD hlod)
         {
-            yield break;
+            var controller = hlod.GetComponent<ControllerBase>();
+            if (controller == null)
+                yield break;
+
+            try
+            {
+                EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", 0.0f);
+                AssetDatabase.StartAssetEditing();
+
+                var generatedObjects = hlod.GeneratedObjects;
+                for (int i = 0; i < generatedObjects.Count; ++i)
+                {
+                    if (generatedObjects[i] == null)
+                        continue;
+                    var path = AssetDatabase.GetAssetPath(generatedObjects[i]);
+                    if (string.IsNullOrEmpty(path) == false)
+                    {
+                        AssetDatabase.DeleteAsset(path);
+                    }
+                    else
+                    {
+                        //It means scene object.
+                        //destory it.
+                        Object.DestroyImmediate(generatedObjects[i]);
+                    }
+
+                    EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
+                }
+                generatedObjects.Clear();
+
+                UnityEngine.Object.DestroyImmediate(controller);
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+                EditorUtility.ClearProgressBar();
+            }
         }
 
 
@@ -625,12 +662,15 @@ namespace Unity.HLODSystem
 
                 string path = $"{m_outputDir}{m_outputName}{name}.asset";
                 AssetDatabase.CreateAsset(info.ContainerObject, path);
+                
+                m_hlod.AddGeneratedResource(info.ContainerObject);
+                
                 Heightmap createdHeightmap;
                 info.WorkingObjects.Add(CreateBakedTerrain(node.Bounds, out createdHeightmap));
                 info.Heightmap = createdHeightmap;
                 info.Distances.Add(depth);
                 results.Add(info);
-
+                
                 if (depth > maxDepth)
                     maxDepth = depth;
             }
@@ -681,6 +721,8 @@ namespace Unity.HLODSystem
                         AssetDatabase.ImportAsset(albedoPath);
                         albedoTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(albedoPath);
                         mat.SetTexture(m_hlod.AlbedoPropertyName, albedoTexture);
+                        
+                        m_hlod.AddGeneratedResource(albedoTexture);
                     }
                     
                     AssetDatabase.AddObjectToAsset(mat, path);
@@ -805,8 +847,6 @@ namespace Unity.HLODSystem
                                 GameObject go = new GameObject(buildInfos[i].Name);
                                 string assetPath = $"{m_outputDir}{m_outputName}{buildInfos[i].Name}.asset";
                                 string prefabPath = $"{m_outputDir}{m_outputName}{buildInfos[i].Name}.prefab";
-                                
-                                
 
                                 go.AddComponent<MeshFilter>().sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
                                 go.AddComponent<MeshRenderer>().sharedMaterial =
@@ -814,7 +854,10 @@ namespace Unity.HLODSystem
                                 
                                 go.transform.SetParent(m_hlod.transform, false);
 
-                                PrefabUtility.SaveAsPrefabAssetAndConnect(go, prefabPath,InteractionMode.AutomatedAction);
+                                GameObject prefab = PrefabUtility.SaveAsPrefabAssetAndConnect(go, prefabPath,InteractionMode.AutomatedAction);
+                                
+                                m_hlod.AddGeneratedResource(prefab);
+                                m_hlod.AddGeneratedResource(go);
                                 
                                 parent.Objects.Add(go);
                                 buildInfos.RemoveAt(i);
@@ -828,7 +871,7 @@ namespace Unity.HLODSystem
                         {
                             //AssetDatabase.StartAssetEditing();
                             IStreamingBuilder builder =
-                                (IStreamingBuilder) Activator.CreateInstance(m_hlod.StreamingType, new object[] {m_hlod.StreamingOptions });
+                                (IStreamingBuilder) Activator.CreateInstance(m_hlod.StreamingType, new object[] {m_hlod, m_hlod.StreamingOptions });
                             
                             builder.Build(rootNode, buildInfos, m_hlod.gameObject, m_hlod.CullDistance, m_hlod.LODDistance, 
                                 progress =>
@@ -855,7 +898,6 @@ namespace Unity.HLODSystem
             {
                 EditorUtility.ClearProgressBar();
             }
-            yield break;
         }
 
         
