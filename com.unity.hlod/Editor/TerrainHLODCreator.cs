@@ -72,6 +72,8 @@ namespace Unity.HLODSystem
             public Layer(TerrainLayer layer)
             {
                 m_diffuseTexture = layer.diffuseTexture.ToWorkingTexture(Allocator.Persistent);
+                m_offset = layer.tileOffset;
+                m_size = layer.tileSize;
             }
             
             public void Dispose()
@@ -86,10 +88,22 @@ namespace Unity.HLODSystem
 
             public Color GetColor(float u, float v)
             {
+                u = u - Mathf.Floor(u);
+                v = v - Mathf.Floor(v);
                 return m_diffuseTexture.GetPixel(u, v);
             }
 
+            public Color GetColorByWorld(float wx, float wz)
+            {
+                float u = (wx + m_offset.x) / m_size.x;
+                float v = (wz + m_offset.y) / m_size.y;
+
+                return GetColor(u, v);
+            }
+
             private WorkingTexture m_diffuseTexture;
+            private Vector2 m_offset;
+            private Vector2 m_size;
 
 
         }
@@ -272,7 +286,10 @@ namespace Unity.HLODSystem
                             if ( weight < 0.01f)
                                 continue;
 
-                            color += m_layers[li].GetColor(u, v);
+                            float wx = (float) x / (float) resolution * bounds.size.x + bounds.min.x;
+                            float wy = (float) y / (float) resolution * bounds.size.z + bounds.min.z;
+
+                            color += m_layers[li].GetColorByWorld(wx, wy) * weight;
                         }
 
                         color.a = 1.0f;
@@ -719,6 +736,15 @@ namespace Unity.HLODSystem
                         byte[] bytes = albedoTexture.EncodeToPNG();
                         File.WriteAllBytes(albedoPath, bytes);
                         AssetDatabase.ImportAsset(albedoPath);
+                        
+                        var assetImporter = AssetImporter.GetAtPath(albedoPath); 
+                        var textureImporter = assetImporter as TextureImporter;
+                        if (textureImporter)
+                        {
+                            textureImporter.wrapMode = TextureWrapMode.Clamp;
+                            textureImporter.SaveAndReimport();
+                        }
+
                         albedoTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(albedoPath);
                         mat.SetTexture(m_hlod.AlbedoPropertyName, albedoTexture);
                         
