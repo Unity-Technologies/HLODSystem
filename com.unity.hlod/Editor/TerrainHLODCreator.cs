@@ -101,6 +101,14 @@ namespace Unity.HLODSystem
                 return GetColor(u, v);
             }
 
+            public Color GetNormalByWorld(float wx, float wz)
+            {
+                float u = (wx + m_offset.x) / m_size.x;
+                float v = (wz + m_offset.y) / m_size.y;
+
+                return GetNormal(u, v);
+            }
+
             private WorkingTexture m_diffuseTexture;
             private Vector2 m_offset;
             private Vector2 m_size;
@@ -289,9 +297,18 @@ namespace Unity.HLODSystem
                             float wx = (float) x / (float) resolution * bounds.size.x + bounds.min.x;
                             float wy = (float) y / (float) resolution * bounds.size.z + bounds.min.z;
 
-                            color += m_layers[li].GetColorByWorld(wx, wy) * weight;
+                            Color c = m_layers[li].GetColorByWorld(wx, wy);
+
+                            color.r += Mathf.Pow(c.r, 2.2f) * weight;
+                            color.g += Mathf.Pow(c.g, 2.2f) * weight;
+                            color.b += Mathf.Pow(c.b, 2.2f) * weight;
+
+                            //color +=  * weight;
                         }
 
+                        color.r = Mathf.Pow(color.r, 0.45f);
+                        color.g = Mathf.Pow(color.g, 0.45f);
+                        color.b = Mathf.Pow(color.b, 0.45f);
                         color.a = 1.0f;
                         albedoTexture.SetPixel(x, y, color);
                     }
