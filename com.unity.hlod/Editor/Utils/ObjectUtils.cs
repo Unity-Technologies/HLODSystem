@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -77,6 +78,29 @@ namespace Unity.HLODSystem.Utils
 
             return targets;
         }
+        
+        public static T CopyComponent<T>(T original, GameObject destination) where T : Component
+        {
+            System.Type type = original.GetType();
+            Component copy = destination.AddComponent(type);
+            System.Reflection.FieldInfo[] fields = type.GetFields();
+            foreach (System.Reflection.FieldInfo field in fields)
+            {
+                field.SetValue(copy, field.GetValue(original));
+            }
+            return copy as T;
+        }
+
+        public static void CopyValues<T>(T source, T target)
+        {
+            System.Type type = source.GetType();
+            FieldInfo[] fields = type.GetFields(BindingFlags.Instance);
+            foreach (FieldInfo field in fields)
+            {
+                field.SetValue(target, field.GetValue(source));
+            }
+        }
+
 
     }
 

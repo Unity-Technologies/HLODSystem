@@ -42,6 +42,7 @@ namespace Unity.HLODSystem
         
         private SerializedProperty m_TerrainDataProperty;
         private SerializedProperty m_MinSizeProperty;
+        private SerializedProperty m_BorderVertexCountProperty;
         private SerializedProperty m_LODDistanceProperty;
         private SerializedProperty m_CullDistanceProperty;
         
@@ -64,6 +65,8 @@ namespace Unity.HLODSystem
         {
             m_TerrainDataProperty = serializedObject.FindProperty("m_TerrainData");
             m_MinSizeProperty = serializedObject.FindProperty("m_MinSize");
+            m_BorderVertexCountProperty = serializedObject.FindProperty("m_BorderVertexCount");
+            
             m_LODDistanceProperty = serializedObject.FindProperty("m_LODDistance");
             m_CullDistanceProperty = serializedObject.FindProperty("m_CullDistance");
             
@@ -94,6 +97,7 @@ namespace Unity.HLODSystem
             {
                 EditorGUILayout.PropertyField(m_TerrainDataProperty, Styles.SourceText);
                 EditorGUILayout.PropertyField(m_MinSizeProperty);
+                EditorGUILayout.PropertyField(m_BorderVertexCountProperty);
                 m_LODSlider.Draw();
                 
             }

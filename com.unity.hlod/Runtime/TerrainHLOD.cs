@@ -16,6 +16,7 @@ namespace Unity.HLODSystem
 
         [SerializeField] private TerrainData m_TerrainData;
         [SerializeField] private float m_MinSize = 30.0f;
+        [SerializeField] private int m_BorderVertexCount = 256;
         [SerializeField] private float m_LODDistance = 0.3f;
         [SerializeField] private float m_CullDistance = 0.01f;
         [SerializeField] private SerializableDynamicObject m_SimplifierOptions = new SerializableDynamicObject();
@@ -49,11 +50,17 @@ namespace Unity.HLODSystem
 
         public TerrainData TerrainData
         {
+            set { m_TerrainData = value;}
             get { return m_TerrainData; }
         }
         public float MinSize
         {
             get { return m_MinSize; }
+        }
+
+        public int BorderVertexCount
+        {
+            get { return m_BorderVertexCount; }
         }
 
         public float LODDistance

@@ -22,7 +22,17 @@ namespace Unity.HLODSystem
         public static IEnumerator Create(TerrainHLOD hlod)
         {
             TerrainHLODCreator creator = new TerrainHLODCreator(hlod);
-            yield return creator.CreateImpl();
+            PrefabStage stage = PrefabStageUtility.GetPrefabStage(hlod.gameObject);
+            string outputDir = stage.prefabAssetPath;
+            string outputName = Path.GetFileNameWithoutExtension(outputDir);
+            outputDir = Path.GetDirectoryName(outputDir) + "/";
+            
+            yield return creator.CreateImpl(outputDir, outputName);
+        }
+        public static IEnumerator Create(TerrainHLOD hlod, string outputDir, string outputName)
+        {
+            TerrainHLODCreator creator = new TerrainHLODCreator(hlod);
+            yield return creator.CreateImpl(outputDir, outputName);
         }
         public static IEnumerator Destroy(TerrainHLOD hlod)
         {
@@ -71,45 +81,82 @@ namespace Unity.HLODSystem
         {
             public Layer(TerrainLayer layer)
             {
-                m_diffuseTexture = layer.diffuseTexture.ToWorkingTexture(Allocator.Persistent);
+                WorkingTexture texture = layer.diffuseTexture.ToWorkingTexture(Allocator.Persistent);
+                
+                m_diffuseTexstures = new DisposableList<WorkingTexture>();
+                m_diffuseTexstures.Add(texture);
+
+                while (texture.Width > 2 || texture.Height > 2)
+                {
+                    texture = GenerateMipmap(texture);
+                    m_diffuseTexstures.Add(texture);
+                }
+                
                 m_offset = layer.tileOffset;
                 m_size = layer.tileSize;
             }
             
             public void Dispose()
             {
-                m_diffuseTexture?.Dispose();
+                m_diffuseTexstures?.Dispose();
             }
 
-            public Color GetColor(int x, int y)
-            {
-                return m_diffuseTexture.GetPixel(x, y);
-            }
-
-            public Color GetColor(float u, float v)
+            public Color GetColor(float u, float v, int mipLevel = 0)
             {
                 u = u - Mathf.Floor(u);
                 v = v - Mathf.Floor(v);
-                return m_diffuseTexture.GetPixel(u, v);
+
+                mipLevel = Mathf.Min(mipLevel, m_diffuseTexstures.Count - 1);
+                
+                return m_diffuseTexstures[mipLevel].GetPixel(u, v);
             }
 
-            public Color GetColorByWorld(float wx, float wz)
+            public Color GetColorByWorld(float wx, float wz, float sx, float sz)
             {
                 float u = (wx + m_offset.x) / m_size.x;
                 float v = (wz + m_offset.y) / m_size.y;
 
-                return GetColor(u, v);
+                float mipx = sx / m_size.x;
+                float mipy = sz / m_size.y;
+
+                float mip = Mathf.Max(mipx, mipy);
+
+                return GetColor(u, v, Mathf.RoundToInt(mip));
             }
 
-            public Color GetNormalByWorld(float wx, float wz)
+            private WorkingTexture GenerateMipmap(WorkingTexture source)
             {
-                float u = (wx + m_offset.x) / m_size.x;
-                float v = (wz + m_offset.y) / m_size.y;
+                int sx = Mathf.Max(source.Width >> 1, 1);
+                int sy = Mathf.Max(source.Height >> 1, 1);
+                
+                WorkingTexture mipmap = new WorkingTexture(Allocator.Persistent, sx, sy);
 
-                return GetNormal(u, v);
+                for (int y = 0; y < sy; ++y)
+                {
+                    for (int x = 0; x < sx; ++x)
+                    {
+                        Color color = new Color();
+
+                        int x1 = Mathf.Max(x * 2 + 0, sx - 1);
+                        int x2 = Mathf.Max(x * 2 + 1, sx - 1);
+                        int y1 = Mathf.Max(y * 2 + 0, sy - 1);
+                        int y2 = Mathf.Max(y * 2 + 1, sy - 1);
+
+                        color += source.GetPixel(x1, y1);
+                        color += source.GetPixel(x1, y2);
+                        color += source.GetPixel(x2, y1);
+                        color += source.GetPixel(x2, y2);
+
+                        color /= 4;
+
+                        mipmap.SetPixel(x, y, color);
+                    }
+                }
+
+                return mipmap;
             }
 
-            private WorkingTexture m_diffuseTexture;
+            private DisposableList<WorkingTexture> m_diffuseTexstures;
             private Vector2 m_offset;
             private Vector2 m_size;
 
@@ -200,7 +247,16 @@ namespace Unity.HLODSystem
                     uvs[index].x = (float)x / (heightmap.Width - 1);
                     uvs[index].y = (float)z / (heightmap.Height - 1);
 
-                    normals[index] = heightmap.GetInterpolatedNormal(uvs[index].x, uvs[index].y);
+                    if (m_hlod.UseNormal)
+                    {
+                        normals[index] = Vector3.up;
+                    }
+                    else
+                    {
+                        normals[index] = heightmap.GetInterpolatedNormal(uvs[index].x, uvs[index].y);
+                    }
+                    
+                    
                 }
             }
 
@@ -247,6 +303,15 @@ namespace Unity.HLODSystem
                 WorkingTexture albedo = BakeAlbedo( bounds, m_hlod.TextureSize);
                 material.AddTexture(m_hlod.AlbedoPropertyName, albedo);
             });
+
+            if (m_hlod.UseNormal)
+            {
+                m_queue.EnqueueJob(() =>
+                {
+                    WorkingTexture normal = BakeNormal(bounds, m_hlod.TextureSize);
+                    material.AddTexture(m_hlod.NormalPropertyName, normal);
+                });
+            }
 
             return material;
         }
@@ -297,7 +362,7 @@ namespace Unity.HLODSystem
                             float wx = (float) x / (float) resolution * bounds.size.x + bounds.min.x;
                             float wy = (float) y / (float) resolution * bounds.size.z + bounds.min.z;
 
-                            Color c = m_layers[li].GetColorByWorld(wx, wy);
+                            Color c = m_layers[li].GetColorByWorld(wx, wy, bounds.size.x, bounds.size.z);
 
                             color.r += Mathf.Pow(c.r, 2.2f) * weight;
                             color.g += Mathf.Pow(c.g, 2.2f) * weight;
@@ -317,6 +382,72 @@ namespace Unity.HLODSystem
             
             
             return albedoTexture;
+        }
+
+        private WorkingTexture BakeNormal(Bounds bounds, int resolution)
+        {
+            WorkingTexture normalTexture = new WorkingTexture(Allocator.Persistent, resolution, resolution);
+
+            m_queue.EnqueueJob(() =>
+            {
+                float ustart = (bounds.min.x) / m_size.x;
+                float vstart = (bounds.min.z) / m_size.z;
+                float usize = (bounds.max.x - bounds.min.x) / m_size.x;
+                float vsize = (bounds.max.z - bounds.min.z) / m_size.z;
+
+                for (int y = 0; y < resolution; ++y)
+                {
+                    for (int x = 0; x < resolution; ++x)
+                    {
+                        float u = (float) x / (float) resolution * usize + ustart;
+                        float v = (float) y / (float) resolution * vsize + vstart;
+
+                        Vector3 normal = m_heightmap.GetInterpolatedNormal(u, v);
+
+                        Color color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
+                        color.r = normal.x * 0.5f + 0.5f;
+                        color.g = -normal.z * 0.5f + 0.5f;
+                        color.b = normal.y * 0.5f + 0.5f;
+
+                        /*
+                        for (int li = 0; li < m_layers.Count; ++li)
+                        {
+                            float weight = 0.0f;
+                            switch (li % 4)
+                            {
+                                case 0:
+                                    weight = m_alphamaps[li / 4].GetPixel(u, v).r;
+                                    break;
+                                case 1:
+                                    weight = m_alphamaps[li / 4].GetPixel(u, v).g;
+                                    break;
+                                case 2:
+                                    weight = m_alphamaps[li / 4].GetPixel(u, v).b;
+                                    break;
+                                case 3:
+                                    weight = m_alphamaps[li / 4].GetPixel(u, v).a;
+                                    break;
+                            }
+
+                            //optimize to skip not effect pixels.
+                            if (weight < 0.01f)
+                                continue;
+
+                            float wx = (float) x / (float) resolution * bounds.size.x + bounds.min.x;
+                            float wy = (float) y / (float) resolution * bounds.size.z + bounds.min.z;
+
+                            color += m_layers[li].GetNormalByWorld(wx, wy) * weight;
+                        }*/
+
+                        color.a = 1.0f;
+                        normalTexture.SetPixel(x, y, color);
+                        //albedoTexture.SetPixel(x, y, color);
+                    }
+                }
+            });
+            
+            
+            return normalTexture;
         }
 
         private List<Vector2Int> GetEdgeList(List<int> tris)
@@ -358,12 +489,16 @@ namespace Unity.HLODSystem
             public int ClosestIndex;
         }
 
-        private List<BorderVertex> GenerateBorderVertices(Heightmap heightmap, int borderOffset)
+        private List<BorderVertex> GenerateBorderVertices(Heightmap heightmap, int borderCount)
         {
             //generate border vertices
             List<BorderVertex> borderVertices = new List<BorderVertex>((heightmap.Width + heightmap.Height) * 2);
+
+            int xBorderOffset = Mathf.Max((heightmap.Width - 1) / borderCount, 1 );    //< avoid 0
+            int yBorderOffset = Mathf.Max((heightmap.Height - 1) / borderCount, 1);    //< avoid 0
+            
             //upside
-            for (int i = 0; i < heightmap.Width-1; i += borderOffset)
+            for (int i = 0; i < heightmap.Width-1; i += xBorderOffset)
             {
                 float h = heightmap[0, i];
 
@@ -379,7 +514,7 @@ namespace Unity.HLODSystem
             }
 
             //rightside
-            for (int i = 0; i < heightmap.Height-1; i += borderOffset)
+            for (int i = 0; i < heightmap.Height-1; i += yBorderOffset)
             {
                 float h = heightmap[i, heightmap.Width - 1];
 
@@ -395,7 +530,7 @@ namespace Unity.HLODSystem
             }
 
             //downside
-            for (int i = heightmap.Width-1; i > 0; i -= borderOffset)
+            for (int i = heightmap.Width-1; i > 0; i -= xBorderOffset)
             {
                 float h = heightmap[heightmap.Height - 1, i];
 
@@ -411,7 +546,7 @@ namespace Unity.HLODSystem
             }
 
             //leftside
-            for (int i = heightmap.Height - 1; i > 0; i -= borderOffset)
+            for (int i = heightmap.Height - 1; i > 0; i -= yBorderOffset)
             {
                 float h = heightmap[i, 0];
 
@@ -430,7 +565,7 @@ namespace Unity.HLODSystem
         }
         
 
-        private WorkingMesh MakeBorder(WorkingMesh source, Heightmap heightmap, int borderOffset)
+        private WorkingMesh MakeBorder(WorkingMesh source, Heightmap heightmap, int borderCount)
         {
             List<Vector3> vertices = source.vertices.ToList();
             List<Vector3> normals = source.normals.ToList();
@@ -452,7 +587,7 @@ namespace Unity.HLODSystem
                     vertexIndces.Add(edges[ei].y);
                 }
                 
-                List<BorderVertex> borderVertices = GenerateBorderVertices(heightmap, borderOffset);
+                List<BorderVertex> borderVertices = GenerateBorderVertices(heightmap, borderCount);
                 
                 //calculate closest vertex from border vertices.
                 for (int i = 0; i < borderVertices.Count; ++i)
@@ -487,7 +622,16 @@ namespace Unity.HLODSystem
                     uv.x = (borderVertices[bi].Pos.x - heightmap.Offset.x) / heightmap.Size.x;
                     uv.y = (borderVertices[bi].Pos.z - heightmap.Offset.z) / heightmap.Size.z;
                     vertices.Add(borderVertices[bi].Pos);
-                    normals.Add(heightmap.GetInterpolatedNormal(uv.x, uv.y));
+                    
+                    if (m_hlod.UseNormal)
+                    {
+                        normals.Add(Vector3.up);
+                    }
+                    else
+                    {
+                        normals.Add(heightmap.GetInterpolatedNormal(uv.x, uv.y));
+                    }
+                    
                     uvs.Add(uv);
                     
                     if (borderVertices[bi].ClosestIndex == borderVertices[next].ClosestIndex)
@@ -745,6 +889,7 @@ namespace Unity.HLODSystem
 
 
                     WorkingTexture albedo = wm.GetTexture(m_hlod.AlbedoPropertyName);
+                    WorkingTexture normal = wm.GetTexture(m_hlod.NormalPropertyName);
                     if (albedo != null)
                     {
                         string albedoPath = $"{m_outputDir}{m_outputName}{info.Name}_albedo.png";
@@ -767,7 +912,33 @@ namespace Unity.HLODSystem
                         
                         m_hlod.AddGeneratedResource(albedoTexture);
                     }
+
+                    if (normal != null)
+                    {
+                        string normalPath = $"{m_outputDir}{m_outputName}{info.Name}_normal.png";
+                        Texture2D normalTexture = normal.ToTexture();
+                        normalTexture.name = "Normal";
+                        byte[] bytes = normalTexture.EncodeToPNG();
+                        File.WriteAllBytes(normalPath, bytes);
+                        AssetDatabase.ImportAsset(normalPath);
+
+                        var assetImporter = AssetImporter.GetAtPath(normalPath);
+                        var textureImporter = assetImporter as TextureImporter;
+                        if (textureImporter)
+                        {
+                            textureImporter.wrapMode = TextureWrapMode.Clamp;
+                            textureImporter.textureType = TextureImporterType.NormalMap;
+                            textureImporter.SaveAndReimport();
+                        }
+
+                        normalTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(normalPath);
+                        mat.SetTexture(m_hlod.NormalPropertyName, normalTexture);
+                        mat.EnableKeyword("_NORMALMAP");
+                        
+                        m_hlod.AddGeneratedResource(normalTexture);
+                    }
                     
+                    EditorUtility.SetDirty(mat);
                     AssetDatabase.AddObjectToAsset(mat, path);
                     wm.GUID = Guid.Parse(AssetDatabase.AssetPathToGUID(path));
 
@@ -778,7 +949,7 @@ namespace Unity.HLODSystem
 
             }
         }
-        public IEnumerator CreateImpl()
+        public IEnumerator CreateImpl(string outputDir, string outputName)
         {
             try
             {
@@ -790,12 +961,13 @@ namespace Unity.HLODSystem
                 sw.Reset();
                 sw.Start();
 
+                m_outputDir = outputDir;
+                m_outputName = outputName;
+                
+                if ( m_outputDir.EndsWith("/"))
+
                 EditorUtility.DisplayProgressBar("Bake HLOD", "Initialize Bake", 0.0f);
                 
-                PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);
-                m_outputDir = stage.prefabAssetPath;
-                m_outputName = Path.GetFileNameWithoutExtension(m_outputDir);
-                m_outputDir = Path.GetDirectoryName(m_outputDir) + "/";
                 
                 TerrainData data = m_hlod.TerrainData;
 
@@ -857,7 +1029,8 @@ namespace Unity.HLODSystem
                                 for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
                                 {
                                     WorkingObject o = info.WorkingObjects[oi];
-                                    using (WorkingMesh m = MakeBorder(o.Mesh, info.Heightmap, 2))
+                                    int borderVertexCount = m_hlod.BorderVertexCount * Mathf.RoundToInt(Mathf.Pow(2.0f, (float)info.Distances[oi]));
+                                    using (WorkingMesh m = MakeBorder(o.Mesh, info.Heightmap, borderVertexCount))
                                     {
                                         o.SetMesh(MakeFillHoleMesh(m));
                                     }
@@ -916,7 +1089,7 @@ namespace Unity.HLODSystem
                             IStreamingBuilder builder =
                                 (IStreamingBuilder) Activator.CreateInstance(m_hlod.StreamingType, new object[] {m_hlod, m_hlod.StreamingOptions });
                             
-                            builder.Build(rootNode, buildInfos, m_hlod.gameObject, m_hlod.CullDistance, m_hlod.LODDistance, 
+                            builder.Build(m_outputDir, rootNode, buildInfos, m_hlod.gameObject, m_hlod.CullDistance, m_hlod.LODDistance, 
                                 progress =>
                                 {
                                     EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
@@ -934,12 +1107,18 @@ namespace Unity.HLODSystem
 
                     }
                 }
-               
+
+                if (PrefabUtility.IsAnyPrefabInstanceRoot(m_hlod.gameObject) == false)
+                {
+                    PrefabUtility.SaveAsPrefabAssetAndConnect(m_hlod.gameObject, $"{outputDir}{outputName}.prefab",
+                        InteractionMode.AutomatedAction);
+                }
 
             }
             finally
             {
                 EditorUtility.ClearProgressBar();
+                GC.Collect();
             }
         }
 
