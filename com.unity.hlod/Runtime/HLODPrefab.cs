@@ -106,8 +106,8 @@ namespace Unity.HLODSystem
 
                 foreach (var hlod in FindHLODinPrefab(m_instantiatePrefab))
                 {
-                    HLODManager.Instance.RegisterHLOD(hlod);
-                    hlod.StartUseInEditor();
+//                    HLODManager.Instance.RegisterHLOD(hlod);
+//                    hlod.StartUseInEditor();
                 }
             }
           
@@ -122,8 +122,8 @@ namespace Unity.HLODSystem
 
             foreach (var hlod in FindHLODinPrefab(m_instantiatePrefab))
             {
-                HLODManager.Instance.UnregisterHLOD(hlod);
-                hlod.StopUseInEditor();
+                //HLODManager.Instance.UnregisterHLOD(hlod);
+                //hlod.StopUseInEditor();
             }
             m_instantiatePrefab.SetActive(false);
             DestroyImmediate(m_instantiatePrefab);

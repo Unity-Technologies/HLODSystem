@@ -5,7 +5,6 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Streaming
 {
-    [RequireComponent(typeof(HLOD))]
     public class DefaultController : ControllerBase
     {
         [SerializeField]
@@ -47,12 +46,7 @@ namespace Unity.HLODSystem.Streaming
             }
             yield break;
         }
-
-        void Start()
-        {
-            OnStart();
-        }
-
+        
         public override void OnStart()
         {
 #if UNITY_EDITOR
@@ -70,16 +64,15 @@ namespace Unity.HLODSystem.Streaming
 
         public override void Install()
         {
-            HLOD hlod = GetComponent<HLOD>();
             GameObject hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            hlodMeshesRoot.transform.SetParent(hlod.transform, false);
+            hlodMeshesRoot.transform.SetParent(transform, false);
 
             for (int i = 0; i < m_hlodMeshes.Count; ++i)
             {
                 GameObject go = new GameObject(m_hlodMeshes[i].name);
 
                 go.AddComponent<MeshFilter>().sharedMesh = m_hlodMeshes[i].ToMesh();
-                go.AddComponent<MeshRenderer>().material = m_hlodMeshes[i].Material;
+                go.AddComponent<MeshRenderer>().sharedMaterials = m_hlodMeshes[i].Materials.ToArray();
                 go.transform.SetParent(hlodMeshesRoot.transform, false);
 
                 go.SetActive(false);

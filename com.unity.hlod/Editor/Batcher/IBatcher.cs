@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using Unity.HLODSystem.Utils;
 using UnityEngine;
 
 namespace Unity.HLODSystem
@@ -7,7 +7,7 @@ namespace Unity.HLODSystem
     public interface IBatcher
     {
         
-        void Batch(List<HLODBuildInfo> targets, Action<float> onProgress);
+        void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress);
 
     }
 }

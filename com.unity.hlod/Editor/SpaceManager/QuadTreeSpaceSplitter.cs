@@ -36,6 +36,29 @@ namespace Unity.HLODSystem.SpaceManager
             if ( onProgress != null)
                 onProgress(0.0f);
 
+			//space split first
+			Stack<SpaceNode> nodeStack = new Stack<SpaceNode>();
+			nodeStack.Push(rootNode);
+		
+			while(nodeStack.Count > 0 )
+			{
+				SpaceNode node = nodeStack.Pop();
+				if ( node.Bounds.size.x > m_minSize )
+				{
+                    List<SpaceNode> childNodes = CreateChildSpaceNodes(node);
+					
+					for ( int i = 0; i < childNodes.Count; ++i )
+                    {
+                        childNodes[i].ParentNode = node;
+						nodeStack.Push(childNodes[i]);
+					}
+						
+				}
+			}
+
+            if (targetObjects == null)
+                return rootNode;
+
             for (int oi = 0; oi < targetObjects.Count; ++oi)
             {
                 Bounds? objectBounds = CalculateBounds(targetObjects[oi]);
@@ -46,24 +69,18 @@ namespace Unity.HLODSystem.SpaceManager
 
                 while (true)
                 {
-                    if (target.Bounds.size.x > m_minSize)
+                    if (target.HasChild())
                     {
-                        if (target.ChildTreeNodes == null)
-                        {
-                            target.ChildTreeNodes = CreateChildSpaceNodes(target);
-                        }
-
-
                         //the object can be in the over 2 nodes.
                         //we should figure out which node is more close with the object.
                         int nearestChild = -1;
                         float nearestDistance = float.MaxValue;
 
-                        for (int ci = 0; ci < target.ChildTreeNodes.Count; ++ci)
+                        for (int ci = 0; ci < target.GetChildCount(); ++ci)
                         {
-                            if (objectBounds.Value.IsPartOf(target.ChildTreeNodes[ci].Bounds))
+                            if (objectBounds.Value.IsPartOf(target.GetChild(ci).Bounds))
                             {
-                                float dist = Vector3.Distance(target.ChildTreeNodes[ci].Bounds.center, objectBounds.Value.center);
+                                float dist = Vector3.Distance(target.GetChild(ci).Bounds.center, objectBounds.Value.center);
 
                                 if (dist < nearestDistance)
                                 {
@@ -77,7 +94,7 @@ namespace Unity.HLODSystem.SpaceManager
                         //this means the object is small to add in the current node.
                         if (nearestChild >= 0)
                         {
-                            target = target.ChildTreeNodes[nearestChild];
+                            target = target.GetChild(nearestChild);
                             continue;
                         }
                     }

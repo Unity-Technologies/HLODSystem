@@ -35,19 +35,9 @@ namespace Unity.HLODSystem.Streaming
 
         
         private GameObject m_hlodMeshesRoot;
-        void Start()
-        {
-           OnStart();
-        }
-
         
         public override void OnStart()
         {
-            HLOD hlod;
-            hlod = GetComponent<HLOD>();
-
-            m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            m_hlodMeshesRoot.transform.SetParent(hlod.transform, false);
 
 #if UNITY_EDITOR
             Install();
@@ -63,6 +53,9 @@ namespace Unity.HLODSystem.Streaming
 
         public override void Install()
         {
+            m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
+            m_hlodMeshesRoot.transform.SetParent(transform, false);
+            
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
                 if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKey.isValid)
@@ -200,7 +193,7 @@ namespace Unity.HLODSystem.Streaming
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh.ToMesh();
-                go.AddComponent<MeshRenderer>().material = mesh.Material;
+                go.AddComponent<MeshRenderer>().sharedMaterials = mesh.Materials.ToArray();
                 
                 ChangeLayersRecursively(go.transform, layer);
 

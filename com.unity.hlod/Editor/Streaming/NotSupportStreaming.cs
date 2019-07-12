@@ -5,6 +5,7 @@ using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.Experimental.SceneManagement;
+using UnityEngine;
 
 namespace Unity.HLODSystem.Streaming
 {
@@ -16,20 +17,21 @@ namespace Unity.HLODSystem.Streaming
             StreamingBuilderTypes.RegisterType(typeof(NotSupportStreaming), -1);
         }
 
-        private HLOD m_hlod;
-        public NotSupportStreaming(HLOD hlod)
+        private IGeneratedResourceManager m_manager;
+
+        public NotSupportStreaming(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
         {
-            m_hlod = hlod;
+            m_manager = manager;
         }
 
-        public void Build(SpaceNode rootNode, List<HLODBuildInfo> infos, Action<float> onProgress)
+        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, Action<float> onProgress)
         {
             string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);
+            PrefabStage stage = PrefabStageUtility.GetPrefabStage(root);
             path = stage.prefabAssetPath;
             path = Path.GetDirectoryName(path) + "/";
 
-            var defaultController = m_hlod.gameObject.AddComponent<DefaultController>();
+            var defaultController = root.AddComponent<DefaultController>();
             HLODTreeNode convertedRootNode = ConvertNode(rootNode);
 
             if (onProgress != null)
@@ -39,8 +41,8 @@ namespace Unity.HLODSystem.Streaming
             //But that is not easy because of the structure.
             for (int i = 0; i < infos.Count; ++i)
             {
-                var spaceNode = infos[i].target;
-                var hlodTreeNode = convertedTable[infos[i].target];
+                var spaceNode = infos[i].Target;
+                var hlodTreeNode = convertedTable[infos[i].Target];
 
                 for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
                 {
@@ -48,23 +50,23 @@ namespace Unity.HLODSystem.Streaming
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
 
-                for (int oi = 0; oi < infos[i].combinedGameObjects.Count; ++oi)
+                for (int oi = 0; oi < infos[i].WorkingObjects.Count; ++oi)
                 {
-                    List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, m_hlod.name, infos[i].combinedGameObjects[oi]);
-                    m_hlod.GeneratedObjects.AddRange(createdMeshes);
+                    string currentHLODName = $"{root.name}{infos[i].Name}_{oi}";
+                    HLODMesh createdMesh = ObjectUtils.SaveHLODMesh(path, currentHLODName, infos[i].WorkingObjects[oi]);
+                    m_manager.AddGeneratedResource(createdMesh);
 
-                    foreach (var mesh in createdMeshes)
-                    {
-                        int lowId = defaultController.AddLowObject(mesh);
-                        hlodTreeNode.LowObjectIds.Add(lowId);
-                    }
+                    int lowId = defaultController.AddLowObject(createdMesh);
+                    hlodTreeNode.LowObjectIds.Add(lowId);
                 }
 
                 if (onProgress != null)
                     onProgress((float)i / (float)infos.Count);
             }
 
-            m_hlod.Root = convertedRootNode;
+            defaultController.Root = convertedRootNode;
+            defaultController.CullDistance = cullDistance;
+            defaultController.LODDistance = lodDistance;
         }
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
@@ -87,16 +89,16 @@ namespace Unity.HLODSystem.Streaming
                 convertedTable[spaceNode] = hlodTreeNode;
 
                 hlodTreeNode.Bounds = spaceNode.Bounds;
-                if (spaceNode.ChildTreeNodes != null)
+                if (spaceNode.HasChild()!= null)
                 {
-                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.ChildTreeNodes.Count);
-                    for (int i = 0; i < spaceNode.ChildTreeNodes.Count; ++i)
+                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.GetChildCount());
+                    for (int i = 0; i < spaceNode.GetChildCount(); ++i)
                     {
                         var treeNode = new HLODTreeNode();
                         childTreeNodes.Add(treeNode);
 
                         hlodTreeNodes.Enqueue(treeNode);
-                        spaceNodes.Enqueue(spaceNode.ChildTreeNodes[i]);
+                        spaceNodes.Enqueue(spaceNode.GetChild(i));
                     }
 
                     hlodTreeNode.ChildNodes = childTreeNodes;
@@ -106,7 +108,11 @@ namespace Unity.HLODSystem.Streaming
 
             return root;
         }
-        
+
+        public static void OnGUI(SerializableDynamicObject streamingOptions)
+        {
+            
+        }
 
     }
 }

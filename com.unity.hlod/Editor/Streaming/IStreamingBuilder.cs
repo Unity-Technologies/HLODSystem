@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
+using Unity.HLODSystem.Utils;
+using UnityEngine;
 
 namespace Unity.HLODSystem.Streaming
 {
     public interface IStreamingBuilder
     {
-        void Build(SpaceManager.SpaceNode rootNode, List<HLODBuildInfo> infos, Action<float> onProgress);
+        void Build(SpaceManager.SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, Action<float> onProgress);
 
     }
 }

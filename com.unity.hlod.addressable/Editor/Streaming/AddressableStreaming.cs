@@ -21,23 +21,23 @@ namespace Unity.HLODSystem.Streaming
         {
             StreamingBuilderTypes.RegisterType(typeof(AddressableStreaming));
         }
-
         
-        private HLOD m_hlod;
-        public AddressableStreaming(HLOD hlod)
+        private IGeneratedResourceManager m_manager;
+        
+        public AddressableStreaming(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
         {
-            m_hlod = hlod;
+            m_manager = manager;
         }
 
 
-        public void Build(SpaceManager.SpaceNode rootNode, List<HLODBuildInfo> infos, Action<float> onProgress)
+        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, Action<float> onProgress)
         {
             string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);
+            PrefabStage stage = PrefabStageUtility.GetPrefabStage(root);
             path = stage.prefabAssetPath;
             path = Path.GetDirectoryName(path) + "/";
 
-            var addressableController = m_hlod.gameObject.AddComponent<AddressableController>();
+            var addressableController = root.AddComponent<AddressableController>();
             HLODTreeNode convertedRootNode = ConvertNode(rootNode);
 
             if (onProgress != null)
@@ -47,8 +47,8 @@ namespace Unity.HLODSystem.Streaming
             //But that is not easy because of the structure.
             for (int i = 0; i < infos.Count; ++i)
             {
-                var spaceNode = infos[i].target;
-                var hlodTreeNode = convertedTable[infos[i].target];
+                var spaceNode = infos[i].Target;
+                var hlodTreeNode = convertedTable[infos[i].Target];
 
                 for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
                 {
@@ -65,25 +65,27 @@ namespace Unity.HLODSystem.Streaming
 
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
+                
+                
 
-                for (int oi = 0; oi < infos[i].combinedGameObjects.Count; ++oi)
+                for (int oi = 0; oi < infos[i].WorkingObjects.Count; ++oi)
                 {
-                    List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, m_hlod.name, infos[i].combinedGameObjects[oi]);
-                    m_hlod.GeneratedObjects.AddRange(createdMeshes);
+                    string currentHLODName = $"{root.name}{infos[i].Name}_{oi}";
+                    HLODMesh createdMesh = ObjectUtils.SaveHLODMesh(path, currentHLODName, infos[i].WorkingObjects[oi]);
+                    m_manager.AddGeneratedResource(createdMesh);
 
-                    foreach (var mesh in createdMeshes)
-                    {
-                        var address = GetAssetReference(mesh);
-                        int lowId = addressableController.AddLowObject(address);
-                        hlodTreeNode.LowObjectIds.Add(lowId);
-                    }
+                    var address = GetAssetReference(createdMesh);
+                    int lowId = addressableController.AddLowObject(address);
+                    hlodTreeNode.LowObjectIds.Add(lowId);
                 }
 
                 if (onProgress != null)
                     onProgress((float)i/(float)infos.Count);
             }
 
-            m_hlod.Root = convertedRootNode;
+            addressableController.Root = convertedRootNode;
+            addressableController.CullDistance = cullDistance;
+            addressableController.LODDistance = lodDistance;
         }
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
@@ -106,16 +108,16 @@ namespace Unity.HLODSystem.Streaming
                 convertedTable[spaceNode] = hlodTreeNode;
 
                 hlodTreeNode.Bounds = spaceNode.Bounds;
-                if (spaceNode.ChildTreeNodes != null)
+                if (spaceNode.HasChild() == true)
                 {
-                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.ChildTreeNodes.Count);
-                    for (int i = 0; i < spaceNode.ChildTreeNodes.Count; ++i)
+                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.GetChildCount());
+                    for (int i = 0; i < spaceNode.GetChildCount(); ++i)
                     {
                         var treeNode = new HLODTreeNode();
                         childTreeNodes.Add(treeNode);
 
                         hlodTreeNodes.Enqueue(treeNode);
-                        spaceNodes.Enqueue(spaceNode.ChildTreeNodes[i]);
+                        spaceNodes.Enqueue(spaceNode.GetChild(i));
                     }
 
                     hlodTreeNode.ChildNodes = childTreeNodes;
@@ -127,21 +129,21 @@ namespace Unity.HLODSystem.Streaming
         }
 
 
-        public static void OnGUI(HLOD hlod)
+        public static void OnGUI(SerializableDynamicObject streamingOptions)
         {
-            dynamic options = hlod.StreamingOptions;
+            //dynamic options = hlod.StreamingOptions;
 
-            if (options.LastLowInMemory == null)
-                options.LastLowInMemory = false;
-            if (options.MaxInstantiateCount == null)
-                options.MaxInstantiateCount = 10;
-
-            EditorGUI.indentLevel += 1;
-            options.LastLowInMemory = EditorGUILayout.Toggle("Last low in memory", options.LastLowInMemory);
-            options.MaxInstantiateCount =
-                EditorGUILayout.IntSlider("Max instantiate count per frame", options.MaxInstantiateCount, 1, 100, null);
-            
-            EditorGUI.indentLevel -= 1;
+//            if (options.LastLowInMemory == null)
+//                options.LastLowInMemory = false;
+//            if (options.MaxInstantiateCount == null)
+//                options.MaxInstantiateCount = 10;
+//
+//            EditorGUI.indentLevel += 1;
+//            options.LastLowInMemory = EditorGUILayout.Toggle("Last low in memory", options.LastLowInMemory);
+//            options.MaxInstantiateCount =
+//                EditorGUILayout.IntSlider("Max instantiate count per frame", options.MaxInstantiateCount, 1, 100, null);
+//            
+//            EditorGUI.indentLevel -= 1;
         }
 
         private AssetReference GetAssetReference(Object obj)

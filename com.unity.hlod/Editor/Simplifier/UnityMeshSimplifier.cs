@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections;
+using Unity.Collections;
+using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEngine;
 
@@ -17,11 +19,11 @@ namespace Unity.HLODSystem.Simplifier
             SimplifierTypes.RegisterType(typeof(UnityMeshSimplifier));
         }
 
-        public UnityMeshSimplifier(HLOD hlod) : base(hlod)
+        public UnityMeshSimplifier(SerializableDynamicObject simplifierOptions): base(simplifierOptions)
         {
         }
 
-        protected override IEnumerator GetSimplifiedMesh(Mesh origin, float quality, Action<Mesh> resultCallback)
+        protected override IEnumerator GetSimplifiedMesh(Utils.WorkingMesh origin, float quality, Action<Utils.WorkingMesh> resultCallback)
         {
             var meshSimplifier = new global::UnityMeshSimplifier.MeshSimplifier();
             meshSimplifier.Vertices = origin.vertices;
@@ -43,33 +45,39 @@ namespace Unity.HLODSystem.Simplifier
 
             meshSimplifier.SimplifyMesh(quality);
 
-            Mesh resultMesh = new Mesh();
-            resultMesh.vertices = meshSimplifier.Vertices;
-            resultMesh.normals = meshSimplifier.Normals;
-            resultMesh.tangents = meshSimplifier.Tangents;
-            resultMesh.uv = meshSimplifier.UV1;
-            resultMesh.uv2 = meshSimplifier.UV2;
-            resultMesh.uv3 = meshSimplifier.UV3;
-            resultMesh.uv4 = meshSimplifier.UV4;
-            resultMesh.colors = meshSimplifier.Colors;
-            resultMesh.subMeshCount = meshSimplifier.SubMeshCount;
-            for (var submesh = 0; submesh < resultMesh.subMeshCount; submesh++)
+            int triCount = 0;
+            for (int i = 0; i < meshSimplifier.SubMeshCount; ++i)
             {
-                resultMesh.SetTriangles(meshSimplifier.GetSubMeshTriangles(submesh), submesh);
+                triCount += meshSimplifier.GetSubMeshTriangles(i).Length;
+            }
+
+            Utils.WorkingMesh nwm = new WorkingMesh(Allocator.Persistent, meshSimplifier.Vertices.Length, triCount, meshSimplifier.SubMeshCount, 0);
+            nwm.vertices = meshSimplifier.Vertices;
+            nwm.normals = meshSimplifier.Normals;
+            nwm.tangents = meshSimplifier.Tangents;
+            nwm.uv = meshSimplifier.UV1;
+            nwm.uv2 = meshSimplifier.UV2;
+            nwm.uv3 = meshSimplifier.UV3;
+            nwm.uv4 = meshSimplifier.UV4;
+            nwm.colors = meshSimplifier.Colors;
+            nwm.subMeshCount = meshSimplifier.SubMeshCount;
+            for (var submesh = 0; submesh < nwm.subMeshCount; submesh++)
+            {
+                nwm.SetTriangles(meshSimplifier.GetSubMeshTriangles(submesh), submesh);
             }
 
             if (resultCallback != null)
             {
-                resultCallback(resultMesh);
+                resultCallback(nwm);
             }
             yield break;
         }
 
         
 
-        public static void OnGUI(HLOD hlod)
+        public static void OnGUI(SerializableDynamicObject simplifierOptions)
         {
-            OnGUIBase(hlod);
+            OnGUIBase(simplifierOptions);
         }
     }
 }

@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace Unity.HLODSystem
 {
@@ -17,18 +18,16 @@ namespace Unity.HLODSystem
             BatcherTypes.RegisterBatcherType(typeof(MaterialPreservingBatcher));
         }
 
-        private HLOD m_hlod;
 
-        public MaterialPreservingBatcher(HLOD hlod)
+        public MaterialPreservingBatcher(SerializableDynamicObject batcherOptions)
         {
-            m_hlod = hlod;
         }
   
-        public void Batch(List<HLODBuildInfo> targets, Action<float> onProgress)
+        public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
         {
             for (int i = 0; i < targets.Count; ++i)
             {
-                Combine(targets[i]);
+                Combine(rootPosition, targets[i]);
 
                 if (onProgress != null)
                     onProgress((float) i / (float)targets.Count);
@@ -36,54 +35,58 @@ namespace Unity.HLODSystem
 
         }
 
-        private void Combine(HLODBuildInfo info)
+        
+
+
+       
+        
+        private void Combine(Vector3 rootPosition, HLODBuildInfo info)
         {
             var instancesTable = new Dictionary<Material, List<CombineInstance>>();
+            var combineInfos = new Dictionary<Guid, List<MeshCombiner.CombineInfo>>();
 
-            for ( int i = 0; i < info.renderers.Count; ++i)
+            for (int i = 0; i < info.WorkingObjects.Count; ++i)
             {
-                if (info.renderers[i] == null)
-                    continue;
-
-                var materials = info.renderers[i].sharedMaterials;
-                    
-                for(int m = 0; m < materials.Length; ++m)
+                var materials = info.WorkingObjects[i].Materials;
+                for (int m = 0; m < materials.Count; ++m)
                 {
-                    if (instancesTable.ContainsKey(materials[m]) == false)
+                    //var mat = materials[m];
+                    MeshCombiner.CombineInfo combineInfo = new MeshCombiner.CombineInfo();
+
+                    combineInfo.Transform = info.WorkingObjects[i].LocalToWorld;
+                    combineInfo.Transform.m03 -= rootPosition.x;
+                    combineInfo.Transform.m13 -= rootPosition.y;
+                    combineInfo.Transform.m23 -= rootPosition.z;
+                    combineInfo.Mesh = info.WorkingObjects[i].Mesh;
+                    combineInfo.MeshIndex = m;
+
+                    if (combineInfos.ContainsKey(materials[m].GUID) == false)
                     {
-                        instancesTable.Add(materials[m], new List<CombineInstance>());
+                        combineInfos.Add(materials[m].GUID, new List<MeshCombiner.CombineInfo>());
                     }
-                    var instance = new CombineInstance();
-                    Matrix4x4 mat = info.renderers[i].localToWorldMatrix;
-                    Vector3 position = m_hlod.transform.position;
-                    mat.m03 -= position.x;
-                    mat.m13 -= position.y;
-                    mat.m23 -= position.z;
-                    instance.transform = mat;
-                    instance.mesh = info.simplifiedMeshes[i];
-                    instance.subMeshIndex = m;
-
-                    instancesTable[materials[m]].Add(instance);
-
+                    
+                    combineInfos[materials[m].GUID].Add(combineInfo);
                 }
-
             }
 
-            foreach (var instances in instancesTable)
+            DisposableList<WorkingObject> combinedObjects = new DisposableList<WorkingObject>();
+            MeshCombiner combiner = new MeshCombiner();
+            foreach (var pair in combineInfos)
             {
-                var mesh = new Mesh();
-                mesh.indexFormat = IndexFormat.UInt32;
-                mesh.CombineMeshes(instances.Value.ToArray(), true, true, false);
-                mesh.name = instances.Key.name;
+                WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, pair.Value);
+                WorkingObject combinedObject = new WorkingObject(Allocator.Persistent);
+                WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, pair.Key);
 
-                var go = new GameObject(info.name + instances.Key.name, typeof(MeshRenderer), typeof(MeshFilter));
-                go.GetComponent<MeshFilter>().sharedMesh = mesh;
-                go.GetComponent<MeshRenderer>().sharedMaterial = instances.Key;
-
-                go.transform.SetParent(m_hlod.transform);
-
-                info.combinedGameObjects.Add(go);
+                combinedObject.SetMesh(combinedMesh);
+                combinedObject.AddMaterial(material);
+                material.Dispose();
+                
+                combinedObjects.Add(combinedObject);
             }
+
+            //release before change
+            info.WorkingObjects.Dispose();
+            info.WorkingObjects = combinedObjects;
         }
 
         static void OnGUI(HLOD hlod)

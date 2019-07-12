@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -33,43 +34,24 @@ namespace Unity.HLODSystem.Utils
         }
 
         
-        public static List<HLODMesh> SaveHLODMesh(string path, string name, GameObject gameObject)
+        public static HLODMesh SaveHLODMesh(string path, string name, WorkingObject gameObject)
         {
-            List<HLODMesh> result = new List<HLODMesh>();
-
             path = Path.GetDirectoryName(path) + "/";
             path = path + name;
-
             
-            //store hlod meshes
-            var meshFilters = gameObject.GetComponentsInChildren<MeshFilter>();
+            HLODMesh hlodMesh = ScriptableObject.CreateInstance<HLODMesh>();
+            hlodMesh.FromMesh(gameObject.Mesh.ToMesh());
 
-            for (int f = 0; f < meshFilters.Length; ++f)
+            for (int i = 0; i < gameObject.Materials.Count; ++i)
             {
-                var mesh = meshFilters[f].sharedMesh;
-
-                var meshRenderer = meshFilters[f].GetComponent<MeshRenderer>();
-                var material = meshRenderer.sharedMaterial;
-
-                HLODMesh hlodmesh = ScriptableObject.CreateInstance<HLODMesh>();
-                hlodmesh.FromMesh(mesh);
-                hlodmesh.Material = material;
-              
-                string meshName = path + meshFilters[f].gameObject.name;
-
-                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(material)))
-                {
-                    AssetDatabase.CreateAsset(material, meshName + ".mat");
-                }
-                AssetDatabase.CreateAsset(hlodmesh, meshName + ".asset");
-                
-
-                GameObject.DestroyImmediate(meshFilters[f].gameObject);
-                result.Add(hlodmesh);
-
+                Material mat = gameObject.Materials[i].ToMaterial();
+                hlodMesh.Materials.Add(mat);
             }
 
-            return result;
+            string meshName = path;
+            AssetDatabase.CreateAsset(hlodMesh, meshName + ".asset");
+
+            return hlodMesh;
         }
         public static List<GameObject> HLODTargets(GameObject root)
         {
@@ -78,19 +60,16 @@ namespace Unity.HLODSystem.Utils
             List<LODGroup> lodGroups = GetComponentsInChildren<LODGroup>(root);
             //This contains all of the mesh renderers, so we need to remove the duplicated mesh renderer which in the LODGroup.
             List<MeshRenderer> meshRenderers = GetComponentsInChildren<MeshRenderer>(root).ToList();
-
-            //Remove low meshes.
-            meshRenderers.RemoveAll(r => r.GetComponent<LowMeshHolder>() != null);
             
-
             for (int i = 0; i < lodGroups.Count; ++i)
             {
                 LOD[] lods = lodGroups[i].GetLODs();
                 targets.Add(lodGroups[i].gameObject);
 
-                for (int li = 0; li < lods.Length; ++li)
+                var childMeshRenderers = lodGroups[i].GetComponentsInChildren<MeshRenderer>();
+                for (int ri = 0; ri < childMeshRenderers.Length; ++ri)
                 {
-                    meshRenderers.RemoveAll(r => lods[li].renderers.Contains(r));
+                    meshRenderers.Remove(childMeshRenderers[ri]);
                 }
             }
 
@@ -99,6 +78,29 @@ namespace Unity.HLODSystem.Utils
 
             return targets;
         }
+        
+        public static T CopyComponent<T>(T original, GameObject destination) where T : Component
+        {
+            System.Type type = original.GetType();
+            Component copy = destination.AddComponent(type);
+            System.Reflection.FieldInfo[] fields = type.GetFields();
+            foreach (System.Reflection.FieldInfo field in fields)
+            {
+                field.SetValue(copy, field.GetValue(original));
+            }
+            return copy as T;
+        }
+
+        public static void CopyValues<T>(T source, T target)
+        {
+            System.Type type = source.GetType();
+            FieldInfo[] fields = type.GetFields(BindingFlags.Instance);
+            foreach (FieldInfo field in fields)
+            {
+                field.SetValue(target, field.GetValue(source));
+            }
+        }
+
 
     }
 
