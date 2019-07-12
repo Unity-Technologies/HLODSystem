@@ -4,10 +4,10 @@ It can replace multiple Static Mesh Actors with single, combined Static Mesh Act
 
 | Render image  | Show draw calls | Show draw calls of HLOD |
 | --- | --- | --- |
-| ![](Documentation/Images/overview_1.jpg) | ![](Documentation/Images/overview_2.jpg)  | ![](Documentation/Images/overview_3.jpg)|
+| ![](Documentation~/Images/overview_1.jpg) | ![](Documentation~/Images/overview_2.jpg)  | ![](Documentation/Images/overview_3.jpg)|
 
 Here is the result what the HLODSystem how can be helped it.
-![](Documentation/Images/compare.gif)
+![](Documentation~/Images/compare.gif)
 
 ||DrawCalls|Tris|
 |---|---|---|
@@ -57,16 +57,16 @@ You can see this in the [Sample branch][sampleBranch].
 		 - It must cull when moving away from the camera.
 	 3. Rocks
 		 - It is kind of the BigObjects. But has different materials. 
-	- ![](Documentation/Images/hlod_batch.jpg)
+	- ![](Documentation~/Images/hlod_batch.jpg)
 2. Make a prefab
 3. Enter prefab mode
 3. Edit HLOD Settings
 	- First, you should add HLOD component in the root. And edit it.
-	- ![](Documentation/Images/hlod_addcomponent.jpg)
+	- ![](Documentation~/Images/hlod_addcomponent.jpg)
 4. Generating
 	- push the generate button.
 	- After then, you can see the separated object between High and Low.
-	- ![](Documentation/Images/hlod_afterbake.jpg)
+	- ![](Documentation~/Images/hlod_afterbake.jpg)
 
 ### License
 Copyright (c) 2019 Unity Technologies ApS
