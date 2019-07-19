@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace Unity.HLODSystem.Utils
         private Allocator m_allocator;
         private Guid m_materialGuid;
         private DisposableDictionary<string, WorkingTexture> m_textures;
+        private bool m_needWrite;
 
         public Guid GUID
         {
@@ -32,10 +34,12 @@ namespace Unity.HLODSystem.Utils
             m_allocator = allocator;
             m_materialGuid = Guid.Empty;
             m_textures = new DisposableDictionary<string, WorkingTexture>();
+            m_needWrite = false;
         }
-        public WorkingMaterial(Allocator allocator, Guid materialGuid) : this(allocator)
+        public WorkingMaterial(Allocator allocator, Guid sourceMaterialGuid) : this(allocator)
         {
-            m_materialGuid = materialGuid;
+            m_materialGuid = sourceMaterialGuid;
+            m_needWrite = true;
         }
 
         public WorkingMaterial Clone()
@@ -60,6 +64,14 @@ namespace Unity.HLODSystem.Utils
                 m_textures.Add(name, texture);
             }
         }
+
+        public string[] GetTextureNames()
+        {
+            lock (m_textures)
+            {
+                return m_textures.Keys.ToArray();
+            }
+        }
         public WorkingTexture GetTexture(string name)
         {
             lock (m_textures)
@@ -70,6 +82,11 @@ namespace Unity.HLODSystem.Utils
 
                 return null;
             }
+        }
+
+        public bool NeedWrite()
+        {
+            return m_needWrite;
         }
 
         public void FromMaterial(Material mat)

@@ -21,15 +21,22 @@ namespace Unity.HLODSystem.Utils
     {
         private WorkingTextureBuffer m_buffer;
 
-        public int Width
+        public int Width => m_buffer.Widht;
+
+        public int Height => m_buffer.Height;
+
+        public TextureImporterType Type
         {
-            get { return m_buffer.Widht; }
+            set => m_buffer.Type = value;
+            get => m_buffer.Type;
         }
 
-        public int Height
+        public TextureWrapMode WrapMode
         {
-            get { return m_buffer.Height; }
+            set => m_buffer.WrapMode = value;
+            get => m_buffer.WrapMode;
         }
+        
         private WorkingTexture()
         {
             
@@ -76,11 +83,7 @@ namespace Unity.HLODSystem.Utils
             m_buffer.SetPixel(x, y, color);
 
         }
-        //{
-            //int pos = y * m_width + x;
-
-            //m_pixels[pos] = color;
-        //}
+   
 
         public Color GetPixel(int x, int y)
         {
@@ -218,14 +221,31 @@ namespace Unity.HLODSystem.Utils
         private int m_height;
         
         private NativeArray<Color> m_pixels;
-
+        
         private int m_refCount;
         private Texture2D m_source;
 
         private Guid m_guid;
+        
+        private TextureImporterType m_type = TextureImporterType.Default;
+        private TextureWrapMode m_wrapMode = TextureWrapMode.Repeat; 
+            
 
         public int Widht => m_width;
         public int Height => m_height;
+
+        public TextureImporterType Type
+        {
+            get => m_type;
+            set => m_type = value;
+        }
+
+        public TextureWrapMode WrapMode
+        {
+            get => m_wrapMode;
+            set => m_wrapMode = value;
+        }
+
 
         public WorkingTextureBuffer(Allocator allocator, int width, int height)
         {
@@ -254,12 +274,13 @@ namespace Unity.HLODSystem.Utils
         }
         public Texture2D ToTexture()
         {
-            Texture2D texture = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
+            Texture2D texture = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false, m_type == TextureImporterType.NormalMap);
             texture.SetPixels(m_pixels.ToArray());
             texture.Apply();
             
             return texture;
         }
+        
         public Guid GetGUID()
         {
             return m_guid;
@@ -341,6 +362,9 @@ namespace Unity.HLODSystem.Utils
             TextureImporterType type = TextureImporterType.Default;
             if (textureImporter)
             {
+                m_type = textureImporter.textureType;
+                m_wrapMode = textureImporter.wrapMode;
+                
                 type = textureImporter.textureType;
                 textureImporter.isReadable = true;
                 textureImporter.textureType = TextureImporterType.Default;

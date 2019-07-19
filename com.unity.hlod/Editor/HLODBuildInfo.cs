@@ -144,7 +144,6 @@ namespace Unity.HLODSystem
         public List<int> Distances = new List<int>();
 
         public Heightmap Heightmap;
-        public HLODAsset ContainerObject; 
 
         public void Dispose()
         {
