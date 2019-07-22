@@ -121,7 +121,7 @@ namespace Unity.HLODSystem.Streaming
                 string filenameWithoutExt = $"{outputDir}{rootName}{info.Name}";
                 if (oi > 0)
                 {
-                    filenameWithoutExt += $"_{oi}";
+                    filenameWithoutExt += $"sub_{oi}";
                     targetGO = new GameObject();
                     targetGO.name = $"_{oi}";
                     targetGO.transform.SetParent(root.transform, false);
@@ -136,14 +136,14 @@ namespace Unity.HLODSystem.Streaming
                 for (int mi = 0; mi < wo.Materials.Count; ++mi)
                 {
                     WorkingMaterial wm = wo.Materials[mi];
-                    string path = AssetDatabase.GUIDToAssetPath(wm.GUID.ToString("N"));
 
                     if (wm.NeedWrite() == false)
                     {
-                        materials.Add(AssetDatabase.LoadAssetAtPath<Material>(path));
+                        materials.Add(wm.ToMaterial());
                         continue;
                     }
                     Material mat = new Material(wm.ToMaterial());
+                    mat.EnableKeyword("_NORMALMAP");
                     string[] textureNames = wm.GetTextureNames();
                     string materialFilename = $"{filenameWithoutExt}.mat";
                     for (int ti = 0; ti < textureNames.Length; ++ti)

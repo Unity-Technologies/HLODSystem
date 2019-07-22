@@ -3,6 +3,7 @@ using System.Linq;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Utils
 {
@@ -19,34 +20,30 @@ namespace Unity.HLODSystem.Utils
     public class WorkingMaterial : IDisposable
     {
         private Allocator m_allocator;
-        private Guid m_materialGuid;
+        private int m_instanceID;
         private DisposableDictionary<string, WorkingTexture> m_textures;
-        private bool m_needWrite;
 
-        public Guid GUID
+        public int InstanceID
         {
-            set { m_materialGuid = value;}
-            get { return m_materialGuid; }
+            get { return m_instanceID; }
         }
 
         public WorkingMaterial(Allocator allocator)
         {
             m_allocator = allocator;
-            m_materialGuid = Guid.Empty;
+            m_instanceID = 0;
             m_textures = new DisposableDictionary<string, WorkingTexture>();
-            m_needWrite = false;
         }
-        public WorkingMaterial(Allocator allocator, Guid sourceMaterialGuid) : this(allocator)
+        public WorkingMaterial(Allocator allocator, int materialId) : this(allocator)
         {
-            m_materialGuid = sourceMaterialGuid;
-            m_needWrite = true;
+            m_instanceID = materialId;
         }
 
         public WorkingMaterial Clone()
         {
             WorkingMaterial nwm = new WorkingMaterial(m_allocator);
 
-            nwm.m_materialGuid = m_materialGuid;
+            nwm.m_instanceID = m_instanceID;
             nwm.m_textures = new DisposableDictionary<string, WorkingTexture>();
 
             foreach (var pair in m_textures)
@@ -55,6 +52,12 @@ namespace Unity.HLODSystem.Utils
             }
 
             return nwm;
+        }
+
+        public bool NeedWrite()
+        {
+            string path = AssetDatabase.GetAssetPath(m_instanceID);
+            return string.IsNullOrEmpty(path) == false;
         }
 
         public void AddTexture(string name, WorkingTexture texture)
@@ -83,16 +86,9 @@ namespace Unity.HLODSystem.Utils
                 return null;
             }
         }
-
-        public bool NeedWrite()
-        {
-            return m_needWrite;
-        }
-
         public void FromMaterial(Material mat)
         {
-            string materialPath = AssetDatabase.GetAssetPath(mat);
-            m_materialGuid = Guid.Parse(AssetDatabase.AssetPathToGUID(materialPath));
+            m_instanceID = mat.GetInstanceID();
             m_textures.Dispose();
             m_textures = new DisposableDictionary<string, WorkingTexture>();
                 
@@ -109,9 +105,14 @@ namespace Unity.HLODSystem.Utils
 
         public Material ToMaterial()
         {
-            string path = AssetDatabase.GUIDToAssetPath(m_materialGuid.ToString("N"));
-            return AssetDatabase.LoadAssetAtPath<Material>(path);
+            Material mat = EditorUtility.InstanceIDToObject(m_instanceID) as Material;
             
+            if (mat == null)
+            {
+                return new Material(Shader.Find("Standard"));
+            }
+
+            return mat;
         }
 
         public void Dispose()

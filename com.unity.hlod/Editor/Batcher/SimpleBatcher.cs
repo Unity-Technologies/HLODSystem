@@ -2,11 +2,9 @@
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Unity.Collections;
 using Unity.HLODSystem.Utils;
-using UnityEditor.Experimental.SceneManagement;
 
 namespace Unity.HLODSystem
 {
@@ -25,7 +23,7 @@ namespace Unity.HLODSystem
             BatcherTypes.RegisterBatcherType(typeof(SimpleBatcher));
         }
 
-        private Dictionary<TexturePacker.TextureAtlas, Material> m_createdMaterials = new Dictionary<TexturePacker.TextureAtlas, Material>();
+        private Dictionary<TexturePacker.TextureAtlas, WorkingMaterial> m_createdMaterials = new Dictionary<TexturePacker.TextureAtlas, WorkingMaterial>();
         private SerializableDynamicObject m_batcherOptions;
         
         
@@ -60,6 +58,8 @@ namespace Unity.HLODSystem
                         onProgress(0.5f + ((float) i / (float) targets.Count) * 0.5f);
                 }
             }
+            
+            
         }
 
         private void PackingTexture(TexturePacker packer, DisposableList<HLODBuildInfo> targets, dynamic options, Action<float> onProgress)
@@ -126,74 +126,52 @@ namespace Unity.HLODSystem
             var atlases = packer.GetAllAtlases();
             foreach (var atlas in atlases)
             {
-                Dictionary<string, Texture2D> savedTextures = new Dictionary<string, Texture2D>();
+                Dictionary<string, WorkingTexture> textures = new Dictionary<string, WorkingTexture>();
                 for (int i = 0; i < atlas.Textures.Count; ++i)
                 {
-                    var texturePath = $"{GetPrefabDirectoryAndName()}_{index}_{textureInfoList[i].OutputName}.png";
-                    Texture2D savedTexture = SaveTexture(atlas.Textures[i], texturePath, textureInfoList[i].Type == PackingType.Normal);
-                    savedTextures.Add(textureInfoList[i].OutputName, savedTexture);
+                    WorkingTexture wt = atlas.Textures[i];
+                    if (textureInfoList[i].Type == PackingType.Normal)
+                    {
+                        wt.Type = TextureImporterType.NormalMap;
+                    }
+                    else
+                    {
+                        wt.Type = TextureImporterType.Default;
+                    }
+
+                    textures.Add(textureInfoList[i].OutputName, wt);
                 }
                 
-                var materialPath = $"{GetPrefabDirectoryAndName()}_{index}.mat";
-                Material mat = SaveMaterial(options.MaterialGUID, materialPath, savedTextures);
+                WorkingMaterial mat = CreateMaterial(options.MaterialGUID, textures);
                 m_createdMaterials.Add(atlas, mat);
                 index += 1;
             }
         }
 
-        static Texture2D SaveTexture(WorkingTexture texture, string path, bool isNormal)
-        {           
-            var dirPath = Path.GetDirectoryName(path);
-            if (Directory.Exists(path) == false)
+        static WorkingMaterial CreateMaterial(string guidstr, Dictionary<string, WorkingTexture> textures)
+        {
+            WorkingMaterial material = null;
+            string path = AssetDatabase.GUIDToAssetPath(guidstr);
+            if (string.IsNullOrEmpty(path) == false)
             {
-                Directory.CreateDirectory(dirPath);
-            }
-            
-            
-            byte[] binary = texture.ToTexture().EncodeToPNG();
-            File.WriteAllBytes(path,binary);
-
-            AssetDatabase.ImportAsset(path);
-
-            if (isNormal == true)
-            {
-                var assetImporter = AssetImporter.GetAtPath(path);
-                var textureImporter = assetImporter as TextureImporter;
-                if (textureImporter)
+                Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (mat != null)
                 {
-                    textureImporter.textureType = TextureImporterType.NormalMap;
-                    textureImporter.SaveAndReimport();
+                    material = new WorkingMaterial(Allocator.Invalid, mat.GetInstanceID());
                 }
             }
 
-            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-        }
-
-        static Material SaveMaterial(string guid, string path, Dictionary<string, Texture2D> savedTextures)
-        {
-            Material material = null;
-            if (string.IsNullOrEmpty(guid))
+            if (material == null)
             {
-                material = new Material(Shader.Find("Standard"));
-            }
-            else
-            {
-                string materialPath = AssetDatabase.GUIDToAssetPath(guid);
-                material = new Material(AssetDatabase.LoadAssetAtPath<Material>(materialPath));
-            }
-
-            foreach (var texture in savedTextures)
-            {
-                material.SetTexture(texture.Key, texture.Value);
+                material = new WorkingMaterial(Allocator.Persistent);
             }
             
-            AssetDatabase.CreateAsset(material, path);
+            foreach (var texture in textures)
+            {
+                material.AddTexture(texture.Key, texture.Value.Clone());
+            }
+            
             return material;
-        }
-        static string GetPrefabDirectoryAndName()
-        {
-            string path = PrefabStageUtility.GetCurrentPrefabStage().prefabAssetPath;
-            return Path.GetDirectoryName(path) + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(path);
         }
 
         private void Combine(Vector3 rootPosition, TexturePacker packer, HLODBuildInfo info, dynamic options)
@@ -229,7 +207,7 @@ namespace Unity.HLODSystem
             WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, combineInfos);
 
             WorkingObject newObj = new WorkingObject(Allocator.Persistent);
-            WorkingMaterial newMat = new WorkingMaterial(Allocator.Persistent, GetMaterialGuid(atlas));
+            WorkingMaterial newMat = m_createdMaterials[atlas];
             
             newObj.SetMesh(combinedMesh);
             newObj.Materials.Add(newMat);
@@ -265,6 +243,7 @@ namespace Unity.HLODSystem
                         else
                         {
                             var uvOffset = atlas.GetUV(texture.GetGUID());
+                            
                             uvCoord.x = Mathf.Lerp(uvOffset.xMin, uvOffset.xMax, uvCoord.x);
                             uvCoord.y = Mathf.Lerp(uvOffset.yMin, uvOffset.yMax, uvCoord.y);
                         }
@@ -280,12 +259,7 @@ namespace Unity.HLODSystem
         }
 
 
-        private Guid GetMaterialGuid(TexturePacker.TextureAtlas atlas)
-        {
-            string path = AssetDatabase.GetAssetPath(m_createdMaterials[atlas]);
-            return Guid.Parse(AssetDatabase.AssetPathToGUID(path));
-        }
-
+     
         static private WorkingTexture CreateEmptyTexture(int width, int height, Color color)
         {
             WorkingTexture texture = new WorkingTexture(Allocator.Persistent, width, height);

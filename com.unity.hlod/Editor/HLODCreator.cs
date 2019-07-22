@@ -179,7 +179,7 @@ namespace Unity.HLODSystem
 
                         //AssetDatabase.StartAssetEditing();
                         IStreamingBuilder builder =
-                            (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] { hlod.StreamingOptions});
+                            (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] { hlod, hlod.StreamingOptions});
                         builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, 
                             progress =>
                             {
@@ -227,6 +227,12 @@ namespace Unity.HLODSystem
                     if (string.IsNullOrEmpty(path) == false)
                     {
                         AssetDatabase.DeleteAsset(path);
+                    }
+                    else
+                    {
+                        //It means scene object.
+                        //destory it.
+                        Object.DestroyImmediate(generatedObjects[i]);
                     }
 
                     EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);

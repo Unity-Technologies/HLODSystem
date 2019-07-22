@@ -226,38 +226,35 @@ namespace Unity.HLODSystem
                 int itemSize = packTextureSize / itemCount;
                 TextureAtlas atlas;
 
-                using(DisposableList<MaterialTexture> resizedTextures = CreateResizedTextures(itemSize, itemSize))
+                using (DisposableList<MaterialTexture> resizedTextures = CreateResizedTextures(itemSize, itemSize))
+                using (DisposableList<TextureCombiner> combiners = new DisposableList<TextureCombiner>())
                 {
-                    using (DisposableList<TextureCombiner> combiners = new DisposableList<TextureCombiner>())
+                    List<Rect> uvs = new List<Rect>(resizedTextures.Count);
+                    List<Guid> guids = new List<Guid>(resizedTextures.Count);
+                    for (int i = 0; i < resizedTextures.Count; ++i)
                     {
-                        List<Rect> uvs = new List<Rect>(resizedTextures.Count);
-                        List<Guid> guids = new List<Guid>(resizedTextures.Count);
-                        for (int i = 0; i < resizedTextures.Count; ++i)
+                        int x = i % itemCount;
+                        int y = i / itemCount;
+
+                        for (int k = combiners.Count; k < resizedTextures[i].Count; ++k)
+                            combiners.Add(new TextureCombiner(Allocator.Persistent, packTextureSize,
+                                packTextureSize));
+
+                        uvs.Add(new Rect(
+                            (float) (x * itemSize)/ (float) packTextureSize,
+                            (float) (y * itemSize)/ (float) packTextureSize,
+                            (float) resizedTextures[i][0].Width / (float) packTextureSize,
+                            (float) resizedTextures[i][0].Height / (float) packTextureSize));
+
+                        guids.Add(m_textures[i][0].GetGUID());
+
+                        for (int k = 0; k < resizedTextures[i].Count; ++k)
                         {
-
-                            int x = i % itemCount;
-                            int y = i / itemCount;
-
-                            for (int k = combiners.Count; k < resizedTextures[i].Count; ++k)
-                                combiners.Add(new TextureCombiner(Allocator.Persistent, packTextureSize,
-                                    packTextureSize));
-
-                            uvs.Add(new Rect(
-                                (float) x / (float) packTextureSize,
-                                (float) y / (float) packTextureSize,
-                                (float) resizedTextures[i][0].Width / (float) packTextureSize,
-                                (float) resizedTextures[i][0].Height / (float) packTextureSize));
-                            
-                            guids.Add(m_textures[i][0].GetGUID());
-
-                            for (int k = 0; k < resizedTextures[i].Count; ++k)
-                            {
-                                combiners[k].SetTexture(resizedTextures[i][k], x * itemSize, y * itemSize );
-                            }
+                            combiners[k].SetTexture(resizedTextures[i][k], x * itemSize, y * itemSize);
                         }
-
-                        atlas = new TextureAtlasCreator(m_obj, uvs, guids, combiners);
                     }
+
+                    atlas = new TextureAtlasCreator(m_obj, uvs, guids, combiners);
                 }
 
                 return atlas;

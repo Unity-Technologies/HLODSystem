@@ -163,6 +163,9 @@ namespace Unity.HLODSystem
         private DisposableList<WorkingTexture> m_alphamaps;
         private DisposableList<Layer> m_layers;
 
+        private Material m_terrainMaterial;
+        private int m_terrainMaterialInstanceId;
+
         
         private TerrainHLODCreator(TerrainHLOD hlod)
         {
@@ -275,16 +278,11 @@ namespace Unity.HLODSystem
 
         private WorkingMaterial CreateBakedMaterial(Bounds bounds)
         {
-            Guid guid = Guid.Empty;
-            if (Guid.TryParse(m_hlod.MaterialGUID, out guid) == false)
-            {
-                guid = Guid.Empty;
-            }
-
-            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, guid);
+            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, m_terrainMaterialInstanceId);
 
             m_queue.EnqueueJob(()=>
             {
+                
                 WorkingTexture albedo = BakeAlbedo( bounds, m_hlod.TextureSize);
                 material.AddTexture(m_hlod.AlbedoPropertyName, albedo);
             });
@@ -837,6 +835,13 @@ namespace Unity.HLODSystem
 
                 m_heightmap = new Heightmap(data.heightmapWidth, data.heightmapHeight, data.size,
                     data.GetHeights(0, 0, data.heightmapWidth, data.heightmapHeight));
+
+                string materialPath = AssetDatabase.GUIDToAssetPath(m_hlod.MaterialGUID);
+                m_terrainMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+                if ( m_terrainMaterial == null )
+                    m_terrainMaterial = new Material(Shader.Find("Standard"));
+
+                m_terrainMaterialInstanceId = m_terrainMaterial.GetInstanceID();
 
                 using (m_alphamaps = new DisposableList<WorkingTexture>()) 
                 using ( m_layers = new DisposableList<Layer>())
