@@ -112,7 +112,7 @@ namespace Unity.HLODSystem.Streaming
         private GameObject WriteInfo(string outputDir, string rootName, HLODBuildInfo info)
         {
             GameObject root = new GameObject();
-            root.name = info.Name;
+            root.name = "HLOD" + info.Name;
             
             for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
             {
@@ -127,57 +127,11 @@ namespace Unity.HLODSystem.Streaming
                     targetGO.transform.SetParent(root.transform, false);
                 }
 
-                Mesh mesh = wo.Mesh.ToMesh();
-                string meshFilename = filenameWithoutExt + ".mesh";
-                AssetDatabase.CreateAsset(mesh, meshFilename);
-                m_manager.AddGeneratedResource(mesh);
-                
-                List<Material> materials = new List<Material>();
-                for (int mi = 0; mi < wo.Materials.Count; ++mi)
-                {
-                    WorkingMaterial wm = wo.Materials[mi];
+                MeshData meshData = MeshUtils.WorkingObjectToMeshData(wo);
+                meshData.Write($"{filenameWithoutExt}.asset");
+                m_manager.AddGeneratedResource(meshData);
 
-                    if (wm.NeedWrite() == false)
-                    {
-                        materials.Add(wm.ToMaterial());
-                        continue;
-                    }
-                    Material mat = new Material(wm.ToMaterial());
-                    mat.EnableKeyword("_NORMALMAP");
-                    string[] textureNames = wm.GetTextureNames();
-                    string materialFilename = $"{filenameWithoutExt}.mat";
-                    for (int ti = 0; ti < textureNames.Length; ++ti)
-                    {
-                        WorkingTexture wt = wm.GetTexture(textureNames[ti]);
-                        Texture2D texture = wt.ToTexture();
-                        byte[] pngBytes = texture.EncodeToPNG();
-                        string textureFilename = $"{filenameWithoutExt}_{textureNames[ti]}.png";
-                        
-                        File.WriteAllBytes(textureFilename, pngBytes);
-
-                        AssetDatabase.ImportAsset(textureFilename, ImportAssetOptions.ForceSynchronousImport);
-                        
-                        TextureImporter importer = AssetImporter.GetAtPath(textureFilename) as TextureImporter;
-                        if (importer != null)
-                        {
-                            importer.textureType = wt.Type;
-                            importer.wrapMode = wt.WrapMode;
-                            importer.SaveAndReimport();
-                        }
-
-                        texture = AssetDatabase.LoadAssetAtPath<Texture2D>(textureFilename);
-                        mat.SetTexture(textureNames[ti], texture);
-
-                        m_manager.AddGeneratedResource(texture);
-                    }
-                    AssetDatabase.CreateAsset(mat,materialFilename);
-                    m_manager.AddGeneratedResource(mat);
-                    materials.Add(mat);
-                    
-                }
-
-                targetGO.AddComponent<MeshFilter>().sharedMesh = mesh;
-                targetGO.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
+                targetGO.AddComponent<MeshDataRenderer>().Data = meshData;
             }
 
             return root;
