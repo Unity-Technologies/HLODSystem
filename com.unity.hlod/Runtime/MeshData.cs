@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 
@@ -18,12 +17,14 @@ namespace Unity.HLODSystem
             [SerializeField] public int Height;
             [SerializeField] public byte[] Bytes;
         }
+
         [Serializable]
         public struct MaterialData
         {
             [SerializeField] public Material Material;
             [SerializeField] public List<TextureData> Textures;
         }
+
         [SerializeField] private Mesh m_mesh;
         [SerializeField] private List<MaterialData> m_materialDatas = new List<MaterialData>();
 
@@ -42,22 +43,10 @@ namespace Unity.HLODSystem
         {
             return m_materialDatas[index];
         }
+
         public int GetMaterialDataCount()
         {
             return m_materialDatas.Count;
-        }
-
-
-        public void Write(string filename)
-        {
-            AssetDatabase.CreateAsset(this, filename);
-            AssetDatabase.AddObjectToAsset(m_mesh, filename);
-            for (int i = 0; i < m_materialDatas.Count; ++i)
-            {
-                AssetDatabase.AddObjectToAsset(m_materialDatas[i].Material, filename);
-            }
-            
-            AssetDatabase.SaveAssets();
         }
 
     }

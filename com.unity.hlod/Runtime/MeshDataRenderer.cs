@@ -54,8 +54,8 @@ namespace Unity.HLODSystem
             mf = gameObject.AddComponent<MeshFilter>();
             mr = gameObject.AddComponent<MeshRenderer>();
 
-            mf.hideFlags = HideFlags.HideInInspector;
-            mr.hideFlags = HideFlags.HideInInspector;
+            mf.hideFlags = HideFlags.HideInInspector| HideFlags.DontSave;
+            mr.hideFlags = HideFlags.HideInInspector| HideFlags.DontSave;
             
             List<Material> materials = new List<Material>();
             for (int i = 0; i < m_data.GetMaterialDataCount(); ++i)

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 
@@ -6,6 +7,20 @@ namespace Unity.HLODSystem.Utils
 {
     public static class MeshUtils
     {
+        
+        public static void Write(this MeshData data, string filename)
+        {
+            AssetDatabase.CreateAsset(data, filename);
+            AssetDatabase.AddObjectToAsset(data.Mesh, filename);
+            for (int i = 0; i < data.GetMaterialDataCount(); ++i)
+            {
+                var md = data.GetMaterialData(i);
+                AssetDatabase.AddObjectToAsset(md.Material, filename);
+            }
+
+            AssetDatabase.SaveAssets();
+        }
+        
         public static MeshData WorkingObjectToMeshData(WorkingObject wo)
         {
             MeshData meshData = MeshData.CreateInstance<MeshData>();
