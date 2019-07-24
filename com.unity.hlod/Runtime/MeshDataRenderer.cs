@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+#if UNITY_EDITOR
+using UnityEditor;
+using TextureCompressionQuality = UnityEditor.TextureCompressionQuality;
+#endif
 
 namespace Unity.HLODSystem
 {
@@ -73,7 +77,12 @@ namespace Unity.HLODSystem
                         false, 
                         !GraphicsFormatUtility.IsSRGBFormat(textureData.Format));
                     texture.LoadRawTextureData(textureData.Bytes);
+                    texture.wrapMode = textureData.WrapMode;
                     texture.Apply();
+                    
+                    #if UNITY_EDITOR
+//                    EditorUtility.CompressTexture(texture, m_data.CompressionData.PCTextureFormat, TextureCompressionQuality.Normal);
+                    #endif
                     
                     mat.SetTexture(textureData.Name, texture);
                 }

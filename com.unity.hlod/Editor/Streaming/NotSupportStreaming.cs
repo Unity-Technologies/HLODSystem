@@ -5,11 +5,49 @@ using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 
 namespace Unity.HLODSystem.Streaming
 {
     class NotSupportStreaming : IStreamingBuilder
     {
+        static class Styles
+        {
+            public static TextureFormat[] SupportTextureFormats = new[]
+            {
+                TextureFormat.RGBA32,
+                TextureFormat.RGB24,
+                TextureFormat.BC7,
+                TextureFormat.DXT5,
+                TextureFormat.DXT1,
+                TextureFormat.ASTC_4x4,
+                TextureFormat.ASTC_5x5,
+                TextureFormat.ASTC_6x6,
+                TextureFormat.ASTC_8x8,
+                TextureFormat.ASTC_10x10,
+                TextureFormat.ASTC_12x12,
+                TextureFormat.ETC_RGB4,
+                TextureFormat.ETC2_RGB,
+                TextureFormat.ETC2_RGBA8,
+                TextureFormat.PVRTC_RGB4,
+                TextureFormat.PVRTC_RGB2,
+                TextureFormat.PVRTC_RGBA4,
+                TextureFormat.PVRTC_RGBA2,
+            };
+
+            public static string[] SupportTextureFormatStrings;
+
+            static Styles()
+            {
+                SupportTextureFormatStrings = new string[SupportTextureFormats.Length];
+                for (int i = 0; i < SupportTextureFormats.Length; ++i)
+                {
+                    SupportTextureFormatStrings[i] = SupportTextureFormats[i].ToString();
+                }
+            }
+        }
+        
+        
         [InitializeOnLoadMethod]
         static void RegisterType()
         {
@@ -53,7 +91,7 @@ namespace Unity.HLODSystem.Streaming
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
 
-                GameObject go = WriteInfo(path, root.name, infos[i]);
+                GameObject go = WriteInfo(path, root.name, infos[i], options);
                 go.transform.SetParent(hlodRoot.transform, false);
                 go.SetActive(false);
                 int lowId = defaultController.AddLowObject(go);
@@ -109,7 +147,7 @@ namespace Unity.HLODSystem.Streaming
             return root;
         }
 
-        private GameObject WriteInfo(string outputDir, string rootName, HLODBuildInfo info)
+        private GameObject WriteInfo(string outputDir, string rootName, HLODBuildInfo info, dynamic options)
         {
             GameObject root = new GameObject();
             root.name = "HLOD" + info.Name;
@@ -127,7 +165,15 @@ namespace Unity.HLODSystem.Streaming
                     targetGO.transform.SetParent(root.transform, false);
                 }
 
+                MeshData.TextureCompressionData compressionData;
+                compressionData.PCTextureFormat = options.PCCompression;
+                compressionData.WebGLTextureFormat = options.WebGLCompression;
+                compressionData.AndroidTextureFormat = options.AndroidCompression;
+                compressionData.IOSTextureFormat = options.IOSCompression;
+                compressionData.TVOSTextureFormat = options.TVOSCompression;
+
                 MeshData meshData = MeshUtils.WorkingObjectToMeshData(wo);
+                meshData.CompressionData = compressionData;
                 meshData.Write($"{filenameWithoutExt}.asset");
                 m_manager.AddGeneratedResource(meshData);
 
@@ -138,10 +184,13 @@ namespace Unity.HLODSystem.Streaming
         }
         
         
+        static bool showFormat = false;
         public static void OnGUI(SerializableDynamicObject streamingOptions)
         {
+            
             dynamic options = streamingOptions;
 
+#region Setup default values
             if (options.OutputDirectory == null)
             {
                 string path = Application.dataPath;
@@ -151,6 +200,28 @@ namespace Unity.HLODSystem.Streaming
                     path += "/";
                 options.OutputDirectory = path;
             }
+
+            if (options.PCCompression == null)
+            {
+                options.PCCompression = TextureFormat.BC7;
+            }
+            if (options.WebGLCompression == null)
+            {
+                options.WebGLCompression = TextureFormat.DXT5;
+            }
+            if (options.AndroidCompression == null)
+            {
+                options.AndroidCompression = TextureFormat.ETC2_RGBA8;
+            }
+            if (options.IOSCompression== null)
+            {
+                options.IOSCompression = TextureFormat.PVRTC_RGBA4;
+            }
+            if (options.TVOSCompression == null)
+            {
+                options.TVOSCompression = TextureFormat.ASTC_4x4;
+            }
+#endregion
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel("OutputDirectory");
@@ -171,8 +242,28 @@ namespace Unity.HLODSystem.Streaming
                     EditorUtility.DisplayDialog("Error", $"Select directory under {Application.dataPath}", "OK");
                 }
             }
-
             EditorGUILayout.EndHorizontal();
+
+            if (showFormat = EditorGUILayout.Foldout(showFormat, "Compress Format"))
+            {
+                EditorGUI.indentLevel += 1;
+                options.PCCompression = PopupFormat("PC & Console", (TextureFormat)options.PCCompression);
+                options.WebGLCompression = PopupFormat("WebGL", (TextureFormat)options.WebGLCompression);
+                options.AndroidCompression = PopupFormat("Android", (TextureFormat)options.AndroidCompression);
+                options.IOSCompression = PopupFormat("iOS", (TextureFormat)options.IOSCompression);
+                options.TVOSCompression = PopupFormat("tvOS", (TextureFormat)options.TVOSCompression);
+                EditorGUI.indentLevel -= 1;   
+            }
+
+        }
+
+        private static TextureFormat PopupFormat(string label, TextureFormat format)
+        {
+            int selectIndex = Array.IndexOf(Styles.SupportTextureFormats, format);
+            selectIndex = EditorGUILayout.Popup(label, selectIndex, Styles.SupportTextureFormatStrings);
+            if (selectIndex < 0)
+                selectIndex = 0;
+            return Styles.SupportTextureFormats[selectIndex];
         }
 
     }

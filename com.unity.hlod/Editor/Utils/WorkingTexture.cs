@@ -4,6 +4,7 @@ using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using TextureCompressionQuality = UnityEditor.TextureCompressionQuality;
 
 namespace Unity.HLODSystem.Utils
 {
@@ -280,8 +281,8 @@ namespace Unity.HLODSystem.Utils
         {
             Texture2D texture = new Texture2D(m_width, m_height, m_format, false, m_linear);
             texture.SetPixels(m_pixels.ToArray());
+            texture.wrapMode = m_wrapMode;
             texture.Apply();
-            
             return texture;
         }
         

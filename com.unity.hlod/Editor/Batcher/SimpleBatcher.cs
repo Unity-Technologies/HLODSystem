@@ -119,7 +119,7 @@ namespace Unity.HLODSystem
                 }
             }
 
-            packer.Pack(TextureFormat.RGB24, options.PackTextureSize, options.LimitTextureSize, false);
+            packer.Pack(TextureFormat.RGBA32, options.PackTextureSize, options.LimitTextureSize, false);
             if ( onProgress != null) onProgress(0.3f);
 
             int index = 1;

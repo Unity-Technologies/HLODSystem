@@ -46,6 +46,7 @@ namespace Unity.HLODSystem.Utils
 
                     textureData.Name = textureNames[ti];
                     textureData.Format = tex.graphicsFormat;
+                    textureData.WrapMode = tex.wrapMode;
                     textureData.Width = tex.width;
                     textureData.Height = tex.height;
                     textureData.Bytes = tex.GetRawTextureData();

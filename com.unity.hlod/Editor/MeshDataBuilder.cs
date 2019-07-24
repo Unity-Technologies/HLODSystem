@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.HLODSystem.Utils;
+using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.SceneManagement;
+using TextureCompressionQuality = UnityEditor.TextureCompressionQuality;
 
 namespace Unity.HLODSystem
 {
@@ -62,6 +64,21 @@ namespace Unity.HLODSystem
             }
         }
 
+        private TextureFormat CompressionTextureFormat(MeshData.TextureCompressionData data)
+        {
+            var buildTarget = EditorUserBuildSettings.activeBuildTarget;
+
+            if (buildTarget == BuildTarget.WebGL)
+                return data.WebGLTextureFormat;
+            if (buildTarget == BuildTarget.Android)
+                return data.AndroidTextureFormat;
+            if (buildTarget == BuildTarget.iOS)
+                return data.IOSTextureFormat;
+            if (buildTarget == BuildTarget.tvOS)
+                return data.TVOSTextureFormat;
+
+            return data.PCTextureFormat;
+        }
         private void ReplaceRenderer(MeshDataRenderer renderer)
         {
             MeshData data = renderer.Data;
@@ -71,6 +88,8 @@ namespace Unity.HLODSystem
 
             var mf = go.AddComponent<MeshFilter>();
             var mr = go.AddComponent<MeshRenderer>();
+
+            TextureFormat compressionFormat = CompressionTextureFormat(data.CompressionData);
 
             using (WorkingMesh wm = data.Mesh.ToWorkingMesh(Allocator.Temp))
             {
@@ -94,7 +113,8 @@ namespace Unity.HLODSystem
                         !GraphicsFormatUtility.IsSRGBFormat(td.Format));
                     tex.LoadRawTextureData(td.Bytes);
                     tex.Apply();
-                    //EditorUtility.CompressTexture(tex, TextureFormat.BC7, TextureCompressionQuality.Normal);
+                    
+                    EditorUtility.CompressTexture(tex, compressionFormat, TextureCompressionQuality.Normal);
                     
                     mat.SetTexture(td.Name,tex);
                 }

@@ -9,10 +9,20 @@ namespace Unity.HLODSystem
     public class MeshData : ScriptableObject
     {
         [Serializable]
+        public struct TextureCompressionData
+        {
+            [SerializeField] public TextureFormat PCTextureFormat;
+            [SerializeField] public TextureFormat WebGLTextureFormat;
+            [SerializeField] public TextureFormat AndroidTextureFormat;
+            [SerializeField] public TextureFormat IOSTextureFormat;
+            [SerializeField] public TextureFormat TVOSTextureFormat;
+        }
+        [Serializable]
         public struct TextureData
         {
             [SerializeField] public string Name;
             [SerializeField] public GraphicsFormat Format;
+            [SerializeField] public TextureWrapMode WrapMode;
             [SerializeField] public int Width;
             [SerializeField] public int Height;
             [SerializeField] public byte[] Bytes;
@@ -26,12 +36,19 @@ namespace Unity.HLODSystem
         }
 
         [SerializeField] private Mesh m_mesh;
+        [SerializeField] private TextureCompressionData m_compressionData;
         [SerializeField] private List<MaterialData> m_materialDatas = new List<MaterialData>();
 
         public Mesh Mesh
         {
             set { m_mesh = value; }
             get { return m_mesh; }
+        }
+
+        public TextureCompressionData CompressionData
+        {
+            set { m_compressionData = value; }
+            get { return m_compressionData; }
         }
 
         public void AddMaterialData(MaterialData data)
