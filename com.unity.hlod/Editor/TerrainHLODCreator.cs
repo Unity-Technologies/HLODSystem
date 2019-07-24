@@ -118,7 +118,7 @@ namespace Unity.HLODSystem
                 int sx = Mathf.Max(source.Width >> 1, 1);
                 int sy = Mathf.Max(source.Height >> 1, 1);
                 
-                WorkingTexture mipmap = new WorkingTexture(Allocator.Persistent, sx, sy);
+                WorkingTexture mipmap = new WorkingTexture(Allocator.Persistent, source.Format, sx, sy, source.Linear);
 
                 for (int y = 0; y < sy; ++y)
                 {
@@ -301,7 +301,7 @@ namespace Unity.HLODSystem
 
         private WorkingTexture BakeAlbedo(Bounds bounds, int resolution)
         {
-            WorkingTexture albedoTexture = new WorkingTexture(Allocator.Persistent, resolution, resolution);
+            WorkingTexture albedoTexture = new WorkingTexture(Allocator.Persistent, TextureFormat.RGB24, resolution, resolution, false);
             albedoTexture.WrapMode = TextureWrapMode.Clamp;
             
             m_queue.EnqueueJob(() =>
@@ -368,9 +368,7 @@ namespace Unity.HLODSystem
 
         private WorkingTexture BakeNormal(Bounds bounds, int resolution)
         {
-            WorkingTexture normalTexture = new WorkingTexture(Allocator.Persistent, resolution, resolution);
-
-            normalTexture.Type = TextureImporterType.NormalMap;
+            WorkingTexture normalTexture = new WorkingTexture(Allocator.Persistent, TextureFormat.RGB24, resolution, resolution, true);
             normalTexture.WrapMode = TextureWrapMode.Clamp;
 
             m_queue.EnqueueJob(() =>

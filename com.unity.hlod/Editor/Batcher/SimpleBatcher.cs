@@ -119,7 +119,7 @@ namespace Unity.HLODSystem
                 }
             }
 
-            packer.Pack(options.PackTextureSize, options.LimitTextureSize);
+            packer.Pack(TextureFormat.RGB24, options.PackTextureSize, options.LimitTextureSize, false);
             if ( onProgress != null) onProgress(0.3f);
 
             int index = 1;
@@ -132,11 +132,7 @@ namespace Unity.HLODSystem
                     WorkingTexture wt = atlas.Textures[i];
                     if (textureInfoList[i].Type == PackingType.Normal)
                     {
-                        wt.Type = TextureImporterType.NormalMap;
-                    }
-                    else
-                    {
-                        wt.Type = TextureImporterType.Default;
+                        wt.Linear = true;
                     }
 
                     textures.Add(textureInfoList[i].OutputName, wt);
@@ -260,9 +256,9 @@ namespace Unity.HLODSystem
 
 
      
-        static private WorkingTexture CreateEmptyTexture(int width, int height, Color color)
+        static private WorkingTexture CreateEmptyTexture(int width, int height, Color color, bool linear)
         {
-            WorkingTexture texture = new WorkingTexture(Allocator.Persistent, width, height);
+            WorkingTexture texture = new WorkingTexture(Allocator.Persistent, TextureFormat.RGB24, width, height, linear);
 
             for (int y = 0; y < height; ++y)
             {
@@ -278,9 +274,9 @@ namespace Unity.HLODSystem
         {
             DisposableDictionary<PackingType, WorkingTexture> textures = new DisposableDictionary<PackingType, WorkingTexture>();
 
-            textures.Add(PackingType.White, CreateEmptyTexture(4, 4, Color.white));
-            textures.Add(PackingType.Black, CreateEmptyTexture(4, 4, Color.black));
-            textures.Add(PackingType.Normal, CreateEmptyTexture(4, 4, new Color(0.5f, 0.5f, 1.0f)));
+            textures.Add(PackingType.White, CreateEmptyTexture(4, 4, Color.white, false));
+            textures.Add(PackingType.Black, CreateEmptyTexture(4, 4, Color.black, false));
+            textures.Add(PackingType.Normal, CreateEmptyTexture(4, 4, new Color(0.5f, 0.5f, 1.0f), true));
 
             return textures;
         }
