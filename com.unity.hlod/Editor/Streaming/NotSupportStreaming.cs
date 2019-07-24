@@ -78,6 +78,10 @@ namespace Unity.HLODSystem.Streaming
             hlodRoot.transform.SetParent(root.transform, false);
             m_manager.AddGeneratedResource(hlodRoot);
 
+            var rootData = EmptyData.CreateInstance<EmptyData>();
+            AssetDatabase.CreateAsset(rootData, $"{path}{root.name}.asset");
+            m_manager.AddGeneratedResource(rootData);
+
             //I think it is better to do when convert nodes.
             //But that is not easy because of the structure.
             for (int i = 0; i < infos.Count; ++i)
@@ -105,6 +109,9 @@ namespace Unity.HLODSystem.Streaming
             defaultController.Root = convertedRootNode;
             defaultController.CullDistance = cullDistance;
             defaultController.LODDistance = lodDistance;
+            
+            AssetDatabase.SaveAssets();
+            
         }
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
@@ -156,10 +163,10 @@ namespace Unity.HLODSystem.Streaming
             {
                 GameObject targetGO = root;
                 WorkingObject wo = info.WorkingObjects[oi];
-                string filenameWithoutExt = $"{outputDir}{rootName}{info.Name}";
+                string name = info.Name;
                 if (oi > 0)
                 {
-                    filenameWithoutExt += $"sub_{oi}";
+                    name += $"sub_{oi}";
                     targetGO = new GameObject();
                     targetGO.name = $"_{oi}";
                     targetGO.transform.SetParent(root.transform, false);
@@ -173,9 +180,9 @@ namespace Unity.HLODSystem.Streaming
                 compressionData.TVOSTextureFormat = options.TVOSCompression;
 
                 MeshData meshData = MeshUtils.WorkingObjectToMeshData(wo);
+                meshData.name = info.Name;
                 meshData.CompressionData = compressionData;
-                meshData.Write($"{filenameWithoutExt}.asset");
-                m_manager.AddGeneratedResource(meshData);
+                meshData.WriteAppend($"{outputDir}{rootName}.asset");
 
                 targetGO.AddComponent<MeshDataRenderer>().Data = meshData;
             }

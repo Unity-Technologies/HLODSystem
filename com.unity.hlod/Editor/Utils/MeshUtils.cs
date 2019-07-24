@@ -17,8 +17,16 @@ namespace Unity.HLODSystem.Utils
                 var md = data.GetMaterialData(i);
                 AssetDatabase.AddObjectToAsset(md.Material, filename);
             }
-
-            AssetDatabase.SaveAssets();
+        }
+        public static void WriteAppend(this MeshData data, string filename)
+        {
+            AssetDatabase.AddObjectToAsset(data, filename);
+            AssetDatabase.AddObjectToAsset(data.Mesh, filename);
+            for (int i = 0; i < data.GetMaterialDataCount(); ++i)
+            {
+                var md = data.GetMaterialData(i);
+                AssetDatabase.AddObjectToAsset(md.Material, filename);
+            }
         }
         
         public static MeshData WorkingObjectToMeshData(WorkingObject wo)
