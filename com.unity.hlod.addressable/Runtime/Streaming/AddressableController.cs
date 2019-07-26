@@ -58,7 +58,7 @@ namespace Unity.HLODSystem.Streaming
             
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
-                if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKey.isValid)
+                if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKey != null)
                 {
                     DestoryObject(m_highObjects[i].GameObject);
                 }
@@ -209,7 +209,7 @@ namespace Unity.HLODSystem.Streaming
 
         public override void ReleaseHighObject(int id)
         {
-            if (m_highObjects[id].Reference == null || m_highObjects[id].Reference.RuntimeKey.isValid == false)
+            if (m_highObjects[id].Reference == null || m_highObjects[id].Reference.RuntimeKey != null)
             {
                 if ( m_createdHighObjects[id] != null)
                     m_createdHighObjects[id].SetActive(false);
