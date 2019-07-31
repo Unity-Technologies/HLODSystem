@@ -5,7 +5,7 @@ using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
 {
@@ -68,22 +68,49 @@ namespace Unity.HLODSystem.Streaming
             dynamic options = m_streamingOptions;
             string path = options.OutputDirectory;
 
-            var defaultController = root.AddComponent<DefaultController>();
             HLODTreeNode convertedRootNode = ConvertNode(rootNode);
 
             if (onProgress != null)
                 onProgress(0.0f);
 
+            string filename = $"{path}{root.name}.hlod";
+            using (Stream stream = new FileStream(filename, FileMode.Create))
+            {
+                for (int i = 0; i < infos.Count; ++i)
+                {
+                    WriteInfo(stream, infos[i], options);
+                    if (onProgress != null)
+                        onProgress((float) i / (float) infos.Count);
+                }
+            }
+
+            AssetDatabase.ImportAsset(filename, ImportAssetOptions.ForceUpdate);
+            Object[] allAssets = AssetDatabase.LoadAllAssetsAtPath(filename);
+            Dictionary<string, List<GameObject>> gameObjects = new Dictionary<string, List<GameObject>>();
+
+            for (int i = 0; i < allAssets.Length; ++i)
+            {
+                if (AssetDatabase.IsMainAsset(allAssets[i]))
+                {
+                    m_manager.AddGeneratedResource(allAssets[i]);
+                    continue;
+                }
+                
+                GameObject go = allAssets[i] as GameObject;
+                if (go == null)
+                    continue;
+                
+                if ( gameObjects.ContainsKey(go.name ) == false )
+                    gameObjects.Add(go.name, new List<GameObject>());
+                
+                gameObjects[go.name].Add(go);
+            }
+            
+            var defaultController = root.AddComponent<DefaultController>();
             GameObject hlodRoot = new GameObject("HLODRoot");
             hlodRoot.transform.SetParent(root.transform, false);
             m_manager.AddGeneratedResource(hlodRoot);
 
-            var rootData = EmptyData.CreateInstance<EmptyData>();
-            AssetDatabase.CreateAsset(rootData, $"{path}{root.name}.asset");
-            m_manager.AddGeneratedResource(rootData);
-
-            //I think it is better to do when convert nodes.
-            //But that is not easy because of the structure.
             for (int i = 0; i < infos.Count; ++i)
             {
                 var spaceNode = infos[i].Target;
@@ -95,23 +122,21 @@ namespace Unity.HLODSystem.Streaming
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
 
-                GameObject go = WriteInfo(path, root.name, infos[i], options);
-                go.transform.SetParent(hlodRoot.transform, false);
-                go.SetActive(false);
-                int lowId = defaultController.AddLowObject(go);
-                hlodTreeNode.LowObjectIds.Add(lowId);
-                m_manager.AddGeneratedResource(go);
-
-                if (onProgress != null)
-                    onProgress((float) i / (float) infos.Count);
+                List<GameObject> currentObjects = gameObjects[infos[i].Name];
+                for (int oi = 0; oi < currentObjects.Count; ++oi)
+                {
+                    GameObject go = PrefabUtility.InstantiatePrefab(currentObjects[oi]) as GameObject;
+                    go.transform.SetParent(hlodRoot.transform, false);
+                    go.SetActive(false);
+                    int lowId = defaultController.AddLowObject(go);
+                    hlodTreeNode.LowObjectIds.Add(lowId);
+                    m_manager.AddGeneratedResource(go);
+                }
             }
 
             defaultController.Root = convertedRootNode;
             defaultController.CullDistance = cullDistance;
             defaultController.LODDistance = lodDistance;
-            
-            AssetDatabase.SaveAssets();
-            
         }
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
@@ -154,44 +179,29 @@ namespace Unity.HLODSystem.Streaming
             return root;
         }
 
-        private GameObject WriteInfo(string outputDir, string rootName, HLODBuildInfo info, dynamic options)
+        private void WriteInfo(Stream stream, HLODBuildInfo info, dynamic options)
         {
-            GameObject root = new GameObject();
-            root.name = "HLOD" + info.Name;
-            
             for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
             {
-                GameObject targetGO = root;
                 WorkingObject wo = info.WorkingObjects[oi];
-                string name = info.Name;
-                if (oi > 0)
-                {
-                    name += $"sub_{oi}";
-                    targetGO = new GameObject();
-                    targetGO.name = $"_{oi}";
-                    targetGO.transform.SetParent(root.transform, false);
-                }
+                
 
-                MeshData.TextureCompressionData compressionData;
+                HLODData.TextureCompressionData compressionData;
                 compressionData.PCTextureFormat = options.PCCompression;
                 compressionData.WebGLTextureFormat = options.WebGLCompression;
                 compressionData.AndroidTextureFormat = options.AndroidCompression;
-                compressionData.IOSTextureFormat = options.IOSCompression;
-                compressionData.TVOSTextureFormat = options.TVOSCompression;
+                compressionData.iOSTextureFormat = options.iOSCompression;
+                compressionData.tvOSTextureFormat = options.tvOSCompression;
 
-                MeshData meshData = MeshUtils.WorkingObjectToMeshData(wo);
-                meshData.name = info.Name;
-                meshData.CompressionData = compressionData;
-                meshData.WriteAppend($"{outputDir}{rootName}.asset");
-
-                targetGO.AddComponent<MeshDataRenderer>().Data = meshData;
+                HLODData hlodData = MeshUtils.WorkingObjectToHLODData(wo, info.Name);
+                hlodData.CompressionData = compressionData;
+                
+                HLODDataSerializer.Write(stream, hlodData);
             }
-
-            return root;
         }
         
         
-        static bool showFormat = false;
+        static bool showFormat = true;
         public static void OnGUI(SerializableDynamicObject streamingOptions)
         {
             
@@ -220,13 +230,13 @@ namespace Unity.HLODSystem.Streaming
             {
                 options.AndroidCompression = TextureFormat.ETC2_RGBA8;
             }
-            if (options.IOSCompression== null)
+            if (options.iOSCompression== null)
             {
-                options.IOSCompression = TextureFormat.PVRTC_RGBA4;
+                options.iOSCompression = TextureFormat.PVRTC_RGBA4;
             }
-            if (options.TVOSCompression == null)
+            if (options.tvOSCompression == null)
             {
-                options.TVOSCompression = TextureFormat.ASTC_4x4;
+                options.tvOSCompression = TextureFormat.ASTC_4x4;
             }
 #endregion
 
@@ -257,8 +267,8 @@ namespace Unity.HLODSystem.Streaming
                 options.PCCompression = PopupFormat("PC & Console", (TextureFormat)options.PCCompression);
                 options.WebGLCompression = PopupFormat("WebGL", (TextureFormat)options.WebGLCompression);
                 options.AndroidCompression = PopupFormat("Android", (TextureFormat)options.AndroidCompression);
-                options.IOSCompression = PopupFormat("iOS", (TextureFormat)options.IOSCompression);
-                options.TVOSCompression = PopupFormat("tvOS", (TextureFormat)options.TVOSCompression);
+                options.iOSCompression = PopupFormat("iOS", (TextureFormat)options.iOSCompression);
+                options.tvOSCompression = PopupFormat("tvOS", (TextureFormat)options.tvOSCompression);
                 EditorGUI.indentLevel -= 1;   
             }
 

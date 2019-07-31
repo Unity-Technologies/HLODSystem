@@ -7,63 +7,30 @@ namespace Unity.HLODSystem.Utils
 {
     public static class MeshUtils
     {
-        
-        public static void Write(this MeshData data, string filename)
+        public static HLODData WorkingObjectToHLODData(WorkingObject wo, string name)
         {
-            AssetDatabase.CreateAsset(data, filename);
-            AssetDatabase.AddObjectToAsset(data.Mesh, filename);
-            for (int i = 0; i < data.GetMaterialDataCount(); ++i)
-            {
-                var md = data.GetMaterialData(i);
-                AssetDatabase.AddObjectToAsset(md.Material, filename);
-            }
-        }
-        public static void WriteAppend(this MeshData data, string filename)
-        {
-            AssetDatabase.AddObjectToAsset(data, filename);
-            AssetDatabase.AddObjectToAsset(data.Mesh, filename);
-            for (int i = 0; i < data.GetMaterialDataCount(); ++i)
-            {
-                var md = data.GetMaterialData(i);
-                AssetDatabase.AddObjectToAsset(md.Material, filename);
-            }
-        }
-        
-        public static MeshData WorkingObjectToMeshData(WorkingObject wo)
-        {
-            MeshData meshData = MeshData.CreateInstance<MeshData>();
-
-            meshData.Mesh = wo.Mesh.ToMesh();
+            HLODData meshData = new HLODData();
+            meshData.Name = name;
+            meshData.SetMesh(wo.Mesh);
 
             for (int mi = 0; mi < wo.Materials.Count; ++mi)
             {
                 WorkingMaterial wm = wo.Materials[mi];
-                MeshData.MaterialData materialData = new MeshData.MaterialData();
-
+                HLODData.SerializableMaterial materialData = new HLODData.SerializableMaterial();
+                materialData.From(wm);
+                
                 string[] textureNames = wm.GetTextureNames();
-
-                materialData.Material = new Material(wm.ToMaterial());
-                materialData.Textures = new List<MeshData.TextureData>();
-
                 for (int ti = 0; ti < textureNames.Length; ++ti)
                 {
                     WorkingTexture wt = wm.GetTexture(textureNames[ti]);
-                    MeshData.TextureData textureData = new MeshData.TextureData();
-
-                    Texture2D tex = wt.ToTexture();
-
+                    HLODData.SerializableTexture textureData = new HLODData.SerializableTexture();
+                    textureData.From(wt.ToTexture());
                     textureData.Name = textureNames[ti];
-                    textureData.Format = tex.graphicsFormat;
-                    textureData.WrapMode = tex.wrapMode;
-                    textureData.Width = tex.width;
-                    textureData.Height = tex.height;
-                    textureData.Bytes = tex.GetRawTextureData();
                     
-                    materialData.Textures.Add(textureData);
+                    materialData.AddTexture(textureData);
                 }
                 
-                meshData.AddMaterialData(materialData);
-                
+                meshData.AddMaterial(materialData);
             }
 
             return meshData;
