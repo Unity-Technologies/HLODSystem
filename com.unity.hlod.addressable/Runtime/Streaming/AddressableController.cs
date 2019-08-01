@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
@@ -175,16 +176,15 @@ namespace Unity.HLODSystem.Streaming
             {
                 m_createdLowObjects.Add(id, null);
 
-                GameObject prefab = null;
-                var op = Addressables.LoadAssetAsync<GameObject>(m_lowObjects[id]);
+                var op = Addressables.InstantiateAsync(m_lowObjects[id]);
                 yield return op;
-                prefab = op.Result;
+                
+                if ( op.Status ==AsyncOperationStatus.Failed)
+                    yield break;
 
-                GameObject go = Instantiate(prefab);
+                GameObject go = op.Result;
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
-                
-                Addressables.Release(op);
                 
                 ChangeLayersRecursively(go.transform, layer);
 
@@ -220,10 +220,12 @@ namespace Unity.HLODSystem.Streaming
             GameObject go = m_createdLowObjects[id];
             m_createdLowObjects.Remove(id);
 
-            if (go != null)
-            {
-                DestoryObject(go);
-            }
+            Addressables.ReleaseInstance(go);
+
+//            if (go != null)
+//            {
+//                DestoryObject(go);
+//            }
         }
 
         private void DestoryObject(Object obj)
