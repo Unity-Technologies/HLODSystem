@@ -73,12 +73,19 @@ namespace Unity.HLODSystem.Streaming
             if (onProgress != null)
                 onProgress(0.0f);
 
+            HLODData.TextureCompressionData compressionData;
+            compressionData.PCTextureFormat = options.PCCompression;
+            compressionData.WebGLTextureFormat = options.WebGLCompression;
+            compressionData.AndroidTextureFormat = options.AndroidCompression;
+            compressionData.iOSTextureFormat = options.iOSCompression;
+            compressionData.tvOSTextureFormat = options.tvOSCompression;
+            
             string filename = $"{path}{root.name}.hlod";
             using (Stream stream = new FileStream(filename, FileMode.Create))
             {
                 for (int i = 0; i < infos.Count; ++i)
                 {
-                    WriteInfo(stream, infos[i], options);
+                    MeshUtils.HLODBuildInfoToStream(infos[i], compressionData, stream);
                     if (onProgress != null)
                         onProgress((float) i / (float) infos.Count);
                 }
@@ -179,28 +186,6 @@ namespace Unity.HLODSystem.Streaming
             return root;
         }
 
-        private void WriteInfo(Stream stream, HLODBuildInfo info, dynamic options)
-        {
-            for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
-            {
-                WorkingObject wo = info.WorkingObjects[oi];
-                
-
-                HLODData.TextureCompressionData compressionData;
-                compressionData.PCTextureFormat = options.PCCompression;
-                compressionData.WebGLTextureFormat = options.WebGLCompression;
-                compressionData.AndroidTextureFormat = options.AndroidCompression;
-                compressionData.iOSTextureFormat = options.iOSCompression;
-                compressionData.tvOSTextureFormat = options.tvOSCompression;
-
-                HLODData hlodData = MeshUtils.WorkingObjectToHLODData(wo, info.Name);
-                hlodData.CompressionData = compressionData;
-                
-                HLODDataSerializer.Write(stream, hlodData);
-            }
-        }
-        
-        
         static bool showFormat = true;
         public static void OnGUI(SerializableDynamicObject streamingOptions)
         {

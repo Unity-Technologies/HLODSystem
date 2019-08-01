@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using UnityEditor;
-using UnityEngine;
-using UnityEngine.Experimental.Rendering;
+using System.IO;
 
 namespace Unity.HLODSystem.Utils
 {
@@ -34,6 +31,19 @@ namespace Unity.HLODSystem.Utils
             }
 
             return meshData;
+        }
+
+        public static void HLODBuildInfoToStream(HLODBuildInfo info, HLODData.TextureCompressionData compressionData,
+            Stream stream)
+        {
+            for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
+            {
+                WorkingObject wo = info.WorkingObjects[oi];
+                HLODData hlodData = WorkingObjectToHLODData(wo, info.Name);
+                hlodData.CompressionData = compressionData;
+                
+                HLODDataSerializer.Write(stream, hlodData);
+            }
         }
         
     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
@@ -70,37 +71,66 @@ namespace Unity.HLODSystem.Streaming
             dynamic options = m_streamingOptions;
             string path = options.OutputDirectory;
 
-            var addressableController = root.AddComponent<AddressableController>();
             HLODTreeNode convertedRootNode = ConvertNode(rootNode);
 
             if (onProgress != null)
                 onProgress(0.0f);
 
-            var rootData = EmptyData.CreateInstance<EmptyData>();
-            string filename = $"{path}{root.name}.asset";
-            AssetDatabase.CreateAsset(rootData, filename);
-            m_manager.AddGeneratedResource(rootData);
+            HLODData.TextureCompressionData compressionData;
+            compressionData.PCTextureFormat = options.PCCompression;
+            compressionData.WebGLTextureFormat = options.WebGLCompression;
+            compressionData.AndroidTextureFormat = options.AndroidCompression;
+            compressionData.iOSTextureFormat = options.iOSCompression;
+            compressionData.tvOSTextureFormat = options.tvOSCompression;
 
-            for (int i = 0; i < infos.Count; ++i)
-            {
-                WriteInfo(filename, infos[i], options);
-            }
-            AssetDatabase.SaveAssets();
-
-            return;
             
-            //I think it is better to do when convert nodes.
-            //But that is not easy because of the structure.
+            string filename = $"{path}{root.name}.hlod";
+            using (Stream stream = new FileStream(filename, FileMode.Create))
+            {
+                for (int i = 0; i < infos.Count; ++i)
+                {
+                    MeshUtils.HLODBuildInfoToStream(infos[i], compressionData, stream);
+                    if (onProgress != null)
+                        onProgress((float) i / (float) infos.Count);
+                }
+            }
+
+            AssetDatabase.ImportAsset(filename, ImportAssetOptions.ForceUpdate);
+            Object[] allAssets = AssetDatabase.LoadAllAssetsAtPath(filename);
+            Dictionary<string, List<GameObject>> gameObjects = new Dictionary<string, List<GameObject>>();
+
+            for (int i = 0; i < allAssets.Length; ++i)
+            {
+                if (AssetDatabase.IsMainAsset(allAssets[i]))
+                {
+                    AddToAddressable(allAssets[i], filename);
+                    m_manager.AddGeneratedResource(allAssets[i]);
+                    continue;
+                }
+                
+                GameObject go = allAssets[i] as GameObject;
+                if (go == null)
+                    continue;
+                
+                if ( gameObjects.ContainsKey(go.name ) == false )
+                    gameObjects.Add(go.name, new List<GameObject>());
+                
+                gameObjects[go.name].Add(go);
+            }
+            
+
+            var addressableController = root.AddComponent<AddressableController>();
+
             for (int i = 0; i < infos.Count; ++i)
             {
                 var spaceNode = infos[i].Target;
                 var hlodTreeNode = convertedTable[infos[i].Target];
-
+                
                 for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
                 {
                     int highId = -1;
                     
-                    /*var address = GetAssetReference(spaceNode.Objects[oi]);
+                    var address = GetAssetReference(spaceNode.Objects[oi]);
                     
                     if (address != null)
                     {
@@ -109,35 +139,19 @@ namespace Unity.HLODSystem.Streaming
                     else
                     {
                         highId = addressableController.AddHighObject(spaceNode.Objects[oi]);
-                    }*/
-
+                    }
+                    
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
                 
-                //List<MeshData> datas = WriteInfo(filename, infos[i], options);
-
-//                go.transform.SetParent(hlodRoot.transform, false);
-//                go.SetActive(false);
-//                int lowId = defaultController.AddLowObject(go);
-//                hlodTreeNode.LowObjectIds.Add(lowId);
-                
-//                m_manager.AddGeneratedResource(go);
-                for (int oi = 0; oi < infos[i].WorkingObjects.Count; ++oi)
+                List<GameObject> currentObjects = gameObjects[infos[i].Name];
+                for (int oi = 0; oi < currentObjects.Count; ++oi)
                 {
-                    
-//                    string currentHLODName = $"{root.name}{infos[i].Name}_{oi}";
-//                    HLODMesh createdMesh = ObjectUtils.SaveHLODMesh(path, currentHLODName, infos[i].WorkingObjects[oi]);
-//                    m_manager.AddGeneratedResource(createdMesh);
-//
-//                    var address = GetAssetReference(createdMesh);
-//                    int lowId = addressableController.AddLowObject(address);
-//                    hlodTreeNode.LowObjectIds.Add(lowId);
+                    int lowId = addressableController.AddLowObject(filename + "." + infos[i].Name);
+                    hlodTreeNode.LowObjectIds.Add(lowId);
                 }
-
-                if (onProgress != null)
-                    onProgress((float)i/(float)infos.Count);
             }
-
+            
             addressableController.Root = convertedRootNode;
             addressableController.CullDistance = cullDistance;
             addressableController.LODDistance = lodDistance;
@@ -183,25 +197,7 @@ namespace Unity.HLODSystem.Streaming
 
             return root;
         }
-        private void WriteInfo(string filename, HLODBuildInfo info, dynamic options)
-        {
-            for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
-            {
-                WorkingObject wo = info.WorkingObjects[oi];
-                
-//                MeshData.TextureCompressionData compressionData;
-//                compressionData.PCTextureFormat = options.PCCompression;
-//                compressionData.WebGLTextureFormat = options.WebGLCompression;
-//                compressionData.AndroidTextureFormat = options.AndroidCompression;
-//                compressionData.iOSTextureFormat = options.iOSCompression;
-//                compressionData.tvOSTextureFormat = options.tvOSCompression;
-//
-//                MeshData meshData = MeshUtils.WorkingObjectToMeshData(wo, "HLOD" + info.Name);
-//                meshData.CompressionData = compressionData;
-//                meshData.WriteAppend(filename);
-            }
-        }
-
+     
         
         static bool showFormat = true;
         public static void OnGUI(SerializableDynamicObject streamingOptions)
@@ -290,13 +286,38 @@ namespace Unity.HLODSystem.Streaming
             return Styles.SupportTextureFormats[selectIndex];
         }
 
-
-        private AssetReference GetAssetReference(Object obj)
+        private void AddToAddressable(Object obj, string address)
         {
             //create settings if there is no settings.
             if (AddressableAssetSettingsDefaultObject.Settings == null)
             {
                 AddressableAssetSettings.Create(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder, AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
+            }
+            var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
+            string path = "";
+
+            if ( obj is GameObject && PrefabUtility.IsAnyPrefabInstanceRoot(obj as GameObject) == true )
+                path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
+            else
+                path = AssetDatabase.GetAssetPath(obj);
+            
+            if (string.IsNullOrEmpty(path))
+                return;
+
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            var entriesAdded = new List<AddressableAssetEntry>
+            {
+                settings.CreateOrMoveEntry(guid, settings.DefaultGroup, false, false)
+            };
+
+            settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entriesAdded, true);
+        }
+
+        private AssetReference GetAssetReference(Object obj)
+        {
+            if (AddressableAssetSettingsDefaultObject.Settings == null)
+            {
+                return null;
             }
 
             
@@ -317,14 +338,7 @@ namespace Unity.HLODSystem.Streaming
             if (entry != null)
                 return new AssetReference(guid);
 
-            var entriesAdded = new List<AddressableAssetEntry>
-            {
-                settings.CreateOrMoveEntry(guid, settings.DefaultGroup, false, false)
-            };
-
-            settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entriesAdded, true);
-
-            return new AssetReference(guid);
+            return null;
         }
     }
 

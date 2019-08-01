@@ -26,7 +26,7 @@ namespace Unity.HLODSystem.Streaming
         private List<ChildObject> m_highObjects = new List<ChildObject>();
 
         [SerializeField]
-        private List<AssetReference> m_lowObjects = new List<AssetReference>();
+        private List<string> m_lowObjects = new List<string>();
 
         
 
@@ -58,7 +58,7 @@ namespace Unity.HLODSystem.Streaming
             
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
-                if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKey != null)
+                if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKeyIsValid() == true)
                 {
                     DestoryObject(m_highObjects[i].GameObject);
                 }
@@ -95,10 +95,10 @@ namespace Unity.HLODSystem.Streaming
             m_highObjects.Add(obj);
             return id;
         }
-        public int AddLowObject(AssetReference hlodMesh)
+        public int AddLowObject(string address)
         {
             int id = m_lowObjects.Count;
-            m_lowObjects.Add(hlodMesh);
+            m_lowObjects.Add(address);
             return id;
         }
 
@@ -132,13 +132,10 @@ namespace Unity.HLODSystem.Streaming
                 else
                 {
                     GameObject asset = null;
-#if UNITY_EDITOR
-                    asset = m_highObjects[id].Reference.editorAsset as GameObject;
-#else
-                    var op = m_highObjects[id].Reference.LoadAsset<GameObject>();
+
+                    var op = m_highObjects[id].Reference.LoadAssetAsync<GameObject>();
                     yield return op;
                     asset = op.Result;
-#endif
 
                     go = Instantiate(asset, m_highObjects[id].Parent.transform);
                     go.SetActive(false);
@@ -178,22 +175,16 @@ namespace Unity.HLODSystem.Streaming
             {
                 m_createdLowObjects.Add(id, null);
 
-                HLODMesh mesh = null;
-
-#if UNITY_EDITOR
-                mesh = m_lowObjects[id].editorAsset as HLODMesh;
-#else
-
-                var op = m_lowObjects[id].LoadAsset<HLODMesh>();
+                GameObject prefab = null;
+                var op = Addressables.LoadAssetAsync<GameObject>(m_lowObjects[id]);
                 yield return op;
-                mesh = op.Result;
-#endif
+                prefab = op.Result;
 
-                GameObject go = new GameObject(mesh.name);
+                GameObject go = Instantiate(prefab);
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
-                go.AddComponent<MeshFilter>().sharedMesh = mesh.ToMesh();
-                go.AddComponent<MeshRenderer>().sharedMaterials = mesh.Materials.ToArray();
+                
+                Addressables.Release(op);
                 
                 ChangeLayersRecursively(go.transform, layer);
 
@@ -209,7 +200,7 @@ namespace Unity.HLODSystem.Streaming
 
         public override void ReleaseHighObject(int id)
         {
-            if (m_highObjects[id].Reference == null || m_highObjects[id].Reference.RuntimeKey != null)
+            if (m_highObjects[id].Reference == null || m_highObjects[id].Reference.RuntimeKeyIsValid() == false)
             {
                 if ( m_createdHighObjects[id] != null)
                     m_createdHighObjects[id].SetActive(false);
@@ -231,24 +222,14 @@ namespace Unity.HLODSystem.Streaming
 
             if (go != null)
             {
-
-                Mesh mesh = go.GetComponent<MeshFilter>().sharedMesh;
-                if (mesh != null)
-                    DestoryObject(mesh);
                 DestoryObject(go);
             }
-
-            if (m_lowObjects[id].Asset != null)
-                m_lowObjects[id].ReleaseAsset();
         }
 
         private void DestoryObject(Object obj)
         {
 #if UNITY_EDITOR
-            if ( UnityEditor.EditorApplication.isPlaying)
-                Destroy(obj);
-            else
-                DestroyImmediate(obj);
+            DestroyImmediate(obj);
 #else
             Destroy(obj);
 #endif
