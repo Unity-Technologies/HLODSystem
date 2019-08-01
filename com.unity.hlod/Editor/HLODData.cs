@@ -297,7 +297,9 @@ namespace Unity.HLODSystem
 
             public Texture2D To()
             {
-                Texture2D texture = new Texture2D(m_width, m_height, m_format, TextureCreationFlags.MipChain);
+                var textureFormat = GraphicsFormatUtility.GetTextureFormat(m_format);
+                var srgb = GraphicsFormatUtility.IsSRGBFormat(m_format);
+                Texture2D texture = new Texture2D(m_width, m_height, textureFormat, true, !srgb);
                 texture.LoadImage(m_bytes);
                 texture.wrapMode = m_wrapMode;
                 texture.Apply();
