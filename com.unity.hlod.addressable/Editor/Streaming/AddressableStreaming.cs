@@ -65,8 +65,13 @@ namespace Unity.HLODSystem.Streaming
             m_streamingOptions = streamingOptions;
         }
 
-
-        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, Action<float> onProgress)
+        public string GetOutputDir()
+        {
+            dynamic options = m_streamingOptions;
+            return options.OutputDirectory;
+        }
+        
+        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, bool writeNoPrefab, Action<float> onProgress)
         {
             dynamic options = m_streamingOptions;
             string path = options.OutputDirectory;
@@ -83,7 +88,7 @@ namespace Unity.HLODSystem.Streaming
             compressionData.iOSTextureFormat = options.iOSCompression;
             compressionData.tvOSTextureFormat = options.tvOSCompression;
 
-            
+           
             string filename = $"{path}{root.name}.hlod";
             using (Stream stream = new FileStream(filename, FileMode.Create))
             {
@@ -103,7 +108,7 @@ namespace Unity.HLODSystem.Streaming
             {
                 if (AssetDatabase.IsMainAsset(allAssets[i]))
                 {
-                    AddToAddressable(allAssets[i], filename);
+                    AddAddress(allAssets[i]);
                     m_manager.AddGeneratedResource(allAssets[i]);
                     continue;
                 }
@@ -130,7 +135,12 @@ namespace Unity.HLODSystem.Streaming
                 {
                     int highId = -1;
                     
-                    var address = GetAssetReference(spaceNode.Objects[oi]);
+                    var address = GetAddress(spaceNode.Objects[oi]);
+                    if (string.IsNullOrEmpty(address) && PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]))
+                    {
+                        AddAddress(spaceNode.Objects[oi]);
+                        address = GetAddress(spaceNode.Objects[oi]);
+                    }
                     
                     if (address != null)
                     {
@@ -286,7 +296,7 @@ namespace Unity.HLODSystem.Streaming
             return Styles.SupportTextureFormats[selectIndex];
         }
 
-        private void AddToAddressable(Object obj, string address)
+        private void AddAddress(Object obj)
         {
             //create settings if there is no settings.
             if (AddressableAssetSettingsDefaultObject.Settings == null)
@@ -294,12 +304,7 @@ namespace Unity.HLODSystem.Streaming
                 AddressableAssetSettings.Create(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder, AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
             }
             var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
-            string path = "";
-
-            if ( obj is GameObject && PrefabUtility.IsAnyPrefabInstanceRoot(obj as GameObject) == true )
-                path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
-            else
-                path = AssetDatabase.GetAssetPath(obj);
+            string path = GetAssetPath(obj);
             
             if (string.IsNullOrEmpty(path))
                 return;
@@ -313,32 +318,51 @@ namespace Unity.HLODSystem.Streaming
             settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entriesAdded, true);
         }
 
-        private AssetReference GetAssetReference(Object obj)
+        private string GetAddress(Object obj)
         {
             if (AddressableAssetSettingsDefaultObject.Settings == null)
             {
                 return null;
             }
 
-            
             var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
-            string path = "";
-
-            if ( obj is GameObject && PrefabUtility.IsAnyPrefabInstanceRoot(obj as GameObject) == true )
-                path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
-            else
-                path = AssetDatabase.GetAssetPath(obj);
+            string path = GetAssetPath(obj);
             
             if (string.IsNullOrEmpty(path))
                 return null;
 
             string guid = AssetDatabase.AssetPathToGUID(path);
             var entry = settings.FindAssetEntry(guid);
-
             if (entry != null)
-                return new AssetReference(guid);
+            {
+                string address = entry.address;
+                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(obj)))
+                {
+                    Object prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+                    if (AssetDatabase.IsMainAsset(prefab) == false)
+                    {
+                        address = address + "." + prefab.name;
+                    }
+                }
 
+                return address;
+
+            }
+            
             return null;
+        }
+
+        private string GetAssetPath(Object obj)
+        {
+            string path = AssetDatabase.GetAssetPath(obj);
+
+            if (string.IsNullOrEmpty(path))
+            {
+                Object prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+                path = AssetDatabase.GetAssetPath(prefab);   
+            }
+
+            return path;
         }
     }
 

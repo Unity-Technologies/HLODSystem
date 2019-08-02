@@ -15,7 +15,7 @@ namespace Unity.HLODSystem.Streaming
         {
             public GameObject GameObject;
 
-            public AssetReference Reference;
+            public string Address;
 
             public Transform Parent;
             public Vector3 Position;
@@ -59,7 +59,7 @@ namespace Unity.HLODSystem.Streaming
             
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
-                if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKeyIsValid() == true)
+                if (string.IsNullOrEmpty(m_highObjects[i].Address) == false)
                 {
                     DestoryObject(m_highObjects[i].GameObject);
                 }
@@ -70,13 +70,13 @@ namespace Unity.HLODSystem.Streaming
             }
         }
 
-        public int AddHighObject(AssetReference reference, GameObject origin)
+        public int AddHighObject(string address, GameObject origin)
         {
             int id = m_highObjects.Count;
 
             ChildObject obj = new ChildObject();
             obj.GameObject = origin;
-            obj.Reference = reference;
+            obj.Address = address;
             obj.Parent = origin.transform.parent;
             obj.Position = origin.transform.localPosition;
             obj.Rotation = origin.transform.localRotation;
@@ -132,14 +132,13 @@ namespace Unity.HLODSystem.Streaming
                 }
                 else
                 {
-                    GameObject asset = null;
 
-                    var op = m_highObjects[id].Reference.LoadAssetAsync<GameObject>();
+                    var op = Addressables.InstantiateAsync(m_highObjects[id].Address);
                     yield return op;
-                    asset = op.Result;
 
-                    go = Instantiate(asset, m_highObjects[id].Parent.transform);
+                    go = op.Result;
                     go.SetActive(false);
+                    go.transform.parent = m_highObjects[id].Parent.transform;
                     go.transform.localPosition = m_highObjects[id].Position;
                     go.transform.localRotation = m_highObjects[id].Rotation;
                     go.transform.localScale = m_highObjects[id].Scale;
@@ -200,7 +199,7 @@ namespace Unity.HLODSystem.Streaming
 
         public override void ReleaseHighObject(int id)
         {
-            if (m_highObjects[id].Reference == null || m_highObjects[id].Reference.RuntimeKeyIsValid() == false)
+            if (string.IsNullOrEmpty(m_highObjects[id].Address) == true)
             {
                 if ( m_createdHighObjects[id] != null)
                     m_createdHighObjects[id].SetActive(false);
@@ -208,9 +207,7 @@ namespace Unity.HLODSystem.Streaming
             }
             else
             {
-                DestoryObject(m_createdHighObjects[id]);
-                if (m_highObjects[id].Reference.Asset != null) 
-                    m_highObjects[id].Reference.ReleaseAsset();
+                Addressables.ReleaseInstance(m_createdHighObjects[id]);
             }
 
             m_createdHighObjects.Remove(id);
@@ -221,11 +218,6 @@ namespace Unity.HLODSystem.Streaming
             m_createdLowObjects.Remove(id);
 
             Addressables.ReleaseInstance(go);
-
-//            if (go != null)
-//            {
-//                DestoryObject(go);
-//            }
         }
 
         private void DestoryObject(Object obj)

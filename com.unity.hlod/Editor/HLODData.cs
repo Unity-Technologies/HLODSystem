@@ -332,11 +332,15 @@ namespace Unity.HLODSystem
             {
                 return m_textures[index];
             }
-            
+
+            public void From(Material material)
+            {
+                m_jsonData = EditorJsonUtility.ToJson(material);
+            }
             public void From(WorkingMaterial material)
             {
                 Material mat = material.ToMaterial();
-                m_jsonData = EditorJsonUtility.ToJson(mat);
+                From(mat);
             }
 
             public Material To()

@@ -140,62 +140,54 @@ namespace Unity.HLODSystem
 
                 using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.ThresholdSize))
                 {
+                    Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
+                    sw.Reset();
+                    sw.Start();
 
-                    try
+                    ISimplifier simplifier = (ISimplifier) Activator.CreateInstance(hlod.SimplifierType,
+                        new object[] {hlod.SimplifierOptions});
+                    for (int i = 0; i < buildInfos.Count; ++i)
                     {
-                        Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
-                        sw.Reset();
-                        sw.Start();
+                        yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
+                    }
 
-                        ISimplifier simplifier = (ISimplifier) Activator.CreateInstance(hlod.SimplifierType,
-                            new object[] {hlod.SimplifierOptions});
-                        for (int i = 0; i < buildInfos.Count; ++i)
-                        {
-                            yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
-                        }
+                    yield return new WaitForBranches(progress =>
+                    {
+                        EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes",
+                            0.25f + progress * 0.25f);
+                    });
+                    Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
+                    sw.Reset();
+                    sw.Start();
 
-                        yield return new WaitForBranches(progress =>
+
+                    IBatcher batcher =
+                        (IBatcher) Activator.CreateInstance(hlod.BatcherType, new object[] {hlod.BatcherOptions});
+                    batcher.Batch(hlod.transform.position, buildInfos,
+                        progress =>
                         {
-                            EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes",
-                                0.25f + progress * 0.25f);
+                            EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
+                                0.5f + progress * 0.25f);
                         });
-                        Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
-                        sw.Reset();
-                        sw.Start();
+                    Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
+                    sw.Reset();
+                    sw.Start();
 
 
-                        IBatcher batcher =
-                            (IBatcher) Activator.CreateInstance(hlod.BatcherType, new object[] {hlod.BatcherOptions});
-                        batcher.Batch(hlod.transform.position, buildInfos,
-                            progress =>
-                            {
-                                EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
-                                    0.5f + progress * 0.25f);
-                            });
-                        Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
-                        sw.Reset();
-                        sw.Start();
-
-
-                        //AssetDatabase.StartAssetEditing();
-                        IStreamingBuilder builder =
-                            (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType, new object[] { hlod, hlod.StreamingOptions});
-                        builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, 
-                            progress =>
-                            {
-                                EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
-                                    0.75f + progress * 0.25f);
-                            });
-                        Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
-                        sw.Reset();
-                        sw.Start();
-                    }
-                    finally
-                    {
-
-                        //AssetDatabase.StopAssetEditing();
-                        Debug.Log("[HLOD] Importing: " + sw.Elapsed.ToString("g"));
-                    }
+                    IStreamingBuilder builder =
+                        (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType,
+                            new object[] {hlod, hlod.StreamingOptions});
+                    builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, false,
+                        progress =>
+                        {
+                            EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
+                                0.75f + progress * 0.25f);
+                        });
+                    Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+                    sw.Reset();
+                    sw.Start();
+                 
+                    EditorUtility.SetDirty(hlod.gameObject);
                 }
 
             }
@@ -216,7 +208,12 @@ namespace Unity.HLODSystem
             try
             {
                 EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", 0.0f);
-                AssetDatabase.StartAssetEditing();
+                var convertedPrefabObjects = hlod.ConvertedPrefabObjects;
+                for (int i = 0; i < convertedPrefabObjects.Count; ++i)
+                {
+                    PrefabUtility.UnpackPrefabInstance(convertedPrefabObjects[i], PrefabUnpackMode.OutermostRoot,
+                        InteractionMode.AutomatedAction);
+                }
 
                 var generatedObjects = hlod.GeneratedObjects;
                 for (int i = 0; i < generatedObjects.Count; ++i)
@@ -243,9 +240,11 @@ namespace Unity.HLODSystem
             }
             finally
             {
-                AssetDatabase.StopAssetEditing();
                 EditorUtility.ClearProgressBar();
             }
+            
+            EditorUtility.SetDirty(hlod.gameObject);
+            EditorUtility.SetDirty(hlod);
         }
 
     }

@@ -1,4 +1,5 @@
 using System.IO;
+using UnityEngine;
 
 namespace Unity.HLODSystem.Utils
 {
@@ -44,6 +45,47 @@ namespace Unity.HLODSystem.Utils
                 
                 HLODDataSerializer.Write(stream, hlodData);
             }
+        }
+
+        public static void GameObjectToStream(GameObject gameObject, HLODData.TextureCompressionData compressionData,
+            Stream stream)
+        {
+            var mf = gameObject.GetComponent<MeshFilter>();
+            var mr = gameObject.GetComponent<MeshRenderer>();
+            
+            HLODData hlodData = new HLODData();
+            hlodData.Name = gameObject.name;
+            
+            if ( mf != null )
+                hlodData.SetMesh(mf.sharedMesh);
+            if (mr != null)
+            {
+                for (int mi = 0; mi < mr.sharedMaterials.Length; ++mi)
+                {
+                    Material mat = mr.sharedMaterials[mi];
+                    string[] textureNames = mat.GetTexturePropertyNames();
+                    HLODData.SerializableMaterial sm = new HLODData.SerializableMaterial();
+                    sm.From(mat);
+
+                    for (int ti = 0; ti < textureNames.Length; ++ti)
+                    {
+                        Texture2D tex = mat.GetTexture(textureNames[ti]) as Texture2D;
+                        if (tex == null)
+                            continue;
+                        HLODData.SerializableTexture st = new HLODData.SerializableTexture();
+                        st.From(tex);
+                        st.Name = textureNames[ti];
+                        
+                        sm.AddTexture(st);
+                    }
+                    
+                    hlodData.AddMaterial(sm);
+                }
+            }
+
+            hlodData.CompressionData = compressionData;
+            
+            HLODDataSerializer.Write(stream, hlodData);
         }
         
     }

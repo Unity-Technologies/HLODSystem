@@ -32,8 +32,14 @@ namespace Unity.HLODSystem
             try
             {
                 EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", 0.0f);
-                AssetDatabase.StartAssetEditing();
+                var convertedPrefabObjects = hlod.ConvertedPrefabObjects;
+                for (int i = 0; i < convertedPrefabObjects.Count; ++i)
+                {
+                    PrefabUtility.UnpackPrefabInstance(convertedPrefabObjects[i], PrefabUnpackMode.OutermostRoot,
+                        InteractionMode.AutomatedAction);
+                }
 
+                
                 var generatedObjects = hlod.GeneratedObjects;
                 for (int i = 0; i < generatedObjects.Count; ++i)
                 {
@@ -54,14 +60,15 @@ namespace Unity.HLODSystem
                     EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
                 }
                 generatedObjects.Clear();
-
-                UnityEngine.Object.DestroyImmediate(controller);
+                Object.DestroyImmediate(controller);
             }
             finally
             {
-                AssetDatabase.StopAssetEditing();
                 EditorUtility.ClearProgressBar();
             }
+            
+            EditorUtility.SetDirty(hlod.gameObject);
+            EditorUtility.SetDirty(hlod);
         }
 
 
@@ -908,6 +915,7 @@ namespace Unity.HLODSystem
                         sw.Reset();
                         sw.Start();
                         
+
                         for (int i = 0; i < buildInfos.Count; ++i)
                         {
                             SpaceNode node = buildInfos[i].Target;
@@ -971,31 +979,24 @@ namespace Unity.HLODSystem
                             }
                         }
 
-
                         //controller
                         IStreamingBuilder builder =
                             (IStreamingBuilder) Activator.CreateInstance(m_hlod.StreamingType,
                                 new object[] {m_hlod, m_hlod.StreamingOptions});
-
-                        builder.Build(rootNode, buildInfos, m_hlod.gameObject, m_hlod.CullDistance, m_hlod.LODDistance,
+                        
+                        builder.Build(rootNode, buildInfos, m_hlod.gameObject, m_hlod.CullDistance, m_hlod.LODDistance, true,
                             progress =>
                             {
                                 EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
                                     0.75f + progress * 0.25f);
                             });
+                        
                         Debug.Log("[TerrainHLOD] Build: " + sw.Elapsed.ToString("g"));
 
                     }
                 }
 
                 EditorUtility.SetDirty(m_hlod.gameObject);
-                /*
-                if (PrefabUtility.IsAnyPrefabInstanceRoot(m_hlod.gameObject) == false)
-                {
-                    PrefabUtility.SaveAsPrefabAssetAndConnect(m_hlod.gameObject, $"{outputDir}{outputName}.prefab",
-                        InteractionMode.AutomatedAction);
-                }
-                */
 
             }
             finally

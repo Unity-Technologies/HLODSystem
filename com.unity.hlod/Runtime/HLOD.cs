@@ -48,6 +48,8 @@ namespace Unity.HLODSystem
         
         [SerializeField]
         private List<Object> m_generatedObjects = new List<Object>();
+        [SerializeField]
+        private List<GameObject> m_convertedPrefabObjects = new List<GameObject>();
 
 
         public float MinSize
@@ -109,6 +111,11 @@ namespace Unity.HLODSystem
         public List<Object> GeneratedObjects
         {
             get { return m_generatedObjects; }
+        }
+
+        public List<GameObject> ConvertedPrefabObjects
+        {
+            get { return m_convertedPrefabObjects; }
         }
 
         /*
@@ -226,6 +233,15 @@ namespace Unity.HLODSystem
             m_generatedObjects.Add(obj);
         }
 
+        public bool IsGeneratedResource(Object obj)
+        {
+            return m_generatedObjects.Contains(obj);
+        }
+
+        public void AddConvertedPrefabResource(GameObject obj)
+        {
+            m_convertedPrefabObjects.Add(obj);
+        }
     }
 
 }
