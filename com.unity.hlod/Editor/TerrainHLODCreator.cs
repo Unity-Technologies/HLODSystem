@@ -183,9 +183,11 @@ namespace Unity.HLODSystem
             return new Bounds(data.size * 0.5f, data.size);
         }
 
-        private WorkingObject CreateBakedTerrain(Bounds bounds, out Heightmap heightmap)
+        private WorkingObject CreateBakedTerrain(string name, Bounds bounds, out Heightmap heightmap)
         {
             WorkingObject wo = new WorkingObject(Allocator.Persistent);
+            wo.Name = name;
+            
             int beginX = Mathf.RoundToInt(bounds.min.x / m_size.x * (m_heightmap.Width-1));
             int beginZ = Mathf.RoundToInt(bounds.min.z / m_size.z * (m_heightmap.Height-1));
             int endX = Mathf.RoundToInt(bounds.max.x / m_size.x * (m_heightmap.Width-1));
@@ -199,13 +201,13 @@ namespace Unity.HLODSystem
             
             m_queue.EnqueueJob(() =>
             {
-                WorkingMesh mesh = CreateBakedGeometry(subHeightmap, bounds);
+                WorkingMesh mesh = CreateBakedGeometry(name, subHeightmap, bounds);
                 wo.SetMesh(mesh);
             });
 
             m_queue.EnqueueJob(() =>
             {
-                WorkingMaterial material = CreateBakedMaterial(bounds); 
+                WorkingMaterial material = CreateBakedMaterial(name, bounds); 
                 wo.Materials.Add(material);
             });
 
@@ -213,12 +215,14 @@ namespace Unity.HLODSystem
             return wo;
         }
 
-        private WorkingMesh CreateBakedGeometry(Heightmap heightmap, Bounds bounds)
+        private WorkingMesh CreateBakedGeometry(string name, Heightmap heightmap, Bounds bounds)
         {
 
             WorkingMesh mesh =
                 new WorkingMesh(Allocator.Persistent, heightmap.Width * heightmap.Height,
                     (heightmap.Width - 1) * (heightmap.Height - 1) * 6, 1, 0);
+
+            mesh.name = name + "_Mesh";
 
             
             Vector3[] vertices = new Vector3[(heightmap.Width -2)* (heightmap.Height-2)];
@@ -283,14 +287,14 @@ namespace Unity.HLODSystem
             return mesh;
         }
 
-        private WorkingMaterial CreateBakedMaterial(Bounds bounds)
+        private WorkingMaterial CreateBakedMaterial(string name, Bounds bounds)
         {
-            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, m_terrainMaterialInstanceId);
+            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, m_terrainMaterialInstanceId, true);
+            material.Name = name + "_Material";
 
-            m_queue.EnqueueJob(()=>
+            m_queue.EnqueueJob(() =>
             {
-                
-                WorkingTexture albedo = BakeAlbedo( bounds, m_hlod.TextureSize);
+                WorkingTexture albedo = BakeAlbedo(name, bounds, m_hlod.TextureSize);
                 material.AddTexture(m_hlod.AlbedoPropertyName, albedo);
             });
 
@@ -298,7 +302,7 @@ namespace Unity.HLODSystem
             {
                 m_queue.EnqueueJob(() =>
                 {
-                    WorkingTexture normal = BakeNormal(bounds, m_hlod.TextureSize);
+                    WorkingTexture normal = BakeNormal(name, bounds, m_hlod.TextureSize);
                     material.AddTexture(m_hlod.NormalPropertyName, normal);
                 });
             }
@@ -306,9 +310,10 @@ namespace Unity.HLODSystem
             return material;
         }
 
-        private WorkingTexture BakeAlbedo(Bounds bounds, int resolution)
+        private WorkingTexture BakeAlbedo(string name, Bounds bounds, int resolution)
         {
             WorkingTexture albedoTexture = new WorkingTexture(Allocator.Persistent, TextureFormat.RGB24, resolution, resolution, false);
+            albedoTexture.Name = name + "_Albedo";
             albedoTexture.WrapMode = TextureWrapMode.Clamp;
             
             m_queue.EnqueueJob(() =>
@@ -373,9 +378,10 @@ namespace Unity.HLODSystem
             return albedoTexture;
         }
 
-        private WorkingTexture BakeNormal(Bounds bounds, int resolution)
+        private WorkingTexture BakeNormal(string name, Bounds bounds, int resolution)
         {
             WorkingTexture normalTexture = new WorkingTexture(Allocator.Persistent, TextureFormat.RGB24, resolution, resolution, true);
+            normalTexture.Name = name + "_Normal";
             normalTexture.WrapMode = TextureWrapMode.Clamp;
 
             m_queue.EnqueueJob(() =>
@@ -608,6 +614,7 @@ namespace Unity.HLODSystem
             }
 
             WorkingMesh mesh = new WorkingMesh(Allocator.Persistent, vertices.Count, maxTris, subMeshTris.Count, 0);
+            mesh.name = source.name;
             mesh.vertices = vertices.ToArray();
             mesh.normals = normals.ToArray();
             mesh.uv = uvs.ToArray();
@@ -746,6 +753,7 @@ namespace Unity.HLODSystem
             }
             
             WorkingMesh mesh = new WorkingMesh(Allocator.Persistent, source.vertexCount, totalTris, source.subMeshCount, 0);
+            mesh.name = source.name;
             mesh.vertices = source.vertices;
             mesh.normals = source.normals;
             mesh.uv = source.uv;
@@ -770,7 +778,7 @@ namespace Unity.HLODSystem
 
             trevelQueue.Enqueue(root);
             parentQueue.Enqueue(-1);
-            nameQueue.Enqueue("");
+            nameQueue.Enqueue("HLOD");
             depthQueue.Enqueue(0);
             
 
@@ -797,7 +805,7 @@ namespace Unity.HLODSystem
                 }
                 
                 Heightmap createdHeightmap;
-                info.WorkingObjects.Add(CreateBakedTerrain(node.Bounds, out createdHeightmap));
+                info.WorkingObjects.Add(CreateBakedTerrain(name, node.Bounds, out createdHeightmap));
                 info.Heightmap = createdHeightmap;
                 info.Distances.Add(depth);
                 results.Add(info);
@@ -959,10 +967,10 @@ namespace Unity.HLODSystem
                                             WorkingTexture wt = wm.GetTexture(textureNames[ti]);
                                             Texture2D tex = wt.ToTexture();
                                             tex.wrapMode = wt.WrapMode;
-                                            
+                                            mat.name = targetGO.name + "_Mat"; 
                                             mat.SetTexture(textureNames[ti],tex);
                                         }
-                                        //mat.EnableKeyword("_NORMALMAP");
+                                        mat.EnableKeyword("_NORMALMAP");
                                         materials.Add(mat);
                                     }
                                     

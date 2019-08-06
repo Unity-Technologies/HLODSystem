@@ -64,12 +64,6 @@ namespace Unity.HLODSystem.Streaming
             m_manager = manager;
             m_streamingOptions = streamingOptions;
         }
-
-        public string GetOutputDir()
-        {
-            dynamic options = m_streamingOptions;
-            return options.OutputDirectory;
-        }
         
         public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, bool writeNoPrefab, Action<float> onProgress)
         {
@@ -92,37 +86,40 @@ namespace Unity.HLODSystem.Streaming
             string filename = $"{path}{root.name}.hlod";
             using (Stream stream = new FileStream(filename, FileMode.Create))
             {
+                HLODData data = new HLODData();
+                data.CompressionData = compressionData;
+                
                 for (int i = 0; i < infos.Count; ++i)
                 {
-                    MeshUtils.HLODBuildInfoToStream(infos[i], compressionData, stream);
+                    data.AddFromWokringObjects(infos[i].Name, infos[i].WorkingObjects);
+                    
                     if (onProgress != null)
                         onProgress((float) i / (float) infos.Count);
                 }
+
+                if (writeNoPrefab)
+                {
+                    for (int ii = 0; ii < infos.Count; ++ii)
+                    {
+                        var spaceNode = infos[ii].Target;
+                        
+                        for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
+                        {
+                            if (PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]) == false)
+                            {
+                                data.AddFromGameObject(spaceNode.Objects[oi]);
+                            }
+                        }
+                    }
+                }
+                
+                HLODDataSerializer.Write(stream, data);
             }
 
             AssetDatabase.ImportAsset(filename, ImportAssetOptions.ForceUpdate);
-            Object[] allAssets = AssetDatabase.LoadAllAssetsAtPath(filename);
-            Dictionary<string, List<GameObject>> gameObjects = new Dictionary<string, List<GameObject>>();
-
-            for (int i = 0; i < allAssets.Length; ++i)
-            {
-                if (AssetDatabase.IsMainAsset(allAssets[i]))
-                {
-                    AddAddress(allAssets[i]);
-                    m_manager.AddGeneratedResource(allAssets[i]);
-                    continue;
-                }
-                
-                GameObject go = allAssets[i] as GameObject;
-                if (go == null)
-                    continue;
-                
-                if ( gameObjects.ContainsKey(go.name ) == false )
-                    gameObjects.Add(go.name, new List<GameObject>());
-                
-                gameObjects[go.name].Add(go);
-            }
-            
+            RootData rootData = AssetDatabase.LoadAssetAtPath<RootData>(filename);
+            m_manager.AddGeneratedResource(rootData);
+            AddAddress(rootData);
 
             var addressableController = root.AddComponent<AddressableController>();
 
@@ -134,7 +131,31 @@ namespace Unity.HLODSystem.Streaming
                 for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
                 {
                     int highId = -1;
-                    
+                    GameObject obj = spaceNode.Objects[oi];
+
+                    if (PrefabUtility.IsPartOfAnyPrefab(obj) == false)
+                    {
+                        GameObject rootGameObject = rootData.GetRootObject(obj.name);
+                        if (rootGameObject != null)
+                        {
+                            GameObject go = PrefabUtility.InstantiatePrefab(rootGameObject) as GameObject;
+                            go.transform.SetParent(obj.transform.parent);
+                            go.transform.localPosition = obj.transform.localPosition;
+                            go.transform.localRotation = obj.transform.localRotation;
+                            go.transform.localScale = obj.transform.localScale;
+
+                            if (m_manager.IsGeneratedResource(obj))
+                                m_manager.AddGeneratedResource(go);
+                            else
+                                m_manager.AddConvertedPrefabResource(go);
+
+                            spaceNode.Objects.Add(go);
+
+                            Object.DestroyImmediate(obj);
+                            continue;
+                        }
+                    }
+
                     var address = GetAddress(spaceNode.Objects[oi]);
                     if (string.IsNullOrEmpty(address) && PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]))
                     {
@@ -153,10 +174,9 @@ namespace Unity.HLODSystem.Streaming
                     
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
-                
-                List<GameObject> currentObjects = gameObjects[infos[i].Name];
-                for (int oi = 0; oi < currentObjects.Count; ++oi)
+
                 {
+                    GameObject prefab = rootData.GetRootObject(infos[i].Name);
                     int lowId = addressableController.AddLowObject(filename + "." + infos[i].Name);
                     hlodTreeNode.LowObjectIds.Add(lowId);
                 }

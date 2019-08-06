@@ -98,6 +98,7 @@ namespace Unity.HLODSystem
 
             }
 
+            combinedMesh.name = "CombinedMesh";
             combinedMesh.vertices = vertices.ToArray();
             combinedMesh.normals = normals.ToArray();
             combinedMesh.tangents = tangents.ToArray();

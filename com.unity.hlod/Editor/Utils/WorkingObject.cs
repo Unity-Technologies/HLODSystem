@@ -24,6 +24,7 @@ namespace Unity.HLODSystem.Utils
 
         private Allocator m_allocator;
 
+        public string Name { set; get; }
         public WorkingMesh Mesh
         {
             get { return m_mesh; }
@@ -78,11 +79,6 @@ namespace Unity.HLODSystem.Utils
             }
 
             m_mesh = mesh;
-        }
-
-        public void AddMaterial(WorkingMaterial material)
-        {
-            m_materials.Add(material.Clone());
         }
 
         public void Dispose()

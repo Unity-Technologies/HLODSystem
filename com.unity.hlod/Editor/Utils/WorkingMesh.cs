@@ -73,7 +73,7 @@ namespace Unity.HLODSystem.Utils
         }
 
         const int k_MaxNameSize = 128;
-
+        
         public Vector3[] vertices
         {
             get

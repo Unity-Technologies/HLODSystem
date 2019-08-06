@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
@@ -22,6 +23,12 @@ namespace Unity.HLODSystem.Utils
     public class WorkingTexture : IDisposable
     {
         private WorkingTextureBuffer m_buffer;
+
+        public string Name
+        {
+            set { m_buffer.Name = value; }
+            get { return m_buffer.Name; }
+        }
 
         public TextureFormat Format => m_buffer.Format;
         public int Width => m_buffer.Widht;
@@ -234,6 +241,8 @@ namespace Unity.HLODSystem.Utils
         
         private TextureWrapMode m_wrapMode = TextureWrapMode.Repeat;
 
+        public string Name { set; get; }
+
         public TextureFormat Format => m_format;
         public int Widht => m_width;
         public int Height => m_height;
@@ -266,6 +275,7 @@ namespace Unity.HLODSystem.Utils
         public WorkingTextureBuffer(Allocator allocator, Texture2D source) 
             : this(allocator, source.format, source.width, source.height, !GraphicsFormatUtility.IsSRGBFormat(source.graphicsFormat))
         {
+            Name = source.name;
             m_source = source;
             CopyFrom(source);
             m_guid = GUIDUtils.ObjectToGUID(source);
@@ -280,6 +290,7 @@ namespace Unity.HLODSystem.Utils
         public Texture2D ToTexture()
         {
             Texture2D texture = new Texture2D(m_width, m_height, m_format, false, m_linear);
+            texture.name = Name;
             texture.SetPixels(m_pixels.ToArray());
             texture.wrapMode = m_wrapMode;
             texture.Apply();

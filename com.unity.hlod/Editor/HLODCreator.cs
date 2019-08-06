@@ -127,6 +127,9 @@ namespace Unity.HLODSystem
 
                 sw.Reset();
                 sw.Start();
+                
+                hlod.ConvertedPrefabObjects.Clear();
+                hlod.GeneratedObjects.Clear();
 
                 Bounds bounds = hlod.GetBounds();
 

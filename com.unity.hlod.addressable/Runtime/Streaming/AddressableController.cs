@@ -34,7 +34,6 @@ namespace Unity.HLODSystem.Streaming
         private Dictionary<int, GameObject> m_createdHighObjects = new Dictionary<int, GameObject>();
         private Dictionary<int, GameObject> m_createdLowObjects = new Dictionary<int, GameObject>();
 
-        
         private GameObject m_hlodMeshesRoot;
         
         public override void OnStart()
@@ -43,6 +42,9 @@ namespace Unity.HLODSystem.Streaming
 #if UNITY_EDITOR
             Install();
 #endif
+
+            m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
+            m_hlodMeshesRoot.transform.SetParent(transform, false);
 
         }
 
@@ -54,8 +56,6 @@ namespace Unity.HLODSystem.Streaming
 
         public override void Install()
         {
-            m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            m_hlodMeshesRoot.transform.SetParent(transform, false);
             
             for (int i = 0; i < m_highObjects.Count; ++i)
             {

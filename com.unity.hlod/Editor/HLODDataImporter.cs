@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Experimental.AssetImporters;
@@ -19,52 +21,113 @@ namespace Unity.HLODSystem
             {
                 try
                 {
-                    EmptyData rootData = EmptyData.CreateInstance<EmptyData>();
-                    ctx.AddObjectToAsset("Root", rootData);
-                    ctx.SetMainObject(rootData); 
+                    UpdateProgress(ctx.assetPath, 0, 1);
                     
-                    while (stream.Position < stream.Length)
+                    HLODData data = HLODDataSerializer.Read(stream);
+                    RootData rootData = RootData.CreateInstance<RootData>();
+                    TextureFormat compressFormat = GetCompressFormat(data, buildTargetGroup);
+
+                    int currentProgress = 0;
+                    int maxProgress = data.GetMaterials().Count + data.GetObjects().Count;
+
+                    rootData.name = "Root";
+                    
+                    var serializableMaterials = data.GetMaterials();
+                    var loadedMaterials = new Dictionary<string, Material>();
+                    for (int mi = 0; mi < serializableMaterials.Count; ++mi)
                     {
-                        UpdateProgress(ctx.assetPath, stream);
-                        HLODData data = HLODDataSerializer.Read(stream);
-                        TextureFormat compressFormat = GetCompressFormat(data, buildTargetGroup);
-                        GameObject go = new GameObject(data.Name);
-                        
-                        Mesh mesh = data.GetMesh();
-                        mesh.name = data.Name + "_Mesh";
-                        ctx.AddObjectToAsset(mesh.name, mesh);
-                        
-                        List<Material> materials = new List<Material>();
+                        UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
+                        var sm = serializableMaterials[mi];
 
-                        for (int mi = 0; mi < data.GetMaterialCount(); ++mi)
+                        if (loadedMaterials.ContainsKey(sm.ID))
+                            continue;
+                        
+                        Material mat = sm.To();
+                        loadedMaterials.Add(sm.ID, mat);
+                        
+                        if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(mat)) == false)
+                            continue;
+                        
+                        ctx.AddObjectToAsset(mat.name, mat);
+
+                        for (int ti = 0; ti < sm.GetTextureCount(); ++ti)
                         {
-                            HLODData.SerializableMaterial sm = data.GetMaterial(mi);
-                            Material mat = sm.To();
-                            mat.name = data.Name + "_Mat";
-                            ctx.AddObjectToAsset(mat.name, mat);
+                            HLODData.SerializableTexture st = sm.GetTexture(ti);
+                            Texture2D texture = st.To();
+                            EditorUtility.CompressTexture(texture, compressFormat, TextureCompressionQuality.Normal);
 
-                            for (int ti = 0; ti < sm.GetTextureCount(); ++ti)
-                            {
-                                HLODData.SerializableTexture st = sm.GetTexture(ti);
-                                Texture2D texture = st.To();
-                                texture.name = data.Name + "_" + st.Name;
-                                EditorUtility.CompressTexture(texture, compressFormat, TextureCompressionQuality.Normal );
-                                
-                                mat.SetTexture(st.Name, texture);
-                                ctx.AddObjectToAsset(texture.name, texture);
-                            }
-                            mat.EnableKeyword("_NORMALMAP");
-                            materials.Add(mat);
+                            mat.SetTexture(st.Name, texture);
+                            ctx.AddObjectToAsset(texture.name, texture);
                         }
 
-                        var mf = go.AddComponent<MeshFilter>();
-                        var mr = go.AddComponent<MeshRenderer>();
+                        mat.EnableKeyword("_NORMALMAP");
 
+
+                    }
+
+                    var serializableObjects = data.GetObjects();
+                    Dictionary<string, List<GameObject>> createdGameObjects = new Dictionary<string, List<GameObject>>();
+
+                    for (int oi = 0; oi < serializableObjects.Count; ++oi)
+                    {
+                        UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
+
+                        var so = serializableObjects[oi];
+                        GameObject go = new GameObject();
+                        go.name = so.Name;
+
+                        MeshFilter mf = go.AddComponent<MeshFilter>();
+                        MeshRenderer mr = go.AddComponent<MeshRenderer>();
+                        List<string> materialIds = so.GetMaterialIds();
+                        List<Material> materials = new List<Material>();
+
+                        for (int mi = 0; mi < materialIds.Count; ++mi)
+                        {
+                            string id = materialIds[mi];
+                            if (loadedMaterials.ContainsKey(id))
+                            {
+                                materials.Add(loadedMaterials[id]);
+                            }
+                        }
+
+                        Mesh mesh = so.GetMesh();
                         mf.sharedMesh = mesh;
                         mr.sharedMaterials = materials.ToArray();
+
+                        ctx.AddObjectToAsset(mesh.name, mesh);
                         
-                        ctx.AddObjectToAsset(go.name, go);
+                        if ( createdGameObjects.ContainsKey(go.name) == false )
+                            createdGameObjects.Add(go.name, new List<GameObject>());
+                        
+                        createdGameObjects[go.name].Add(go);
                     }
+
+                    foreach (var objects in createdGameObjects.Values)
+                    {
+                        if (objects.Count > 1)
+                        {
+                            GameObject root = new GameObject();
+                            root.name = objects[0].name;
+                            for (int i = 0; i < objects.Count; ++i)
+                            {
+                                objects[i].name = objects[i].name + "_" + i;
+                                objects[i].transform.SetParent(root.transform, true);
+                            }
+
+                            rootData.SetRootObject(root.name, root);
+                            ctx.AddObjectToAsset(root.name, root);
+                        }
+                        else
+                        {
+                            rootData.SetRootObject(objects[0].name, objects[0]);
+                            ctx.AddObjectToAsset(objects[0].name, objects[0]);
+                        }
+                    }
+                    
+                    ctx.AddObjectToAsset("Root", rootData);
+                    ctx.SetMainObject(rootData);
+
+
                 }
                 finally
                 {
@@ -86,9 +149,9 @@ namespace Unity.HLODSystem
             return data.CompressionData.PCTextureFormat;
         }
 
-        private void UpdateProgress(string filename, Stream stream)
+        private void UpdateProgress(string filename, int current, int max)
         {
-            float pos = (float)stream.Position / (float)stream.Length;
+            float pos = (float)current/ (float)max;
             EditorUtility.DisplayProgressBar("Importing", "Importing " + filename, pos);            
         }
     }
@@ -98,7 +161,7 @@ namespace Unity.HLODSystem
         public int callbackOrder { get; }
         public void OnActiveBuildTargetChanged(BuildTarget previousTarget, BuildTarget newTarget)
         {
-            string[] guids = AssetDatabase.FindAssets("t:EmptyData");
+            string[] guids = AssetDatabase.FindAssets("t:RootData");
             for (int i = 0; i < guids.Length; ++i)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guids[i]);

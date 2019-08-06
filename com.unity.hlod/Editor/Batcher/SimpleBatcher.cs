@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using Unity.HLODSystem.Utils;
+using UnityEditor.Build;
 
 namespace Unity.HLODSystem
 {
@@ -130,6 +131,7 @@ namespace Unity.HLODSystem
                 for (int i = 0; i < atlas.Textures.Count; ++i)
                 {
                     WorkingTexture wt = atlas.Textures[i];
+                    wt.Name = "CombinedTexture " + index + "_" + i;
                     if (textureInfoList[i].Type == PackingType.Normal)
                     {
                         wt.Linear = true;
@@ -139,6 +141,7 @@ namespace Unity.HLODSystem
                 }
                 
                 WorkingMaterial mat = CreateMaterial(options.MaterialGUID, textures);
+                mat.Name = "CombinedMaterial " + index;
                 m_createdMaterials.Add(atlas, mat);
                 index += 1;
             }
@@ -153,13 +156,13 @@ namespace Unity.HLODSystem
                 Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
                 if (mat != null)
                 {
-                    material = new WorkingMaterial(Allocator.Invalid, mat.GetInstanceID());
+                    material = new WorkingMaterial(Allocator.Invalid, mat.GetInstanceID(), true);
                 }
             }
 
             if (material == null)
             {
-                material = new WorkingMaterial(Allocator.Persistent);
+                material = new WorkingMaterial(Allocator.Persistent, new Material(Shader.Find("Standard")));
             }
             
             foreach (var texture in textures)
@@ -204,7 +207,9 @@ namespace Unity.HLODSystem
 
             WorkingObject newObj = new WorkingObject(Allocator.Persistent);
             WorkingMaterial newMat = m_createdMaterials[atlas];
-            
+
+            combinedMesh.name = info.Name + "_Mesh";
+            newObj.Name = info.Name;
             newObj.SetMesh(combinedMesh);
             newObj.Materials.Add(newMat);
 
