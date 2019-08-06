@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Experimental.AssetImporters;
@@ -16,13 +14,11 @@ namespace Unity.HLODSystem
         public override void OnImportAsset(AssetImportContext ctx)
         {
             var buildTargetGroup = BuildPipeline.GetBuildTargetGroup(ctx.selectedBuildTarget);
-            
-            using (Stream stream = new FileStream(ctx.assetPath, FileMode.Open))
+            try
             {
-                try
+                UpdateProgress(ctx.assetPath, 0, 1);
+                using (Stream stream = new FileStream(ctx.assetPath, FileMode.Open))
                 {
-                    UpdateProgress(ctx.assetPath, 0, 1);
-                    
                     HLODData data = HLODDataSerializer.Read(stream);
                     RootData rootData = RootData.CreateInstance<RootData>();
                     TextureFormat compressFormat = GetCompressFormat(data, buildTargetGroup);
@@ -31,7 +27,7 @@ namespace Unity.HLODSystem
                     int maxProgress = data.GetMaterials().Count + data.GetObjects().Count;
 
                     rootData.name = "Root";
-                    
+
                     var serializableMaterials = data.GetMaterials();
                     var loadedMaterials = new Dictionary<string, Material>();
                     for (int mi = 0; mi < serializableMaterials.Count; ++mi)
@@ -41,13 +37,13 @@ namespace Unity.HLODSystem
 
                         if (loadedMaterials.ContainsKey(sm.ID))
                             continue;
-                        
+
                         Material mat = sm.To();
                         loadedMaterials.Add(sm.ID, mat);
-                        
+
                         if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(mat)) == false)
                             continue;
-                        
+
                         ctx.AddObjectToAsset(mat.name, mat);
 
                         for (int ti = 0; ti < sm.GetTextureCount(); ++ti)
@@ -61,12 +57,11 @@ namespace Unity.HLODSystem
                         }
 
                         mat.EnableKeyword("_NORMALMAP");
-
-
                     }
 
                     var serializableObjects = data.GetObjects();
-                    Dictionary<string, List<GameObject>> createdGameObjects = new Dictionary<string, List<GameObject>>();
+                    Dictionary<string, List<GameObject>>
+                        createdGameObjects = new Dictionary<string, List<GameObject>>();
 
                     for (int oi = 0; oi < serializableObjects.Count; ++oi)
                     {
@@ -95,10 +90,10 @@ namespace Unity.HLODSystem
                         mr.sharedMaterials = materials.ToArray();
 
                         ctx.AddObjectToAsset(mesh.name, mesh);
-                        
-                        if ( createdGameObjects.ContainsKey(go.name) == false )
+
+                        if (createdGameObjects.ContainsKey(go.name) == false)
                             createdGameObjects.Add(go.name, new List<GameObject>());
-                        
+
                         createdGameObjects[go.name].Add(go);
                     }
 
@@ -123,16 +118,14 @@ namespace Unity.HLODSystem
                             ctx.AddObjectToAsset(objects[0].name, objects[0]);
                         }
                     }
-                    
+
                     ctx.AddObjectToAsset("Root", rootData);
                     ctx.SetMainObject(rootData);
-
-
                 }
-                finally
-                {
-                    EditorUtility.ClearProgressBar();
-                }
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
             }
         }
 
