@@ -8,8 +8,8 @@ namespace Unity.HLODSystem
     {
         private Dictionary<string, GameObject> m_rootObjects = new Dictionary<string, GameObject>();
 
-        [SerializeField] private List<string> m_serializedNames;
-        [SerializeField] private List<GameObject> m_serializedGameObjects;
+        [SerializeField] private List<string> m_serializedNames = new List<string>();
+        [SerializeField] private List<GameObject> m_serializedGameObjects = new List<GameObject>();
         
 
         public void SetRootObject(string name, GameObject gameObject)
@@ -39,9 +39,6 @@ namespace Unity.HLODSystem
 
         public void OnBeforeSerialize()
         {
-            m_serializedNames = new List<string>();
-            m_serializedGameObjects = new List<GameObject>();
-
             foreach (var item in m_rootObjects)
             {
                 m_serializedNames.Add(item.Key);
