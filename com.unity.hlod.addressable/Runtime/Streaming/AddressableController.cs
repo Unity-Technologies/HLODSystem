@@ -36,6 +36,8 @@ namespace Unity.HLODSystem.Streaming
 
         private GameObject m_hlodMeshesRoot;
         
+        private Dictionary<GameObject, AsyncOperationHandle> m_loadedHandles = new Dictionary<GameObject, AsyncOperationHandle>();
+        
         public override void OnStart()
         {
 
@@ -133,16 +135,22 @@ namespace Unity.HLODSystem.Streaming
                 else
                 {
 
-                    var op = Addressables.InstantiateAsync(m_highObjects[id].Address);
+                    var op = Addressables.LoadAssetAsync<GameObject>(m_highObjects[id].Address);
+                    //var op = Addressables.InstantiateAsync(m_highObjects[id].Address);
                     yield return op;
+                    
+                    if ( op.Status ==AsyncOperationStatus.Failed)
+                        yield break;
 
-                    go = op.Result;
+
+                    go = Instantiate(op.Result);
                     go.SetActive(false);
                     go.transform.parent = m_highObjects[id].Parent.transform;
                     go.transform.localPosition = m_highObjects[id].Position;
                     go.transform.localRotation = m_highObjects[id].Rotation;
                     go.transform.localScale = m_highObjects[id].Scale;
 
+                    m_loadedHandles.Add(go, op);
                     ChangeLayersRecursively(go.transform, layer);
 
                 }
@@ -175,16 +183,18 @@ namespace Unity.HLODSystem.Streaming
             {
                 m_createdLowObjects.Add(id, null);
 
-                var op = Addressables.InstantiateAsync(m_lowObjects[id]);
+                //var op = Addressables.InstantiateAsync(m_lowObjects[id]);
+                var op = Addressables.LoadAssetAsync<GameObject>(m_lowObjects[id]);
                 yield return op;
                 
                 if ( op.Status ==AsyncOperationStatus.Failed)
                     yield break;
 
-                GameObject go = op.Result;
+                GameObject go = Instantiate(op.Result);
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
                 
+                m_loadedHandles.Add(go, op);
                 ChangeLayersRecursively(go.transform, layer);
 
                 m_createdLowObjects[id] = go;
@@ -207,7 +217,14 @@ namespace Unity.HLODSystem.Streaming
             }
             else
             {
-                Addressables.ReleaseInstance(m_createdHighObjects[id]);
+                GameObject go = m_createdHighObjects[id];
+                var op = m_loadedHandles[go];
+                
+                m_loadedHandles.Remove(go);
+                DestoryObject(go);
+                Addressables.Release(op);
+                
+                //Addressables.ReleaseInstance(m_createdHighObjects[id]);
             }
 
             m_createdHighObjects.Remove(id);
@@ -215,9 +232,14 @@ namespace Unity.HLODSystem.Streaming
         public override void ReleaseLowObject(int id)
         {
             GameObject go = m_createdLowObjects[id];
+            var op = m_loadedHandles[go];
             m_createdLowObjects.Remove(id);
 
-            Addressables.ReleaseInstance(go);
+            m_loadedHandles.Remove(go);
+            DestoryObject(go);
+            Addressables.Release(op);
+
+            //Addressables.ReleaseInstance(go);
         }
 
         private void DestoryObject(Object obj)
