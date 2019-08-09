@@ -17,10 +17,6 @@ namespace Unity.HLODSystem
         }
         public void OnProcessScene(Scene scene, BuildReport report)
         {
-            //this case is enter the playmode.
-            if (report == null)
-                return;
-
             GameObject[] rootObjects = scene.GetRootGameObjects();
             for (int oi = 0; oi < rootObjects.Length; ++oi)
             {

@@ -46,9 +46,6 @@ namespace Unity.HLODSystem.Streaming
         
         public override void OnStart()
         {
-#if UNITY_EDITOR
-            Install();
-#endif
 
         }
 

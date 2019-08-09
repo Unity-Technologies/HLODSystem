@@ -40,11 +40,6 @@ namespace Unity.HLODSystem.Streaming
         
         public override void OnStart()
         {
-
-#if UNITY_EDITOR
-            Install();
-#endif
-
             m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
             m_hlodMeshesRoot.transform.SetParent(transform, false);
 

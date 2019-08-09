@@ -846,8 +846,8 @@ namespace Unity.HLODSystem
 
                 m_size = data.size;
 
-                m_heightmap = new Heightmap(data.heightmapWidth, data.heightmapHeight, data.size,
-                    data.GetHeights(0, 0, data.heightmapWidth, data.heightmapHeight));
+                m_heightmap = new Heightmap(data.heightmapResolution, data.heightmapResolution, data.size,
+                    data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution));
 
                 string materialPath = AssetDatabase.GUIDToAssetPath(m_hlod.MaterialGUID);
                 m_terrainMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
