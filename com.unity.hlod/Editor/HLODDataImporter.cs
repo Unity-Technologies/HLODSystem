@@ -17,7 +17,7 @@ namespace Unity.HLODSystem
             try
             {
                 UpdateProgress(ctx.assetPath, 0, 1);
-                using (Stream stream = new FileStream(ctx.assetPath, FileMode.Open))
+                using (Stream stream = new FileStream(ctx.assetPath, FileMode.Open, FileAccess.Read))
                 {
                     HLODData data = HLODDataSerializer.Read(stream);
                     RootData rootData = RootData.CreateInstance<RootData>();
