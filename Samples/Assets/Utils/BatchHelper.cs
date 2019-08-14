@@ -25,7 +25,7 @@ public class BatchHelper : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(1.0f, 0.0f, 0.0f, 0.3f);
-        Gizmos.DrawCube(m_area.center + transform.position, m_area.extents);
+        Gizmos.DrawCube(m_area.center + transform.position, m_area.size);
     }
 
 
