@@ -82,44 +82,68 @@ namespace Unity.HLODSystem.Streaming
             compressionData.iOSTextureFormat = options.iOSCompression;
             compressionData.tvOSTextureFormat = options.tvOSCompression;
 
-           
-            string filename = $"{path}{root.name}.hlod";
-            using (Stream stream = new FileStream(filename, FileMode.Create))
+
+            string filenamePrefix = $"{path}{root.name}";
+            Dictionary<int, HLODData> hlodDatas = new Dictionary<int, HLODData>();
+            hlodDatas.Add(-1, new HLODData());
+            hlodDatas[-1].CompressionData = compressionData;
+            
+            //string filename = $"{path}{root.name}.hlod";
+//            using (Stream stream = new FileStream(filename, FileMode.Create))
             {
-                HLODData data = new HLODData();
-                data.CompressionData = compressionData;
                 
                 for (int i = 0; i < infos.Count; ++i)
                 {
-                    data.AddFromWokringObjects(infos[i].Name, infos[i].WorkingObjects);
-                    
-                    if (onProgress != null)
-                        onProgress((float) i / (float) infos.Count);
-                }
-
-                if (writeNoPrefab)
-                {
-                    for (int ii = 0; ii < infos.Count; ++ii)
+                    if (hlodDatas.ContainsKey(infos[i].CurrentLevel) == false)
                     {
-                        var spaceNode = infos[ii].Target;
-                        
+                        HLODData newData = new HLODData();
+                        newData.CompressionData = compressionData;
+                        hlodDatas.Add(infos[i].CurrentLevel, newData);
+                    }
+
+                    HLODData data = hlodDatas[infos[i].CurrentLevel];
+                    data.AddFromWokringObjects(infos[i].Name, infos[i].WorkingObjects);
+                
+                    if (writeNoPrefab)
+                    {
+                        HLODData prefabData = hlodDatas[-1];
+                        var spaceNode = infos[i].Target;
+
                         for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
                         {
                             if (PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]) == false)
                             {
-                                data.AddFromGameObject(spaceNode.Objects[oi]);
+                                prefabData.AddFromGameObject(spaceNode.Objects[oi]);
                             }
                         }
                     }
+                    
+                    if (onProgress != null)
+                        onProgress((float) i / (float) infos.Count);
                 }
                 
-                HLODDataSerializer.Write(stream, data);
+                //HLODDataSerializer.Write(stream, data);
             }
 
-            AssetDatabase.ImportAsset(filename, ImportAssetOptions.ForceUpdate);
-            RootData rootData = AssetDatabase.LoadAssetAtPath<RootData>(filename);
-            m_manager.AddGeneratedResource(rootData);
-            AddAddress(rootData);
+            Dictionary<int, RootData> rootDatas = new Dictionary<int, RootData>();
+            foreach (var item in hlodDatas)
+            {
+                string filename = $"{filenamePrefix}_level{item.Key}.hlod";
+                using (Stream stream = new FileStream(filename, FileMode.Create))
+                {
+                    HLODDataSerializer.Write(stream, item.Value);
+                    stream.Close();
+                }
+                
+                AssetDatabase.ImportAsset(filename, ImportAssetOptions.ForceUpdate);
+                RootData rootData = AssetDatabase.LoadAssetAtPath<RootData>(filename);
+                m_manager.AddGeneratedResource(rootData);
+                AddAddress(rootData);
+                
+                rootDatas.Add(item.Key, rootData);
+            }
+
+            
 
             var addressableController = root.AddComponent<AddressableController>();
 
@@ -135,7 +159,7 @@ namespace Unity.HLODSystem.Streaming
 
                     if (PrefabUtility.IsPartOfAnyPrefab(obj) == false)
                     {
-                        GameObject rootGameObject = rootData.GetRootObject(obj.name);
+                        GameObject rootGameObject = rootDatas[-1].GetRootObject(obj.name);
                         if (rootGameObject != null)
                         {
                             GameObject go = PrefabUtility.InstantiatePrefab(rootGameObject) as GameObject;
@@ -176,7 +200,7 @@ namespace Unity.HLODSystem.Streaming
                 }
 
                 {
-                    GameObject prefab = rootData.GetRootObject(infos[i].Name);
+                    string filename = $"{filenamePrefix}_level{infos[i].CurrentLevel}.hlod";
                     int lowId = addressableController.AddLowObject(filename + "." + infos[i].Name);
                     hlodTreeNode.LowObjectIds.Add(lowId);
                 }

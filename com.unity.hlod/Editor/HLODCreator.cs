@@ -62,22 +62,26 @@ namespace Unity.HLODSystem
             Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
             Queue<int> parentQueue = new Queue<int>();
             Queue<string> nameQueue = new Queue<string>();
+            Queue<int> levelQueue = new Queue<int>();
 
             trevelQueue.Enqueue(root);
             parentQueue.Enqueue(-1);
+            levelQueue.Enqueue(0);
             nameQueue.Enqueue("");
             
 
             while (trevelQueue.Count > 0)
             {
                 int currentNodeIndex = results.Count;
+                int currentLevel = levelQueue.Dequeue();
                 string name = nameQueue.Dequeue();
                 SpaceNode node = trevelQueue.Dequeue();
                 HLODBuildInfo info = new HLODBuildInfo
                 {
                     Name = name,
                     ParentIndex = parentQueue.Dequeue(),
-                    Target = node
+                    Target = node,
+                    CurrentLevel = currentLevel
                 };
 
 
@@ -86,6 +90,7 @@ namespace Unity.HLODSystem
                     trevelQueue.Enqueue(node.GetChild(i));
                     parentQueue.Enqueue(currentNodeIndex);
                     nameQueue.Enqueue(name + "_" + (i + 1));
+                    levelQueue.Enqueue(currentLevel + 1);
                 }
                 
 

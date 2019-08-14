@@ -138,6 +138,7 @@ namespace Unity.HLODSystem
     {
         public string Name = "";
         public int ParentIndex = -1;
+        public int CurrentLevel = -1;
         public SpaceNode Target;
 
         public DisposableList<WorkingObject> WorkingObjects = new DisposableList<WorkingObject>();
