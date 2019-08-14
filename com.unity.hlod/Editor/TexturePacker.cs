@@ -100,9 +100,9 @@ namespace Unity.HLODSystem
         class TextureCombiner : IDisposable
         {
             private WorkingTexture m_texture;
-            public TextureCombiner(Allocator allocator, int width, int height)
+            public TextureCombiner(Allocator allocator, TextureFormat format, int width, int height, bool linear)
             {
-                m_texture = new WorkingTexture(allocator, width, height);
+                m_texture = new WorkingTexture(allocator, format, width, height, linear);
             }
             public void Dispose()
             {
@@ -220,44 +220,41 @@ namespace Unity.HLODSystem
                 return minTextureCount;
             }
 
-            public TextureAtlas CreateAtlas(int packTextureSize)
+            public TextureAtlas CreateAtlas(TextureFormat format, int packTextureSize, bool linear)
             {
                 int itemCount = Mathf.CeilToInt(Mathf.Sqrt(m_textures.Count));
                 int itemSize = packTextureSize / itemCount;
                 TextureAtlas atlas;
 
-                using(DisposableList<MaterialTexture> resizedTextures = CreateResizedTextures(itemSize, itemSize))
+                using (DisposableList<MaterialTexture> resizedTextures = CreateResizedTextures(itemSize, itemSize))
+                using (DisposableList<TextureCombiner> combiners = new DisposableList<TextureCombiner>())
                 {
-                    using (DisposableList<TextureCombiner> combiners = new DisposableList<TextureCombiner>())
+                    List<Rect> uvs = new List<Rect>(resizedTextures.Count);
+                    List<Guid> guids = new List<Guid>(resizedTextures.Count);
+                    for (int i = 0; i < resizedTextures.Count; ++i)
                     {
-                        List<Rect> uvs = new List<Rect>(resizedTextures.Count);
-                        List<Guid> guids = new List<Guid>(resizedTextures.Count);
-                        for (int i = 0; i < resizedTextures.Count; ++i)
+                        int x = i % itemCount;
+                        int y = i / itemCount;
+
+                        for (int k = combiners.Count; k < resizedTextures[i].Count; ++k)
+                            combiners.Add(new TextureCombiner(Allocator.Persistent, format, packTextureSize,
+                                packTextureSize, linear));
+
+                        uvs.Add(new Rect(
+                            (float) (x * itemSize)/ (float) packTextureSize,
+                            (float) (y * itemSize)/ (float) packTextureSize,
+                            (float) resizedTextures[i][0].Width / (float) packTextureSize,
+                            (float) resizedTextures[i][0].Height / (float) packTextureSize));
+
+                        guids.Add(m_textures[i][0].GetGUID());
+
+                        for (int k = 0; k < resizedTextures[i].Count; ++k)
                         {
-
-                            int x = i % itemCount;
-                            int y = i / itemCount;
-
-                            for (int k = combiners.Count; k < resizedTextures[i].Count; ++k)
-                                combiners.Add(new TextureCombiner(Allocator.Persistent, packTextureSize,
-                                    packTextureSize));
-
-                            uvs.Add(new Rect(
-                                (float) x / (float) packTextureSize,
-                                (float) y / (float) packTextureSize,
-                                (float) resizedTextures[i][0].Width / (float) packTextureSize,
-                                (float) resizedTextures[i][0].Height / (float) packTextureSize));
-                            
-                            guids.Add(m_textures[i][0].GetGUID());
-
-                            for (int k = 0; k < resizedTextures[i].Count; ++k)
-                            {
-                                combiners[k].SetTexture(resizedTextures[i][k], x * itemSize, y * itemSize );
-                            }
+                            combiners[k].SetTexture(resizedTextures[i][k], x * itemSize, y * itemSize);
                         }
-
-                        atlas = new TextureAtlasCreator(m_obj, uvs, guids, combiners);
                     }
+
+                    atlas = new TextureAtlasCreator(m_obj, uvs, guids, combiners);
                 }
 
                 return atlas;
@@ -291,14 +288,18 @@ namespace Unity.HLODSystem
 
         class TaskGroup
         {
+            private TextureFormat m_format;
             private int m_packTextureSize;
             private int m_maxCount;
+            private bool m_linear;
             private List<Source> m_sources = new List<Source>();
 
-            public TaskGroup(int packTextureSize, int maxCount)
+            public TaskGroup(TextureFormat format, int packTextureSize, bool linear, int maxCount)
             {
+                m_format = format;
                 m_packTextureSize = packTextureSize;
                 m_maxCount = maxCount;
+                m_linear = linear;
             }
 
             public void AddSource(Source source)
@@ -356,7 +357,7 @@ namespace Unity.HLODSystem
 
                 for (int i = 0; i < m_sources.Count; ++i)
                 {
-                    TextureAtlas item = m_sources[i].CreateAtlas(m_packTextureSize);
+                    TextureAtlas item = m_sources[i].CreateAtlas(m_format, m_packTextureSize, m_linear);
                     atlases.Add(item);
                 }
                 return atlases;
@@ -397,7 +398,7 @@ namespace Unity.HLODSystem
             m_sources.Add(source);
         }
         
-        public void Pack(int packTextureSize, int maxSourceSize)
+        public void Pack(TextureFormat format, int packTextureSize, int maxSourceSize, bool linear)
         {
             //First, we should separate each group by count.
             Dictionary<int, TaskGroup> taskGroups = new Dictionary<int, TaskGroup>();
@@ -405,7 +406,7 @@ namespace Unity.HLODSystem
             {
                 int maxCount = m_sources[i].GetMaxTextureCount(packTextureSize, maxSourceSize);
                 if (taskGroups.ContainsKey(maxCount) == false)
-                    taskGroups.Add(maxCount, new TaskGroup(packTextureSize, maxCount));
+                    taskGroups.Add(maxCount, new TaskGroup(format, packTextureSize, linear, maxCount));
 
                 taskGroups[maxCount].AddSource(m_sources[i]);
             }

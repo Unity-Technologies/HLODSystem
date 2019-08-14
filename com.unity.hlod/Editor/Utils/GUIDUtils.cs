@@ -9,6 +9,8 @@ namespace Unity.HLODSystem.Utils
         public static Guid ObjectToGUID(Object obj)
         {
             string path = AssetDatabase.GetAssetPath(obj);
+            if (string.IsNullOrEmpty(path))
+                return Guid.NewGuid();
             return Guid.Parse(AssetDatabase.AssetPathToGUID(path));
         }
 

@@ -43,7 +43,7 @@ namespace Unity.HLODSystem
         private void Combine(Vector3 rootPosition, HLODBuildInfo info)
         {
             var instancesTable = new Dictionary<Material, List<CombineInstance>>();
-            var combineInfos = new Dictionary<Guid, List<MeshCombiner.CombineInfo>>();
+            var combineInfos = new Dictionary<int, List<MeshCombiner.CombineInfo>>();
 
             for (int i = 0; i < info.WorkingObjects.Count; ++i)
             {
@@ -60,12 +60,12 @@ namespace Unity.HLODSystem
                     combineInfo.Mesh = info.WorkingObjects[i].Mesh;
                     combineInfo.MeshIndex = m;
 
-                    if (combineInfos.ContainsKey(materials[m].GUID) == false)
+                    if (combineInfos.ContainsKey(materials[m].InstanceID) == false)
                     {
-                        combineInfos.Add(materials[m].GUID, new List<MeshCombiner.CombineInfo>());
+                        combineInfos.Add(materials[m].InstanceID, new List<MeshCombiner.CombineInfo>());
                     }
                     
-                    combineInfos[materials[m].GUID].Add(combineInfo);
+                    combineInfos[materials[m].InstanceID].Add(combineInfo);
                 }
             }
 
@@ -75,10 +75,12 @@ namespace Unity.HLODSystem
             {
                 WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, pair.Value);
                 WorkingObject combinedObject = new WorkingObject(Allocator.Persistent);
-                WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, pair.Key);
+                WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, pair.Key, false);
 
+                combinedMesh.name = info.Name + "_Mesh" + pair.Key;
+                combinedObject.Name = info.Name;
                 combinedObject.SetMesh(combinedMesh);
-                combinedObject.AddMaterial(material);
+                combinedObject.Materials.Add(material);
                 material.Dispose();
                 
                 combinedObjects.Add(combinedObject);

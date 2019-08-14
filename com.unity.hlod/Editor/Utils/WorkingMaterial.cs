@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
@@ -9,8 +10,7 @@ namespace Unity.HLODSystem.Utils
     {
         public static WorkingMaterial ToWorkingMaterial(this Material mat, Allocator allocator)
         {
-            WorkingMaterial wm = new WorkingMaterial(allocator);
-            wm.FromMaterial(mat);
+            WorkingMaterial wm = new WorkingMaterial(allocator, mat);
             return wm;
 
         }
@@ -18,39 +18,61 @@ namespace Unity.HLODSystem.Utils
     public class WorkingMaterial : IDisposable
     {
         private Allocator m_allocator;
-        private Guid m_materialGuid;
+        public string m_guid;
+        private int m_instanceID;
+        private bool m_copy;
         private DisposableDictionary<string, WorkingTexture> m_textures;
+        
+        public string Name { set; get; }
 
-        public Guid GUID
+        public string Guid
         {
-            set { m_materialGuid = value;}
-            get { return m_materialGuid; }
+            get { return m_guid; }
+        }
+        public int InstanceID
+        {
+            get { return m_instanceID; }
         }
 
-        public WorkingMaterial(Allocator allocator)
+        private WorkingMaterial(Allocator allocator)
         {
             m_allocator = allocator;
-            m_materialGuid = Guid.Empty;
+            m_instanceID = 0;
             m_textures = new DisposableDictionary<string, WorkingTexture>();
-        }
-        public WorkingMaterial(Allocator allocator, Guid materialGuid) : this(allocator)
-        {
-            m_materialGuid = materialGuid;
+            m_guid = System.Guid.NewGuid().ToString("N");
         }
 
-        public WorkingMaterial Clone()
+        public WorkingMaterial(Allocator allocator, Material mat) : this(allocator)
         {
-            WorkingMaterial nwm = new WorkingMaterial(m_allocator);
-
-            nwm.m_materialGuid = m_materialGuid;
-            nwm.m_textures = new DisposableDictionary<string, WorkingTexture>();
-
-            foreach (var pair in m_textures)
+            Name = mat.name;
+            m_instanceID = mat.GetInstanceID();
+            m_copy = false;
+            m_textures.Dispose();
+            m_textures = new DisposableDictionary<string, WorkingTexture>();
+            m_guid = System.Guid.NewGuid().ToString("N");
+                
+            string[] names = mat.GetTexturePropertyNames();
+            for (int i = 0; i < names.Length; ++i)
             {
-                nwm.m_textures.Add(pair.Key, pair.Value.Clone());
+                Texture2D texture = mat.GetTexture(names[i]) as Texture2D;
+                if (texture == null)
+                    continue;
+                    
+                m_textures.Add(names[i], texture.ToWorkingTexture(m_allocator));
             }
+        }
+        public  WorkingMaterial(Allocator allocator, int materialId, bool copy) : this(allocator)
+        {
+            m_instanceID = materialId;
+            m_copy = copy;
+        }
 
-            return nwm;
+        public bool NeedWrite()
+        {
+            if (m_copy == true)
+                return true;
+            string path = AssetDatabase.GetAssetPath(m_instanceID);
+            return string.IsNullOrEmpty(path);
         }
 
         public void AddTexture(string name, WorkingTexture texture)
@@ -58,6 +80,14 @@ namespace Unity.HLODSystem.Utils
             lock (m_textures)
             {
                 m_textures.Add(name, texture);
+            }
+        }
+
+        public string[] GetTextureNames()
+        {
+            lock (m_textures)
+            {
+                return m_textures.Keys.ToArray();
             }
         }
         public WorkingTexture GetTexture(string name)
@@ -72,29 +102,16 @@ namespace Unity.HLODSystem.Utils
             }
         }
 
-        public void FromMaterial(Material mat)
-        {
-            string materialPath = AssetDatabase.GetAssetPath(mat);
-            m_materialGuid = Guid.Parse(AssetDatabase.AssetPathToGUID(materialPath));
-            m_textures.Dispose();
-            m_textures = new DisposableDictionary<string, WorkingTexture>();
-                
-            string[] names = mat.GetTexturePropertyNames();
-            for (int i = 0; i < names.Length; ++i)
-            {
-                Texture2D texture = mat.GetTexture(names[i]) as Texture2D;
-                if (texture == null)
-                    continue;
-                    
-                m_textures.Add(names[i], texture.ToWorkingTexture(m_allocator));
-            }
-        }
-
         public Material ToMaterial()
         {
-            string path = AssetDatabase.GUIDToAssetPath(m_materialGuid.ToString("N"));
-            return AssetDatabase.LoadAssetAtPath<Material>(path);
+            Material mat = EditorUtility.InstanceIDToObject(m_instanceID) as Material;
             
+            if (mat == null)
+            {
+                return new Material(Shader.Find("Standard"));
+            }
+
+            return mat;
         }
 
         public void Dispose()

@@ -33,26 +33,6 @@ namespace Unity.HLODSystem.Utils
             return result.ToList();
         }
 
-        
-        public static HLODMesh SaveHLODMesh(string path, string name, WorkingObject gameObject)
-        {
-            path = Path.GetDirectoryName(path) + "/";
-            path = path + name;
-            
-            HLODMesh hlodMesh = ScriptableObject.CreateInstance<HLODMesh>();
-            hlodMesh.FromMesh(gameObject.Mesh.ToMesh());
-
-            for (int i = 0; i < gameObject.Materials.Count; ++i)
-            {
-                Material mat = gameObject.Materials[i].ToMaterial();
-                hlodMesh.Materials.Add(mat);
-            }
-
-            string meshName = path;
-            AssetDatabase.CreateAsset(hlodMesh, meshName + ".asset");
-
-            return hlodMesh;
-        }
         public static List<GameObject> HLODTargets(GameObject root)
         {
             List<GameObject> targets = new List<GameObject>();

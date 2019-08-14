@@ -35,27 +35,19 @@ namespace Unity.HLODSystem
                 }
             }
 
-            List<HLOD> hlods = new List<HLOD>();
+            List<ControllerBase> controllers = new List<ControllerBase>();
             for (int i = 0; i < roots.Length; ++i)
             {
-                hlods.AddRange(roots[i].GetComponentsInChildren<HLOD>());
+                controllers.AddRange(roots[i].GetComponentsInChildren<ControllerBase>());
             }
 
-            for (int i = 0; i < hlods.Count; ++i)
+            for (int i = 0; i < controllers.Count; ++i)
             {
-                var controller = hlods[i].GetComponent<ControllerBase>();
+                var controller = controllers[i];
 
                 if (controller != null)
                 {
-                    if (hlods[i].enabled)
-                    {
-                        controller.enabled = true;
-                        controller.Install();
-                    }
-                    else
-                    {
-                        controller.enabled = false;
-                    }
+                    controller.Install();
                 }
             }
 

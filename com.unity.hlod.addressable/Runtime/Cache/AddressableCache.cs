@@ -13,23 +13,23 @@ namespace Unity.HLODSystem.Streaming.Cache
     {
         public class LoadOperation : IEnumerator
         {
-            public LoadOperation(Hash128 resourceHash)
+            public LoadOperation(object key)
             {
-                m_resourceHash = resourceHash;
+                m_key = key;
 
-                if (m_loadingObjects.ContainsKey(resourceHash))
+                if (m_loadingObjects.ContainsKey(m_key))
                 {
-                    m_loadingObjects[resourceHash].Completed += operation =>
+                    m_loadingObjects[m_key].Completed += operation =>
                     {
                         m_isLoadDone = true;
                         m_result = operation.Result;
                         m_completeCallback?.Invoke(this);
                     };
                 }
-                else if ( m_usingObjects.ContainsKey(resourceHash) )
+                else if ( m_usingObjects.ContainsKey(m_key) )
                 {
                     m_isLoadDone = true;
-                    m_result = m_usingObjects[resourceHash].Result;
+                    m_result = m_usingObjects[m_key].Result;
                 }
             }
 
@@ -37,7 +37,7 @@ namespace Unity.HLODSystem.Streaming.Cache
             {
                 add
                 {
-                    if (m_loadingObjects.ContainsKey(m_resourceHash) == false)
+                    if (m_loadingObjects.ContainsKey(m_key) == false)
                     {
                         value(this);
                     }
@@ -74,64 +74,64 @@ namespace Unity.HLODSystem.Streaming.Cache
 
             private Object m_result;
 
-            private Hash128 m_resourceHash;
+            private object m_key;
             private Action<LoadOperation> m_completeCallback;
             private bool m_isLoadDone = false;
         }
         #region interface
         public static LoadOperation Load(AssetReference reference)
         {
-            
-            Hash128 hash = reference.RuntimeKey;
-            if (m_usingObjects.ContainsKey(hash) == false)
+            object key = reference.RuntimeKey;
+            if (m_usingObjects.ContainsKey(key) == false)
             {
                 var ao = Addressables.LoadAsset<Object>(reference);
                 ao.Completed += operation =>
                 {
-                    if (m_usingObjects.ContainsKey(hash) == true)
+                    if (m_usingObjects.ContainsKey(key) == true)
                     {
-                        m_usingObjects[hash].Result = operation.Result;
+                        m_usingObjects[key].Result = operation.Result;
                     }
 
-                    m_loadingObjects.Remove(hash);
+                    m_loadingObjects.Remove(key);
                 };
-                m_loadingObjects[hash] = ao;
+                m_loadingObjects[key] = ao;
 
-                m_usingObjects[hash] = new UseInfo()
+                m_usingObjects[key] = new UseInfo()
                 {
                     Count = 1,
                     Result = null,
                 };
             }
-            return new LoadOperation(hash);
+            return new LoadOperation(key);
         }
 
         public static void Unload(AssetReference reference)
         {
-            Hash128 hash = reference.RuntimeKey;
-            if (m_usingObjects.ContainsKey(hash) == false)
+            object key = reference.RuntimeKey;
+            if (m_usingObjects.ContainsKey(key) == false)
                 return;
 
-            m_usingObjects[hash].Count -= 1;
-            if (m_usingObjects[hash].Count != 0)
+            m_usingObjects[key].Count -= 1;
+            if (m_usingObjects[key].Count != 0)
                 return;
 
             //This means loading now.
             //So, after loading, we check asset again for remove or not.
-            if (m_usingObjects[hash].Result == null)
+            if (m_usingObjects[key].Result == null)
             {
-                m_loadingObjects[hash].Completed += operation =>
+                m_loadingObjects[key].Completed += operation =>
                 {
-                    if (m_usingObjects[hash].Count == 0)
+                    if (m_usingObjects[key].Count == 0)
                     {
-                        Addressables.ReleaseAsset(m_usingObjects[hash].Result);
+                        Addressables.Release(m_usingObjects[key].Result);
+                        m_usingObjects.Remove(key);
                     }
                 };
             }
             else
             {
-                Addressables.ReleaseAsset(m_usingObjects[hash].Result);
-                m_usingObjects.Remove(hash);
+                Addressables.Release(m_usingObjects[key].Result);
+                m_usingObjects.Remove(key);
             }
         }
         #endregion
@@ -143,8 +143,8 @@ namespace Unity.HLODSystem.Streaming.Cache
             public int Count;
         };
 
-        private static Dictionary<Hash128, UseInfo> m_usingObjects = new Dictionary<Hash128, UseInfo>();
-        private static Dictionary<Hash128, IAsyncOperation<Object>> m_loadingObjects = new Dictionary<Hash128, IAsyncOperation<Object>>();
+        private static Dictionary<object, UseInfo> m_usingObjects = new Dictionary<object, UseInfo>();
+        private static Dictionary<object, AsyncOperationHandle<Object>> m_loadingObjects = new Dictionary<object, AsyncOperationHandle<Object>>();
 
 
     }

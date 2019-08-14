@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using UnityEditor;
 #endif
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 namespace Unity.HLODSystem
 {
     public class HLODManager
     {
         private static HLODManager s_instance = null;
+        private bool IsSRP => GraphicsSettings.renderPipelineAsset != null;
 
         public static HLODManager Instance
         {
@@ -27,8 +28,10 @@ namespace Unity.HLODSystem
             if (m_activeControllers == null)
             {
                 m_activeControllers = new List<Streaming.ControllerBase>();
-                Camera.onPreCull += OnPreCull;
-                RenderPipeline.beginCameraRendering += OnPreCull;
+                if (IsSRP)
+                    RenderPipelineManager.beginCameraRendering += OnPreCull;
+                else
+                    Camera.onPreCull += OnPreCull;
             }
             m_activeControllers.Add(controller);
         }
@@ -39,6 +42,11 @@ namespace Unity.HLODSystem
         }
 
         private List<Streaming.ControllerBase> m_activeControllers = null;
+
+        private void OnPreCull(ScriptableRenderContext context, Camera cam)
+        {
+            OnPreCull(cam);
+        }
 
         private void OnPreCull(Camera cam)
         {

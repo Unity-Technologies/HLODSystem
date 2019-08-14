@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using TextureCompressionQuality = UnityEditor.TextureCompressionQuality;
 
 namespace Unity.HLODSystem.Utils
 {
@@ -21,22 +24,36 @@ namespace Unity.HLODSystem.Utils
     {
         private WorkingTextureBuffer m_buffer;
 
-        public int Width
+        public string Name
         {
-            get { return m_buffer.Widht; }
+            set { m_buffer.Name = value; }
+            get { return m_buffer.Name; }
         }
 
-        public int Height
+        public TextureFormat Format => m_buffer.Format;
+        public int Width => m_buffer.Widht;
+
+        public int Height => m_buffer.Height;
+
+        public bool Linear
         {
-            get { return m_buffer.Height; }
+            set => m_buffer.Linear = value;
+            get => m_buffer.Linear;
         }
+
+        public TextureWrapMode WrapMode
+        {
+            set => m_buffer.WrapMode = value;
+            get => m_buffer.WrapMode;
+        }
+        
         private WorkingTexture()
         {
             
         }
-        public WorkingTexture(Allocator allocator, int width, int height)
+        public WorkingTexture(Allocator allocator, TextureFormat format, int width, int height, bool linear)
         {
-            m_buffer = WorkingTextureBufferManager.Instance.Create(allocator, width, height);
+            m_buffer = WorkingTextureBufferManager.Instance.Create(allocator, format, width, height, linear);
         }
 
         public WorkingTexture(Allocator allocator, Texture2D source)
@@ -76,11 +93,7 @@ namespace Unity.HLODSystem.Utils
             m_buffer.SetPixel(x, y, color);
 
         }
-        //{
-            //int pos = y * m_width + x;
-
-            //m_pixels[pos] = color;
-        //}
+   
 
         public Color GetPixel(int x, int y)
         {
@@ -120,7 +133,7 @@ namespace Unity.HLODSystem.Utils
 
         public WorkingTexture Resize(Allocator allocator, int newWidth, int newHeight)
         {
-            WorkingTexture wt = new WorkingTexture(allocator, newWidth, newHeight);
+            WorkingTexture wt = new WorkingTexture(allocator, m_buffer.Format, newWidth, newHeight, m_buffer.Linear);
 
             float xWeight = (float) (m_buffer.Widht - 1) / (float) (newWidth - 1);
             float yWeight = (float) (m_buffer.Height - 1) / (float) (newHeight - 1);
@@ -188,9 +201,9 @@ namespace Unity.HLODSystem.Utils
             return buffer;
         }
 
-        public WorkingTextureBuffer Create(Allocator allocator, int width, int height)
+        public WorkingTextureBuffer Create(Allocator allocator, TextureFormat format, int width, int height, bool linear)
         {
-            WorkingTextureBuffer buffer = new WorkingTextureBuffer(allocator, width, height);
+            WorkingTextureBuffer buffer = new WorkingTextureBuffer(allocator, format, width, height, linear);
             buffer.AddRef();
             return buffer;
         }
@@ -214,24 +227,45 @@ namespace Unity.HLODSystem.Utils
     public class WorkingTextureBuffer : IDisposable
     {
         private Allocator m_allocator;
+        private TextureFormat m_format;
         private int m_width;
         private int m_height;
+        private bool m_linear;
         
         private NativeArray<Color> m_pixels;
-
+        
         private int m_refCount;
         private Texture2D m_source;
 
         private Guid m_guid;
+        
+        private TextureWrapMode m_wrapMode = TextureWrapMode.Repeat;
 
+        public string Name { set; get; }
+
+        public TextureFormat Format => m_format;
         public int Widht => m_width;
         public int Height => m_height;
+        public bool Linear
+        {
+            set => m_linear = value;
+            get => m_linear;
+        }
 
-        public WorkingTextureBuffer(Allocator allocator, int width, int height)
+        public TextureWrapMode WrapMode
+        {
+            get => m_wrapMode;
+            set => m_wrapMode = value;
+        }
+
+
+        public WorkingTextureBuffer(Allocator allocator, TextureFormat format, int width, int height, bool linear)
         {
             m_allocator = allocator;
+            m_format = format;
             m_width = width;
             m_height = height;
+            m_linear = linear;
             m_pixels = new NativeArray<Color>( width * height, allocator);
             m_refCount = 0;
             m_source = null;
@@ -239,8 +273,9 @@ namespace Unity.HLODSystem.Utils
         }
 
         public WorkingTextureBuffer(Allocator allocator, Texture2D source) 
-            : this(allocator, source.width, source.height)
+            : this(allocator, source.format, source.width, source.height, !GraphicsFormatUtility.IsSRGBFormat(source.graphicsFormat))
         {
+            Name = source.name;
             m_source = source;
             CopyFrom(source);
             m_guid = GUIDUtils.ObjectToGUID(source);
@@ -248,18 +283,20 @@ namespace Unity.HLODSystem.Utils
 
         public WorkingTextureBuffer Clone()
         {
-            WorkingTextureBuffer buffer = new WorkingTextureBuffer(m_allocator, m_width, m_height);
+            WorkingTextureBuffer buffer = new WorkingTextureBuffer(m_allocator, m_format, m_width, m_height, m_linear);
             buffer.Blit(this, 0, 0);
             return buffer;
         }
         public Texture2D ToTexture()
         {
-            Texture2D texture = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
+            Texture2D texture = new Texture2D(m_width, m_height, m_format, false, m_linear);
+            texture.name = Name;
             texture.SetPixels(m_pixels.ToArray());
+            texture.wrapMode = m_wrapMode;
             texture.Apply();
-            
             return texture;
         }
+        
         public Guid GetGUID()
         {
             return m_guid;
@@ -339,6 +376,10 @@ namespace Unity.HLODSystem.Utils
             var assetImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
             var textureImporter = assetImporter as TextureImporter;
             TextureImporterType type = TextureImporterType.Default;
+
+            m_linear = !GraphicsFormatUtility.IsSRGBFormat(texture.graphicsFormat);
+            m_wrapMode = texture.wrapMode;
+            
             if (textureImporter)
             {
                 type = textureImporter.textureType;

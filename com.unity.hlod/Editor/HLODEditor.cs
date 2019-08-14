@@ -3,7 +3,6 @@ using System.Linq;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
-using UnityEditor.Experimental.SceneManagement;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
@@ -15,10 +14,8 @@ namespace Unity.HLODSystem
         public static class Styles
         {
             public static GUIContent GenerateButtonEnable = new GUIContent("Generate", "Generate a HLOD mesh.");
-            public static GUIContent GenerateButtonDisable = new GUIContent("Generate", "Generate is only allow in prefab mode.");
             public static GUIContent GenerateButtonExists = new GUIContent("Generate", "HLOD already generated.");
             public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destory a HLOD mesh.");
-            public static GUIContent DestroyButtonDisable = new GUIContent("Destroy", "Destory is only allow in prefab mode.");
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "You need to generate HLOD before the destroy.");
         }        
         private SerializedProperty m_MinSizeProperty;
@@ -163,7 +160,7 @@ namespace Unity.HLODSystem
                     {
                         if (info.IsStatic == true)
                         {
-                            info.Invoke(null, new object[] { hlod });
+                            info.Invoke(null, new object[] { hlod.StreamingOptions });
                         }
                     }
                 }
@@ -178,15 +175,7 @@ namespace Unity.HLODSystem
             GUIContent generateButton = Styles.GenerateButtonEnable;
             GUIContent destroyButton = Styles.DestroyButtonNotExists;
 
-            if (PrefabStageUtility.GetCurrentPrefabStage() == null ||
-                PrefabStageUtility.GetCurrentPrefabStage().prefabContentsRoot == null)
-            {
-                //generate is only allow in prefab mode.
-                GUI.enabled = false;
-                generateButton = Styles.GenerateButtonDisable;
-                destroyButton = Styles.DestroyButtonDisable;
-            }
-            else if (hlod.GetComponent<ControllerBase>() != null)
+            if (hlod.GetComponent<ControllerBase>() != null)
             {
                 generateButton = Styles.GenerateButtonExists;
                 destroyButton = Styles.DestroyButtonEnable;
@@ -211,13 +200,6 @@ namespace Unity.HLODSystem
             GUI.enabled = true;
 
             serializedObject.ApplyModifiedProperties();
-            if (EditorGUI.EndChangeCheck())
-            {
-                if (PrefabStageUtility.GetCurrentPrefabStage() != null)
-                {
-                    EditorSceneManager.MarkSceneDirty(PrefabStageUtility.GetCurrentPrefabStage().scene);
-                }
-            }
         }
 
     }
