@@ -20,7 +20,7 @@ namespace Unity.HLODSystem
         [SerializeField]
         private float m_CullDistance = 0.01f;
         [SerializeField]
-        private float m_ThresholdSize = 5.0f;
+        private float m_MinObjectSize = 5.0f;
 
         private Type m_BatcherType;
         
@@ -99,10 +99,10 @@ namespace Unity.HLODSystem
             get { return m_SimplifierOptions; }
         }
 
-        public float ThresholdSize
+        public float MinObjectSize
         {
-            set { m_ThresholdSize = value; }
-            get { return m_ThresholdSize; }
+            set { m_MinObjectSize = value; }
+            get { return m_MinObjectSize; }
         }
 
         

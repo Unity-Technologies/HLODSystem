@@ -18,7 +18,7 @@ namespace Unity.HLODSystem
 {
     static class HLODCreator
     {
-        private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects, float thresholdSize)
+        private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects, float minObjectSize)
         {
             List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
 
@@ -46,7 +46,7 @@ namespace Unity.HLODSystem
                         continue;
 
                     float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
-                    if (max < thresholdSize)
+                    if (max < minObjectSize)
                         continue;
 
                     meshRenderers.Add(mr);
@@ -56,7 +56,7 @@ namespace Unity.HLODSystem
             return meshRenderers;
         }
 
-        private static DisposableList<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float thresholdSize)
+        private static DisposableList<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float minObjectSize)
         {
             DisposableList<HLODBuildInfo> results = new DisposableList<HLODBuildInfo>();
             Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
@@ -97,7 +97,7 @@ namespace Unity.HLODSystem
                 results.Add(info);
 
                 //it should add to every parent.
-                List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects, thresholdSize);
+                List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects, minObjectSize);
                 int distance = 0;
 
                 while (currentNodeIndex >= 0)
@@ -146,7 +146,7 @@ namespace Unity.HLODSystem
                 });
 
 
-                using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.ThresholdSize))
+                using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.MinObjectSize))
                 {
                     Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
                     sw.Reset();

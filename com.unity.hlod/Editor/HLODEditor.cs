@@ -21,7 +21,7 @@ namespace Unity.HLODSystem
         private SerializedProperty m_ChunkSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
         private SerializedProperty m_CullDistanceProperty;
-        private SerializedProperty m_ThresholdSizeProperty;
+        private SerializedProperty m_MinObjectSizeProperty;
 
         private LODSlider m_LODSlider;
 
@@ -54,7 +54,7 @@ namespace Unity.HLODSystem
             m_ChunkSizeProperty = serializedObject.FindProperty("m_ChunkSize");
             m_LODDistanceProperty = serializedObject.FindProperty("m_LODDistance");
             m_CullDistanceProperty = serializedObject.FindProperty("m_CullDistance");
-            m_ThresholdSizeProperty = serializedObject.FindProperty("m_ThresholdSize");
+            m_MinObjectSizeProperty = serializedObject.FindProperty("m_MinObjectSize");
 
             m_LODSlider = new LODSlider(true, "Cull");
             m_LODSlider.InsertRange("High", m_LODDistanceProperty);
@@ -89,7 +89,7 @@ namespace Unity.HLODSystem
                 EditorGUILayout.PropertyField(m_ChunkSizeProperty);
 
                 m_LODSlider.Draw();
-                EditorGUILayout.PropertyField(m_ThresholdSizeProperty);
+                EditorGUILayout.PropertyField(m_MinObjectSizeProperty);
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 
