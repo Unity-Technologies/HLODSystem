@@ -6,15 +6,13 @@ namespace Unity.HLODSystem.SpaceManager
 {
     public class QuadTreeSpaceManager : ISpaceManager
     {
-        private HLOD m_hlod;
 
         private float preRelative;
         private Vector3 camPosition;
-        public QuadTreeSpaceManager(HLOD hlod)
+        public QuadTreeSpaceManager()
         {
-            m_hlod = hlod;
         }
-        public void UpdateCamera(Camera cam)
+        public void UpdateCamera(Transform hlodTransform, Camera cam)
         {
             if (cam.orthographic)
             {
@@ -26,26 +24,26 @@ namespace Unity.HLODSystem.SpaceManager
                 preRelative = 0.5f / halfAngle;
             }
             preRelative = preRelative * QualitySettings.lodBias;
-            camPosition = m_hlod.transform.worldToLocalMatrix.MultiplyPoint(cam.transform.position);
+            camPosition = hlodTransform.worldToLocalMatrix.MultiplyPoint(cam.transform.position);
 
         }
 
-        public bool IsHigh(Bounds bounds)
+        public bool IsHigh(float lodDistance, Bounds bounds)
         {
             //float distance = 1.0f;
             //if (cam.orthographic == false)
             
                 float distance = GetDistance(bounds.center, camPosition);
             float relativeHeight = bounds.size.x * preRelative / distance;
-            return relativeHeight > m_hlod.LODDistance;
+            return relativeHeight > lodDistance;
         }
 
-        public bool IsCull(Bounds bounds)
+        public bool IsCull(float cullDistance, Bounds bounds)
         {
             float distance = GetDistance(bounds.center, camPosition);
 
             float relativeHeight = bounds.size.x * preRelative / distance;
-            return relativeHeight < m_hlod.CullDistance;
+            return relativeHeight < cullDistance;
         }
 
         private float GetDistance(Vector3 boundsPos, Vector3 camPos)

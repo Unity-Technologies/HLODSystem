@@ -1,32 +1,22 @@
-﻿using UnityEditor;
+﻿using System;
+using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using UnityEditor.Experimental.SceneManagement;
-using UnityEngine.Rendering;
+using Unity.Collections;
+using Unity.HLODSystem.Utils;
+using UnityEditor.Build;
 
 namespace Unity.HLODSystem
 {
     public class SimpleBatcher : IBatcher
     {
-        Texture2D whiteTexture
+        enum PackingType
         {
-            get
-            {
-                if (!m_WhiteTexture)
-                {
-                    if (!m_WhiteTexture)
-                    {
-                        m_WhiteTexture = Object.Instantiate(Texture2D.whiteTexture);
-                    }
-                }
-
-                return m_WhiteTexture;
-            }
+            White,
+            Black,
+            Normal,
         }
-
-        Texture2D m_WhiteTexture;
 
         [InitializeOnLoadMethod]
         static void RegisterType()
@@ -34,250 +24,283 @@ namespace Unity.HLODSystem
             BatcherTypes.RegisterBatcherType(typeof(SimpleBatcher));
         }
 
-        private TexturePacker m_Packer = new TexturePacker();
-        private Dictionary<Texture2D, Material> m_createdMaterials = new Dictionary<Texture2D, Material>();
-        private HLOD m_hlod;
+        private Dictionary<TexturePacker.TextureAtlas, WorkingMaterial> m_createdMaterials = new Dictionary<TexturePacker.TextureAtlas, WorkingMaterial>();
+        private SerializableDynamicObject m_batcherOptions;
+        
+        
 
-        public SimpleBatcher(HLOD hlod)
+        [Serializable]
+        class TextureInfo
         {
-            m_hlod = hlod;
+            public string InputName = "_InputProperty";
+            public string OutputName = "_OutputProperty";
+            public PackingType Type = PackingType.White;
+        }
+
+        public SimpleBatcher(SerializableDynamicObject batcherOptions)
+        {
+            m_batcherOptions = batcherOptions;
         }
         
-        public void Batch(List<HLODBuildInfo> targets)
+        public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
         {
-            dynamic options = m_hlod.BatcherOptions;
-            PackingTexture(targets, options);
+            dynamic options = m_batcherOptions;
+            if (onProgress != null)
+                onProgress(0.0f);
 
-            for (int i = 0; i < targets.Count; ++i)
+            using (TexturePacker packer = new TexturePacker())
             {
-                Combine(targets[i], options);
-            }
-        }
+                PackingTexture(packer, targets, options, onProgress);
 
-        private void PackingTexture(List<HLODBuildInfo> targets, dynamic options)
-        {
-            for (int i = 0; i < targets.Count; ++i)
-            {
-                var renderers = targets[i].renderers;
-                var textures = new HashSet<Texture2D>();
-
-                for (int r = 0; r < renderers.Count; ++r)
+                for (int i = 0; i < targets.Count; ++i)
                 {
-                    var materials = renderers[r].sharedMaterials;
-
-                    for (int m = 0; m < materials.Length; ++m)
-                    {
-                        Texture2D tex = GetTexture(materials[m]);
-                        if (tex == null)
-                        {
-                            textures.Add(whiteTexture);
-                        }
-                        else
-                        {
-                            textures.Add(tex);
-                        }
-                    }
+                    Combine(rootPosition, packer, targets[i], options);
+                    if (onProgress != null)
+                        onProgress(0.5f + ((float) i / (float) targets.Count) * 0.5f);
                 }
-
-
-                m_Packer.AddTextureGroup(targets[i], textures.ToArray());
             }
-
             
-            m_Packer.Pack(options.PackTextureSize, options.LimitTextureSize);
-            m_Packer.SaveTextures(GetPrefabDirectory(), m_hlod.name);
-
-            var savedAtlases = m_Packer.GetAllAtlases();
-            for (int i = 0; i < savedAtlases.Length; ++i)
-            {
-                m_hlod.GeneratedObjects.Add(savedAtlases[i].PacktedTexture);
-            }
+            
         }
 
-        
-        static string GetPrefabDirectory()
-        {
-            string path = PrefabStageUtility.GetCurrentPrefabStage().prefabAssetPath;
-            return Path.GetDirectoryName(path) + Path.DirectorySeparatorChar;
-        }
+        private void PackingTexture(TexturePacker packer, DisposableList<HLODBuildInfo> targets, dynamic options, Action<float> onProgress)
+        { 
+            List<TextureInfo> textureInfoList = options.TextureInfoList;
 
-        private void Combine(HLODBuildInfo info, dynamic options)
-        {
-            var renderers = info.renderers;
-            var atlas = m_Packer.GetAtlas(info);
-            var atlasLookup = new Dictionary<Texture2D, Rect>();
-
-            for (int i = 0; i < atlas.Textures.Length; ++i)
+            using (var defaultTextures = CreateDefaultTextures())
             {
-                atlasLookup[atlas.Textures[i]] = atlas.UVs[i];
-            }
 
-
-            var combineInstances = new List<CombineInstance>();
-            var combinedMesh = new Mesh();
-
-            for ( int i = 0; i < info.renderers.Count; ++i )
-            {
-                var mf = info.renderers[i].GetComponent<MeshFilter>();
-                if (mf == null)
-                    continue;
-
-                var mesh = ConvertMesh(mf, info.simplifiedMeshes[i], atlasLookup);
-
-                for (int j = 0; j < mesh.subMeshCount; ++j)
+                for (int i = 0; i < targets.Count; ++i)
                 {
-                    var ci = new CombineInstance();
-                    ci.mesh = mesh;
-                    ci.subMeshIndex = j;
+                    var workingObjects = targets[i].WorkingObjects;
+                    using (var textures = new DisposableDictionary<Guid, TexturePacker.MaterialTexture>())
+                    {
+                        for (int oi = 0; oi < workingObjects.Count; ++oi)
+                        {
+                            var materials = workingObjects[oi].Materials;
 
-                    Matrix4x4 mat = mf.transform.localToWorldMatrix;
-                    Vector3 position = m_hlod.transform.position;
-                    mat.m03 -= position.x;
-                    mat.m13 -= position.y;
-                    mat.m23 -= position.z;
-                    ci.transform = mat;
-                    combineInstances.Add(ci);
+                            for (int m = 0; m < materials.Count; ++m)
+                            {
+                                string inputName = textureInfoList[0].InputName;
+                                WorkingTexture texture = materials[m].GetTexture(inputName);
+                                TexturePacker.MaterialTexture materialTexture = new TexturePacker.MaterialTexture();
+
+                                if (texture == null)
+                                    continue;
+
+                                if (textures.ContainsKey(texture.GetGUID()) == true)
+                                    continue;
+
+                                materialTexture.Add(texture);
+
+                                for (int ti = 1; ti < textureInfoList.Count; ++ti)
+                                {
+                                    string input = textureInfoList[ti].InputName;
+                                    WorkingTexture tex = materials[m].GetTexture(input);
+
+                                    if (tex == null)
+                                    {
+                                        tex = defaultTextures[textureInfoList[ti].Type];
+                                    }
+
+                                    materialTexture.Add(tex);
+                                }
+
+                                textures.Add(texture.GetGUID(), materialTexture);
+
+                            }
+                        }
+
+
+                        packer.AddTextureGroup(targets[i], textures.Values.ToList());
+                    }
+
+                    if (onProgress != null)
+                        onProgress(((float) i / targets.Count) * 0.1f);
                 }
             }
 
-            combinedMesh.indexFormat = IndexFormat.UInt32;
-            combinedMesh.CombineMeshes(combineInstances.ToArray());
-            combinedMesh.RecalculateBounds();
+            packer.Pack(TextureFormat.RGBA32, options.PackTextureSize, options.LimitTextureSize, false);
+            if ( onProgress != null) onProgress(0.3f);
 
-            var go = new GameObject(info.name);
-            var meshRenderer = go.AddComponent<MeshRenderer>();
-            var meshFilter = go.AddComponent<MeshFilter>();
+            int index = 1;
+            var atlases = packer.GetAllAtlases();
+            foreach (var atlas in atlases)
+            {
+                Dictionary<string, WorkingTexture> textures = new Dictionary<string, WorkingTexture>();
+                for (int i = 0; i < atlas.Textures.Count; ++i)
+                {
+                    WorkingTexture wt = atlas.Textures[i];
+                    wt.Name = "CombinedTexture " + index + "_" + i;
+                    if (textureInfoList[i].Type == PackingType.Normal)
+                    {
+                        wt.Linear = true;
+                    }
 
-            go.transform.SetParent(m_hlod.transform);
-            meshFilter.sharedMesh = combinedMesh;
-            meshRenderer.material = GetMaterial(options, atlas.PacktedTexture);
+                    textures.Add(textureInfoList[i].OutputName, wt);
+                }
+                
+                WorkingMaterial mat = CreateMaterial(options.MaterialGUID, textures);
+                mat.Name = "CombinedMaterial " + index;
+                m_createdMaterials.Add(atlas, mat);
+                index += 1;
+            }
+        }
 
-            info.combinedGameObjects.Add(go);
+        static WorkingMaterial CreateMaterial(string guidstr, Dictionary<string, WorkingTexture> textures)
+        {
+            WorkingMaterial material = null;
+            string path = AssetDatabase.GUIDToAssetPath(guidstr);
+            if (string.IsNullOrEmpty(path) == false)
+            {
+                Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (mat != null)
+                {
+                    material = new WorkingMaterial(Allocator.Invalid, mat.GetInstanceID(), true);
+                }
+            }
+
+            if (material == null)
+            {
+                material = new WorkingMaterial(Allocator.Persistent, new Material(Shader.Find("Standard")));
+            }
+            
+            foreach (var texture in textures)
+            {
+                material.AddTexture(texture.Key, texture.Value.Clone());
+            }
+            
+            return material;
+        }
+
+        private void Combine(Vector3 rootPosition, TexturePacker packer, HLODBuildInfo info, dynamic options)
+        {
+            var atlas = packer.GetAtlas(info);
+            if (atlas == null)
+                return;
+
+            List<TextureInfo> textureInfoList = options.TextureInfoList;
+            List<MeshCombiner.CombineInfo> combineInfos = new List<MeshCombiner.CombineInfo>();
+
+            for (int i = 0; i < info.WorkingObjects.Count; ++i)
+            {
+                var obj = info.WorkingObjects[i]; 
+                ConvertMesh(obj.Mesh, obj.Materials, atlas, textureInfoList[0].InputName);
+
+                for (int si = 0; si < obj.Mesh.subMeshCount; ++si)
+                {
+                    var ci = new MeshCombiner.CombineInfo();
+                    ci.Mesh = obj.Mesh;
+                    ci.MeshIndex = si;
+                    
+                    ci.Transform = obj.LocalToWorld;
+                    ci.Transform.m03 -= rootPosition.x;
+                    ci.Transform.m13 -= rootPosition.y;
+                    ci.Transform.m23 -= rootPosition.z;
+                    
+                    combineInfos.Add(ci);
+                }
+            }
+            
+            MeshCombiner combiner = new MeshCombiner();
+            WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, combineInfos);
+
+            WorkingObject newObj = new WorkingObject(Allocator.Persistent);
+            WorkingMaterial newMat = m_createdMaterials[atlas];
+
+            combinedMesh.name = info.Name + "_Mesh";
+            newObj.Name = info.Name;
+            newObj.SetMesh(combinedMesh);
+            newObj.Materials.Add(newMat);
+
+            info.WorkingObjects.Dispose();
+            info.WorkingObjects = new DisposableList<WorkingObject>();
+            info.WorkingObjects.Add(newObj);
         }
 
 
-        private Mesh ConvertMesh(MeshFilter filter, Mesh mesh, Dictionary<Texture2D, Rect> atlasLookup)
+        private void ConvertMesh(WorkingMesh mesh, DisposableList<WorkingMaterial> materials, TexturePacker.TextureAtlas atlas, string mainTextureName)
         {
-            var ret = Object.Instantiate(mesh);
-            var meshRenderer = filter.GetComponent<MeshRenderer>();
-            var sharedMaterials = meshRenderer.sharedMaterials;
-
             var uv = mesh.uv;
             var updated = new bool[uv.Length];
-
-            var triangles = new List<int>();
             // Some meshes have submeshes that either aren't expected to render or are missing a material, so go ahead and skip
-            var subMeshCount = Mathf.Min(mesh.subMeshCount, sharedMaterials.Length);
-
-            for (int j = 0; j < subMeshCount; j++)
+            int subMeshCount = Mathf.Min(mesh.subMeshCount, materials.Count);
+            for (int mi = 0; mi < subMeshCount; ++mi)
             {
-                var sharedMaterial = sharedMaterials[Mathf.Min(j, sharedMaterials.Length - 1)];
-                var mainTexture = whiteTexture;
-
-                if (sharedMaterial)
+                int[] indices = mesh.GetTriangles(mi);
+                foreach (var i in indices)
                 {
-                    var texture = GetTexture(sharedMaterial);
-                    if (texture)
-                        mainTexture = texture;
-                }
-
-                if (mesh.GetTopology(j) != MeshTopology.Triangles)
-                {
-                    Debug.LogWarning("Mesh must have triangles", filter);
-                    continue;
-                }
-
-                triangles.Clear();
-                mesh.GetTriangles(triangles, j);
-                var uvOffset = atlasLookup[mainTexture];
-                foreach (var t in triangles)
-                {
-                    if (!updated[t])
+                    if ( updated[i] == false )
                     {
-                        var uvCoord = uv[t];
-                        if (mainTexture == whiteTexture)
+                        var uvCoord = uv[i];
+                        var texture = materials[mi].GetTexture(mainTextureName);
+                        
+                        if (texture == null || texture.GetGUID() == Guid.Empty)
                         {
                             // Sample at center of white texture to avoid sampling edge colors incorrectly
                             uvCoord.x = 0.5f;
                             uvCoord.y = 0.5f;
                         }
-
-                        uvCoord.x = Mathf.Lerp(uvOffset.xMin, uvOffset.xMax, uvCoord.x);
-                        uvCoord.y = Mathf.Lerp(uvOffset.yMin, uvOffset.yMax, uvCoord.y);
-                        uv[t] = uvCoord;
-                        updated[t] = true;
+                        else
+                        {
+                            var uvOffset = atlas.GetUV(texture.GetGUID());
+                            
+                            uvCoord.x = Mathf.Lerp(uvOffset.xMin, uvOffset.xMax, uvCoord.x);
+                            uvCoord.y = Mathf.Lerp(uvOffset.yMin, uvOffset.yMax, uvCoord.y);
+                        }
+                        
+                        uv[i] = uvCoord;
+                        updated[i] = true;
                     }
                 }
+                
             }
 
-            ret.uv = uv;
-            ret.uv2 = null;
-
-            return ret;
+            mesh.uv = uv;
         }
 
 
-        private Dictionary<Texture2D, Material> m_cachedMaterial = new Dictionary<Texture2D, Material>();
-        private Material GetMaterial(dynamic options, Texture2D texture)
-        {            
-            string materialGUID = options.MaterialGUID;
-            Material material = null;
-
-            if (m_cachedMaterial.ContainsKey(texture) == true)
-            {
-                return m_cachedMaterial[texture];
-            }
-
-            if (string.IsNullOrEmpty(materialGUID) == true)
-            {
-                material = new Material(Shader.Find("Standard"));
-            }
-            else
-            {
-                string materialPath = AssetDatabase.GUIDToAssetPath(materialGUID);
-                material = new Material(AssetDatabase.LoadAssetAtPath<Material>(materialPath));
-            }
-            SetTexture(material, texture);
-
-            string texturePath = AssetDatabase.GetAssetPath(texture);
-            if (string.IsNullOrEmpty(texturePath) == false)
-            {
-                string materialPath = Path.ChangeExtension(texturePath, "mat");
-                AssetDatabase.CreateAsset(material, materialPath);
-                m_hlod.GeneratedObjects.Add(material);
-            }
-
-
-            m_cachedMaterial[texture] = material;
-            return material;
-        }
-
-
-        private void SetTexture(Material m, Texture2D t)
+     
+        static private WorkingTexture CreateEmptyTexture(int width, int height, Color color, bool linear)
         {
-            //for the LWRP
-            if (m.HasProperty("_BaseMap"))
-            {
-                m.SetTexture("_BaseMap", t);
-                return;
-            }
+            WorkingTexture texture = new WorkingTexture(Allocator.Persistent, TextureFormat.RGB24, width, height, linear);
 
-            m.SetTexture("_MainTex", t);
-        }
-        private Texture2D GetTexture(Material m)
-        {
-            if (m)
+            for (int y = 0; y < height; ++y)
             {
-                if (m.HasProperty("_BaseMap"))
+                for (int x = 0; x < width; ++x)
                 {
-                    return m.GetTexture("_BaseMap") as Texture2D;
+                    texture.SetPixel(x, y, color);
                 }
-                if ( m.HasProperty("_MainTex"))
-                    return m.GetTexture("_MainTex") as Texture2D;            
             }
 
-            return null;
+            return texture;
         }
+        static private DisposableDictionary<PackingType, WorkingTexture> CreateDefaultTextures()
+        {
+            DisposableDictionary<PackingType, WorkingTexture> textures = new DisposableDictionary<PackingType, WorkingTexture>();
+
+            textures.Add(PackingType.White, CreateEmptyTexture(4, 4, Color.white, false));
+            textures.Add(PackingType.Black, CreateEmptyTexture(4, 4, Color.black, false));
+            textures.Add(PackingType.Normal, CreateEmptyTexture(4, 4, new Color(0.5f, 0.5f, 1.0f), true));
+
+            return textures;
+        }
+
+/*
+        private Texture2D GetDefaultTexture(PackingType type)
+        {
+            switch (type)
+            {
+                case PackingType.White:
+                    return Texture2D.whiteTexture;
+                case PackingType.Black:
+                    return Texture2D.blackTexture;
+                case PackingType.Normal:
+                    return Texture2D.normalTexture;
+            }
+            
+            return Texture2D.whiteTexture;
+        }*/
 
 
         
@@ -311,6 +334,10 @@ namespace Unity.HLODSystem
                 }
             }
         }
+
+        private static string[] inputTexturePropertyNames = null;
+        private static string[] outputTexturePropertyNames = null;
+        private static TextureInfo addingTextureInfo = new TextureInfo();
         public static void OnGUI(HLOD hlod)
         {
             EditorGUI.indentLevel += 1;
@@ -322,6 +349,16 @@ namespace Unity.HLODSystem
                 batcherOptions.LimitTextureSize = 128;
             if (batcherOptions.MaterialGUID == null)
                 batcherOptions.MaterialGUID = "";
+            if (batcherOptions.TextureInfoList == null)
+            {
+                batcherOptions.TextureInfoList = new List<TextureInfo>();
+                batcherOptions.TextureInfoList.Add(new TextureInfo()
+                {
+                    InputName = "_MainTex",
+                    OutputName = "_MainTex",
+                    Type = PackingType.White
+                });
+            }
 
             batcherOptions.PackTextureSize = EditorGUILayout.IntPopup("Pack texture size", batcherOptions.PackTextureSize, Styles.PackTextureSizeNames, Styles.PackTextureSizes);
             batcherOptions.LimitTextureSize = EditorGUILayout.IntPopup("Limit texture size", batcherOptions.LimitTextureSize, Styles.LimitTextureSizeNames, Styles.LimitTextureSizes);
@@ -337,9 +374,124 @@ namespace Unity.HLODSystem
             }
             mat = EditorGUILayout.ObjectField("Material", mat, typeof(Material), false) as Material;
             path = AssetDatabase.GetAssetPath(mat);
-            batcherOptions.MaterialGUID = AssetDatabase.AssetPathToGUID(path);
+            matGUID = AssetDatabase.AssetPathToGUID(path);
+            if (matGUID != batcherOptions.MaterialGUID)
+            {
+                batcherOptions.MaterialGUID = matGUID;
+                outputTexturePropertyNames = mat.GetTexturePropertyNames();
+            }
+
+
+
+            if (inputTexturePropertyNames == null)
+            {
+                inputTexturePropertyNames = GetAllMaterialTextureProperties(hlod.gameObject);
+            }
+            if (outputTexturePropertyNames == null)
+            {
+                if( mat == null)
+                    mat = new Material(Shader.Find("Standard"));
+
+                outputTexturePropertyNames = mat.GetTexturePropertyNames();
+            }
+
+            //ext textures
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Textures");
+            EditorGUI.indentLevel += 1;
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel(" ");
+            //EditorGUILayout.LabelField();
+            EditorGUILayout.SelectableLabel("Input");
+            EditorGUILayout.SelectableLabel("Output");
+            EditorGUILayout.SelectableLabel("Type");
+            EditorGUILayout.EndHorizontal();
+
+            for (int i = 0; i < batcherOptions.TextureInfoList.Count; ++i)
+            {
+                TextureInfo info = batcherOptions.TextureInfoList[i];
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.PrefixLabel(" ");
+
+                info.InputName = StringPopup(info.InputName, inputTexturePropertyNames);
+                info.OutputName = StringPopup(info.OutputName, outputTexturePropertyNames);
+                info.Type = (PackingType)EditorGUILayout.EnumPopup(info.Type);
+
+                if (i == 0)
+                    GUI.enabled = false;
+                if (GUILayout.Button("x") == true)
+                {
+                    batcherOptions.TextureInfoList.RemoveAt(i);
+                    i -= 1;
+                }
+                if (i == 0)
+                    GUI.enabled = true;
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel("New texture");
+            addingTextureInfo.InputName =
+                StringPopup(addingTextureInfo.InputName, inputTexturePropertyNames);
+            addingTextureInfo.OutputName =
+                StringPopup(addingTextureInfo.OutputName, outputTexturePropertyNames);
+            addingTextureInfo.Type = (PackingType)EditorGUILayout.EnumPopup(addingTextureInfo.Type);
+            if (GUILayout.Button("+") == true)
+            {
+                batcherOptions.TextureInfoList.Add(addingTextureInfo);
+                addingTextureInfo = new TextureInfo();
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel(" ");
+            if (GUILayout.Button("Update texture properties"))
+            {
+                //TODO: Need update automatically
+                inputTexturePropertyNames = GetAllMaterialTextureProperties(hlod.gameObject);
+            }
+            EditorGUILayout.EndHorizontal();
 
             EditorGUI.indentLevel -= 1;
+            EditorGUI.indentLevel -= 1;
+        }
+
+        static string StringPopup(string select, string[] options)
+        {
+            if (options == null || options.Length == 0)
+            {
+                EditorGUILayout.Popup(0, new string[] {select});
+                return select;
+            }
+
+            int index = Array.IndexOf(options, select);
+            if (index < 0)
+                index = 0;
+
+            int selected = EditorGUILayout.Popup(index, options);
+            return options[selected];
+        }
+
+        static string[] GetAllMaterialTextureProperties(GameObject root)
+        {
+            var meshRenderers = root.GetComponentsInChildren<MeshRenderer>();
+            HashSet<string> texturePropertyNames = new HashSet<string>();
+            for (int m = 0; m < meshRenderers.Length; ++m)
+            {
+                var mesh = meshRenderers[m];
+                foreach (Material material in mesh.sharedMaterials)
+                {
+                    var names = material.GetTexturePropertyNames();
+                    for (int n = 0; n < names.Length; ++n)
+                    {
+                        texturePropertyNames.Add(names[n]);
+                    }    
+                }
+                
+            }
+
+            return texturePropertyNames.ToArray();
         }
 
         

@@ -5,16 +5,12 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Streaming
 {
-    [RequireComponent(typeof(HLOD))]
     public class DefaultController : ControllerBase
     {
         [SerializeField]
         private List<GameObject> m_gameObjectList = new List<GameObject>();
         [SerializeField]
-        private List<HLODMesh> m_hlodMeshes = new List<HLODMesh>();
-        [SerializeField]
-        [HideInInspector]
-        private List<GameObject> m_createdHlodMeshObjects = new List<GameObject>();
+        private List<GameObject> m_lowGameObjects = new List<GameObject>();
 
         public int AddHighObject(GameObject gameObject)
         {
@@ -23,10 +19,10 @@ namespace Unity.HLODSystem.Streaming
             return id;
         }
 
-        public int AddLowObject(HLODMesh hlodMesh)
+        public int AddLowObject(GameObject gameObject)
         {
-            int id = m_hlodMeshes.Count;
-            m_hlodMeshes.Add(hlodMesh);
+            int id = m_lowGameObjects.Count;
+            m_lowGameObjects.Add(gameObject);
             return id;
         }
 
@@ -43,21 +39,13 @@ namespace Unity.HLODSystem.Streaming
         {
             if (callback != null)
             {
-                callback(m_createdHlodMeshObjects[id]);
+                callback(m_lowGameObjects[id]);
             }
             yield break;
         }
-
-        void Start()
-        {
-            OnStart();
-        }
-
+        
         public override void OnStart()
         {
-#if UNITY_EDITOR
-            Install();
-#endif
 
         }
 
@@ -70,23 +58,6 @@ namespace Unity.HLODSystem.Streaming
 
         public override void Install()
         {
-            HLOD hlod = GetComponent<HLOD>();
-            GameObject hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            hlodMeshesRoot.transform.SetParent(hlod.transform, false);
-
-            for (int i = 0; i < m_hlodMeshes.Count; ++i)
-            {
-                GameObject go = new GameObject(m_hlodMeshes[i].name);
-
-                go.AddComponent<MeshFilter>().sharedMesh = m_hlodMeshes[i].ToMesh();
-                go.AddComponent<MeshRenderer>().material = m_hlodMeshes[i].Material;
-                go.transform.SetParent(hlodMeshesRoot.transform, false);
-
-                go.SetActive(false);
-
-                m_createdHlodMeshObjects.Add(go);
-            }
-
             for (int i = 0; i < m_gameObjectList.Count; ++i)
             {
                 m_gameObjectList[i].SetActive(false);
@@ -100,7 +71,7 @@ namespace Unity.HLODSystem.Streaming
 
         public override void ReleaseLowObject(int id)
         {
-            m_createdHlodMeshObjects[id].SetActive(false);
+            m_lowGameObjects[id].SetActive(false);
         }
     }
 

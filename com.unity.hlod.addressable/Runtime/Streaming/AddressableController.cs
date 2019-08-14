@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
 using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
@@ -14,7 +15,7 @@ namespace Unity.HLODSystem.Streaming
         {
             public GameObject GameObject;
 
-            public AssetReference Reference;
+            public string Address;
 
             public Transform Parent;
             public Vector3 Position;
@@ -26,32 +27,21 @@ namespace Unity.HLODSystem.Streaming
         private List<ChildObject> m_highObjects = new List<ChildObject>();
 
         [SerializeField]
-        private List<AssetReference> m_lowObjects = new List<AssetReference>();
+        private List<string> m_lowObjects = new List<string>();
 
         
 
         private Dictionary<int, GameObject> m_createdHighObjects = new Dictionary<int, GameObject>();
         private Dictionary<int, GameObject> m_createdLowObjects = new Dictionary<int, GameObject>();
 
-        
         private GameObject m_hlodMeshesRoot;
-        void Start()
-        {
-           OnStart();
-        }
-
+        
+        private Dictionary<GameObject, AsyncOperationHandle> m_loadedHandles = new Dictionary<GameObject, AsyncOperationHandle>();
         
         public override void OnStart()
         {
-            HLOD hlod;
-            hlod = GetComponent<HLOD>();
-
             m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
-            m_hlodMeshesRoot.transform.SetParent(hlod.transform, false);
-
-#if UNITY_EDITOR
-            Install();
-#endif
+            m_hlodMeshesRoot.transform.SetParent(transform, false);
 
         }
 
@@ -63,9 +53,10 @@ namespace Unity.HLODSystem.Streaming
 
         public override void Install()
         {
+            
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
-                if (m_highObjects[i].Reference != null && m_highObjects[i].Reference.RuntimeKey.isValid)
+                if (string.IsNullOrEmpty(m_highObjects[i].Address) == false)
                 {
                     DestoryObject(m_highObjects[i].GameObject);
                 }
@@ -76,13 +67,13 @@ namespace Unity.HLODSystem.Streaming
             }
         }
 
-        public int AddHighObject(AssetReference reference, GameObject origin)
+        public int AddHighObject(string address, GameObject origin)
         {
             int id = m_highObjects.Count;
 
             ChildObject obj = new ChildObject();
             obj.GameObject = origin;
-            obj.Reference = reference;
+            obj.Address = address;
             obj.Parent = origin.transform.parent;
             obj.Position = origin.transform.localPosition;
             obj.Rotation = origin.transform.localRotation;
@@ -102,10 +93,10 @@ namespace Unity.HLODSystem.Streaming
             m_highObjects.Add(obj);
             return id;
         }
-        public int AddLowObject(AssetReference hlodMesh)
+        public int AddLowObject(string address)
         {
             int id = m_lowObjects.Count;
-            m_lowObjects.Add(hlodMesh);
+            m_lowObjects.Add(address);
             return id;
         }
 
@@ -138,21 +129,23 @@ namespace Unity.HLODSystem.Streaming
                 }
                 else
                 {
-                    GameObject asset = null;
-#if UNITY_EDITOR
-                    asset = m_highObjects[id].Reference.editorAsset as GameObject;
-#else
-                    var op = m_highObjects[id].Reference.LoadAsset<GameObject>();
-                    yield return op;
-                    asset = op.Result;
-#endif
 
-                    go = Instantiate(asset, m_highObjects[id].Parent.transform);
+                    var op = Addressables.LoadAssetAsync<GameObject>(m_highObjects[id].Address);
+                    //var op = Addressables.InstantiateAsync(m_highObjects[id].Address);
+                    yield return op;
+                    
+                    if ( op.Status ==AsyncOperationStatus.Failed)
+                        yield break;
+
+
+                    go = Instantiate(op.Result);
                     go.SetActive(false);
+                    go.transform.parent = m_highObjects[id].Parent.transform;
                     go.transform.localPosition = m_highObjects[id].Position;
                     go.transform.localRotation = m_highObjects[id].Rotation;
                     go.transform.localScale = m_highObjects[id].Scale;
 
+                    m_loadedHandles.Add(go, op);
                     ChangeLayersRecursively(go.transform, layer);
 
                 }
@@ -185,23 +178,18 @@ namespace Unity.HLODSystem.Streaming
             {
                 m_createdLowObjects.Add(id, null);
 
-                HLODMesh mesh = null;
-
-#if UNITY_EDITOR
-                mesh = m_lowObjects[id].editorAsset as HLODMesh;
-#else
-
-                var op = m_lowObjects[id].LoadAsset<HLODMesh>();
+                //var op = Addressables.InstantiateAsync(m_lowObjects[id]);
+                var op = Addressables.LoadAssetAsync<GameObject>(m_lowObjects[id]);
                 yield return op;
-                mesh = op.Result;
-#endif
+                
+                if ( op.Status ==AsyncOperationStatus.Failed)
+                    yield break;
 
-                GameObject go = new GameObject(mesh.name);
+                GameObject go = Instantiate(op.Result);
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
-                go.AddComponent<MeshFilter>().sharedMesh = mesh.ToMesh();
-                go.AddComponent<MeshRenderer>().material = mesh.Material;
                 
+                m_loadedHandles.Add(go, op);
                 ChangeLayersRecursively(go.transform, layer);
 
                 m_createdLowObjects[id] = go;
@@ -216,7 +204,7 @@ namespace Unity.HLODSystem.Streaming
 
         public override void ReleaseHighObject(int id)
         {
-            if (m_highObjects[id].Reference == null || m_highObjects[id].Reference.RuntimeKey.isValid == false)
+            if (string.IsNullOrEmpty(m_highObjects[id].Address) == true)
             {
                 if ( m_createdHighObjects[id] != null)
                     m_createdHighObjects[id].SetActive(false);
@@ -224,9 +212,14 @@ namespace Unity.HLODSystem.Streaming
             }
             else
             {
-                DestoryObject(m_createdHighObjects[id]);
-                if (m_highObjects[id].Reference.Asset != null) 
-                    m_highObjects[id].Reference.ReleaseAsset();
+                GameObject go = m_createdHighObjects[id];
+                var op = m_loadedHandles[go];
+                
+                m_loadedHandles.Remove(go);
+                DestoryObject(go);
+                Addressables.Release(op);
+                
+                //Addressables.ReleaseInstance(m_createdHighObjects[id]);
             }
 
             m_createdHighObjects.Remove(id);
@@ -234,28 +227,20 @@ namespace Unity.HLODSystem.Streaming
         public override void ReleaseLowObject(int id)
         {
             GameObject go = m_createdLowObjects[id];
+            var op = m_loadedHandles[go];
             m_createdLowObjects.Remove(id);
 
-            if (go != null)
-            {
+            m_loadedHandles.Remove(go);
+            DestoryObject(go);
+            Addressables.Release(op);
 
-                Mesh mesh = go.GetComponent<MeshFilter>().sharedMesh;
-                if (mesh != null)
-                    DestoryObject(mesh);
-                DestoryObject(go);
-            }
-
-            if (m_lowObjects[id].Asset != null)
-                m_lowObjects[id].ReleaseAsset();
+            //Addressables.ReleaseInstance(go);
         }
 
         private void DestoryObject(Object obj)
         {
 #if UNITY_EDITOR
-            if ( UnityEditor.EditorApplication.isPlaying)
-                Destroy(obj);
-            else
-                DestroyImmediate(obj);
+            DestroyImmediate(obj);
 #else
             Destroy(obj);
 #endif

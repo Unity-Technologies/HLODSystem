@@ -1,54 +1,192 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
-using UnityEditor.Experimental.SceneManagement;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
 {
     public class AddressableStreaming : IStreamingBuilder
     {
+        static class Styles
+        {
+            public static TextureFormat[] SupportTextureFormats = new[]
+            {
+                TextureFormat.RGBA32,
+                TextureFormat.RGB24,
+                TextureFormat.BC7,
+                TextureFormat.DXT5,
+                TextureFormat.DXT1,
+                TextureFormat.ASTC_4x4,
+                TextureFormat.ASTC_5x5,
+                TextureFormat.ASTC_6x6,
+                TextureFormat.ASTC_8x8,
+                TextureFormat.ASTC_10x10,
+                TextureFormat.ASTC_12x12,
+                TextureFormat.ETC_RGB4,
+                TextureFormat.ETC2_RGB,
+                TextureFormat.ETC2_RGBA8,
+                TextureFormat.PVRTC_RGB4,
+                TextureFormat.PVRTC_RGB2,
+                TextureFormat.PVRTC_RGBA4,
+                TextureFormat.PVRTC_RGBA2,
+            };
+
+            public static string[] SupportTextureFormatStrings;
+
+            static Styles()
+            {
+                SupportTextureFormatStrings = new string[SupportTextureFormats.Length];
+                for (int i = 0; i < SupportTextureFormats.Length; ++i)
+                {
+                    SupportTextureFormatStrings[i] = SupportTextureFormats[i].ToString();
+                }
+            }
+        }
         
         [InitializeOnLoadMethod]
         static void RegisterType()
         {
             StreamingBuilderTypes.RegisterType(typeof(AddressableStreaming));
         }
-
         
-        private HLOD m_hlod;
-        public AddressableStreaming(HLOD hlod)
+        private IGeneratedResourceManager m_manager;
+        private SerializableDynamicObject m_streamingOptions;
+        
+        public AddressableStreaming(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
         {
-            m_hlod = hlod;
+            m_manager = manager;
+            m_streamingOptions = streamingOptions;
         }
-
-
-        public void Build(SpaceManager.SpaceNode rootNode, List<HLODBuildInfo> infos)
+        
+        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, bool writeNoPrefab, Action<float> onProgress)
         {
-            string path = "";
-            PrefabStage stage = PrefabStageUtility.GetPrefabStage(m_hlod.gameObject);
-            path = stage.prefabAssetPath;
-            path = Path.GetDirectoryName(path) + "/";
+            dynamic options = m_streamingOptions;
+            string path = options.OutputDirectory;
 
-            var addressableController = m_hlod.gameObject.AddComponent<AddressableController>();
             HLODTreeNode convertedRootNode = ConvertNode(rootNode);
 
-            //I think it is better to do when convert nodes.
-            //But that is not easy because of the structure.
+            if (onProgress != null)
+                onProgress(0.0f);
+
+            HLODData.TextureCompressionData compressionData;
+            compressionData.PCTextureFormat = options.PCCompression;
+            compressionData.WebGLTextureFormat = options.WebGLCompression;
+            compressionData.AndroidTextureFormat = options.AndroidCompression;
+            compressionData.iOSTextureFormat = options.iOSCompression;
+            compressionData.tvOSTextureFormat = options.tvOSCompression;
+
+
+            string filenamePrefix = $"{path}{root.name}";
+            Dictionary<int, HLODData> hlodDatas = new Dictionary<int, HLODData>();
+            hlodDatas.Add(-1, new HLODData());
+            hlodDatas[-1].CompressionData = compressionData;
+            
+            //string filename = $"{path}{root.name}.hlod";
+//            using (Stream stream = new FileStream(filename, FileMode.Create))
+            {
+                
+                for (int i = 0; i < infos.Count; ++i)
+                {
+                    if (hlodDatas.ContainsKey(infos[i].CurrentLevel) == false)
+                    {
+                        HLODData newData = new HLODData();
+                        newData.CompressionData = compressionData;
+                        hlodDatas.Add(infos[i].CurrentLevel, newData);
+                    }
+
+                    HLODData data = hlodDatas[infos[i].CurrentLevel];
+                    data.AddFromWokringObjects(infos[i].Name, infos[i].WorkingObjects);
+                
+                    if (writeNoPrefab)
+                    {
+                        HLODData prefabData = hlodDatas[-1];
+                        var spaceNode = infos[i].Target;
+
+                        for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
+                        {
+                            if (PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]) == false)
+                            {
+                                prefabData.AddFromGameObject(spaceNode.Objects[oi]);
+                            }
+                        }
+                    }
+                    
+                    if (onProgress != null)
+                        onProgress((float) i / (float) infos.Count);
+                }
+                
+                //HLODDataSerializer.Write(stream, data);
+            }
+
+            Dictionary<int, RootData> rootDatas = new Dictionary<int, RootData>();
+            foreach (var item in hlodDatas)
+            {
+                string filename = $"{filenamePrefix}_level{item.Key}.hlod";
+                using (Stream stream = new FileStream(filename, FileMode.Create))
+                {
+                    HLODDataSerializer.Write(stream, item.Value);
+                    stream.Close();
+                }
+                
+                AssetDatabase.ImportAsset(filename, ImportAssetOptions.ForceUpdate);
+                RootData rootData = AssetDatabase.LoadAssetAtPath<RootData>(filename);
+                m_manager.AddGeneratedResource(rootData);
+                AddAddress(rootData);
+                
+                rootDatas.Add(item.Key, rootData);
+            }
+
+            
+
+            var addressableController = root.AddComponent<AddressableController>();
+
             for (int i = 0; i < infos.Count; ++i)
             {
-                var spaceNode = infos[i].target;
-                var hlodTreeNode = convertedTable[infos[i].target];
-
+                var spaceNode = infos[i].Target;
+                var hlodTreeNode = convertedTable[infos[i].Target];
+                
                 for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
                 {
-                    var address = GetAssetReference(spaceNode.Objects[oi]);
                     int highId = -1;
+                    GameObject obj = spaceNode.Objects[oi];
+
+                    if (PrefabUtility.IsPartOfAnyPrefab(obj) == false)
+                    {
+                        GameObject rootGameObject = rootDatas[-1].GetRootObject(obj.name);
+                        if (rootGameObject != null)
+                        {
+                            GameObject go = PrefabUtility.InstantiatePrefab(rootGameObject) as GameObject;
+                            go.transform.SetParent(obj.transform.parent);
+                            go.transform.localPosition = obj.transform.localPosition;
+                            go.transform.localRotation = obj.transform.localRotation;
+                            go.transform.localScale = obj.transform.localScale;
+
+                            if (m_manager.IsGeneratedResource(obj))
+                                m_manager.AddGeneratedResource(go);
+                            else
+                                m_manager.AddConvertedPrefabResource(go);
+
+                            spaceNode.Objects.Add(go);
+
+                            Object.DestroyImmediate(obj);
+                            continue;
+                        }
+                    }
+
+                    var address = GetAddress(spaceNode.Objects[oi]);
+                    if (string.IsNullOrEmpty(address) && PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]))
+                    {
+                        AddAddress(spaceNode.Objects[oi]);
+                        address = GetAddress(spaceNode.Objects[oi]);
+                    }
+                    
                     if (address != null)
                     {
                         highId = addressableController.AddHighObject(address, spaceNode.Objects[oi]);
@@ -57,27 +195,23 @@ namespace Unity.HLODSystem.Streaming
                     {
                         highId = addressableController.AddHighObject(spaceNode.Objects[oi]);
                     }
-
+                    
                     hlodTreeNode.HighObjectIds.Add(highId);
                 }
 
-                for (int oi = 0; oi < infos[i].combinedGameObjects.Count; ++oi)
                 {
-                    List<HLODMesh> createdMeshes = ObjectUtils.SaveHLODMesh(path, m_hlod.name, infos[i].combinedGameObjects[oi]);
-                    m_hlod.GeneratedObjects.AddRange(createdMeshes);
-
-                    foreach (var mesh in createdMeshes)
-                    {
-                        var address = GetAssetReference(mesh);
-                        int lowId = addressableController.AddLowObject(address);
-                        hlodTreeNode.LowObjectIds.Add(lowId);
-                    }
+                    string filename = $"{filenamePrefix}_level{infos[i].CurrentLevel}.hlod";
+                    int lowId = addressableController.AddLowObject(filename + "." + infos[i].Name);
+                    hlodTreeNode.LowObjectIds.Add(lowId);
                 }
             }
-
-            m_hlod.Root = convertedRootNode;
+            
+            addressableController.Root = convertedRootNode;
+            addressableController.CullDistance = cullDistance;
+            addressableController.LODDistance = lodDistance;
         }
 
+      
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
 
         private HLODTreeNode ConvertNode(SpaceNode rootNode)
@@ -98,16 +232,16 @@ namespace Unity.HLODSystem.Streaming
                 convertedTable[spaceNode] = hlodTreeNode;
 
                 hlodTreeNode.Bounds = spaceNode.Bounds;
-                if (spaceNode.ChildTreeNodes != null)
+                if (spaceNode.HasChild() == true)
                 {
-                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.ChildTreeNodes.Count);
-                    for (int i = 0; i < spaceNode.ChildTreeNodes.Count; ++i)
+                    List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.GetChildCount());
+                    for (int i = 0; i < spaceNode.GetChildCount(); ++i)
                     {
                         var treeNode = new HLODTreeNode();
                         childTreeNodes.Add(treeNode);
 
                         hlodTreeNodes.Enqueue(treeNode);
-                        spaceNodes.Enqueue(spaceNode.ChildTreeNodes[i]);
+                        spaceNodes.Enqueue(spaceNode.GetChild(i));
                     }
 
                     hlodTreeNode.ChildNodes = childTreeNodes;
@@ -117,59 +251,162 @@ namespace Unity.HLODSystem.Streaming
 
             return root;
         }
-
-
-        public static void OnGUI(HLOD hlod)
+     
+        
+        static bool showFormat = true;
+        public static void OnGUI(SerializableDynamicObject streamingOptions)
         {
-            dynamic options = hlod.StreamingOptions;
+            dynamic options = streamingOptions;
 
-            if (options.LastLowInMemory == null)
-                options.LastLowInMemory = false;
-            if (options.MaxInstantiateCount == null)
-                options.MaxInstantiateCount = 10;
+            #region Setup default values
 
-            EditorGUI.indentLevel += 1;
-            options.LastLowInMemory = EditorGUILayout.Toggle("Last low in memory", options.LastLowInMemory);
-            options.MaxInstantiateCount =
-                EditorGUILayout.IntSlider("Max instantiate count per frame", options.MaxInstantiateCount, 1, 100, null);
-            
-            EditorGUI.indentLevel -= 1;
+            if (options.OutputDirectory == null)
+            {
+                string path = Application.dataPath;
+                path = "Assets" + path.Substring(Application.dataPath.Length);
+                path = path.Replace('\\', '/');
+                if (path.EndsWith("/") == false)
+                    path += "/";
+                options.OutputDirectory = path;
+            }
+
+            if (options.PCCompression == null)
+            {
+                options.PCCompression = TextureFormat.BC7;
+            }
+
+            if (options.WebGLCompression == null)
+            {
+                options.WebGLCompression = TextureFormat.DXT5;
+            }
+
+            if (options.AndroidCompression == null)
+            {
+                options.AndroidCompression = TextureFormat.ETC2_RGBA8;
+            }
+
+            if (options.iOSCompression == null)
+            {
+                options.iOSCompression = TextureFormat.PVRTC_RGBA4;
+            }
+
+            if (options.tvOSCompression == null)
+            {
+                options.tvOSCompression = TextureFormat.ASTC_4x4;
+            }
+
+            #endregion
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel("OutputDirectory");
+            if (GUILayout.Button(options.OutputDirectory))
+            {
+                string selectPath = EditorUtility.OpenFolderPanel("Select output folder", "Assets", "");
+
+                if (selectPath.StartsWith(Application.dataPath))
+                {
+                    selectPath = "Assets" + selectPath.Substring(Application.dataPath.Length);
+                    selectPath = selectPath.Replace('\\', '/');
+                    if (selectPath.EndsWith("/") == false)
+                        selectPath += "/";
+                    options.OutputDirectory = selectPath;
+                }
+                else
+                {
+                    EditorUtility.DisplayDialog("Error", $"Select directory under {Application.dataPath}", "OK");
+                }
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            if (showFormat = EditorGUILayout.Foldout(showFormat, "Compress Format"))
+            {
+                EditorGUI.indentLevel += 1;
+                options.PCCompression = PopupFormat("PC & Console", (TextureFormat) options.PCCompression);
+                options.WebGLCompression = PopupFormat("WebGL", (TextureFormat) options.WebGLCompression);
+                options.AndroidCompression = PopupFormat("Android", (TextureFormat) options.AndroidCompression);
+                options.iOSCompression = PopupFormat("iOS", (TextureFormat) options.iOSCompression);
+                options.tvOSCompression = PopupFormat("tvOS", (TextureFormat) options.tvOSCompression);
+                EditorGUI.indentLevel -= 1;
+            }
+        }
+        
+        private static TextureFormat PopupFormat(string label, TextureFormat format)
+        {
+            int selectIndex = Array.IndexOf(Styles.SupportTextureFormats, format);
+            selectIndex = EditorGUILayout.Popup(label, selectIndex, Styles.SupportTextureFormatStrings);
+            if (selectIndex < 0)
+                selectIndex = 0;
+            return Styles.SupportTextureFormats[selectIndex];
         }
 
-        private AssetReference GetAssetReference(Object obj)
+        private void AddAddress(Object obj)
         {
             //create settings if there is no settings.
             if (AddressableAssetSettingsDefaultObject.Settings == null)
             {
                 AddressableAssetSettings.Create(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder, AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
             }
-
-            
             var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
-            string path = "";
-
-            if ( obj is GameObject && PrefabUtility.IsAnyPrefabInstanceRoot(obj as GameObject) == true )
-                path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(obj);
-            else
-                path = AssetDatabase.GetAssetPath(obj);
+            string path = GetAssetPath(obj);
             
             if (string.IsNullOrEmpty(path))
-                return null;
+                return;
 
             string guid = AssetDatabase.AssetPathToGUID(path);
-            var entry = settings.FindAssetEntry(guid);
-
-            if (entry != null)
-                return new AssetReference(guid);
-
             var entriesAdded = new List<AddressableAssetEntry>
             {
                 settings.CreateOrMoveEntry(guid, settings.DefaultGroup, false, false)
             };
 
             settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entriesAdded, true);
+        }
 
-            return new AssetReference(guid);
+        private string GetAddress(Object obj)
+        {
+            if (AddressableAssetSettingsDefaultObject.Settings == null)
+            {
+                return null;
+            }
+
+            var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
+            string path = GetAssetPath(obj);
+            
+            if (string.IsNullOrEmpty(path))
+                return null;
+
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            var entry = settings.FindAssetEntry(guid);
+            if (entry != null)
+            {
+                string address = entry.address;
+                if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(obj)))
+                {
+                    Object prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+                    if (AssetDatabase.IsMainAsset(prefab) == false)
+                    {
+                        address = address + "." + prefab.name;
+                    }
+                }
+
+                return address;
+
+            }
+            
+            return null;
+        }
+
+        private string GetAssetPath(Object obj)
+        {
+            string path = AssetDatabase.GetAssetPath(obj);
+
+            if (string.IsNullOrEmpty(path))
+            {
+                Object prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+                path = AssetDatabase.GetAssetPath(prefab);   
+            }
+
+            return path;
         }
     }
 

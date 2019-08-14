@@ -5,27 +5,25 @@ using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
-    public class HLOD : MonoBehaviour, ISerializationCallbackReceiver
+    public class HLOD : MonoBehaviour, ISerializationCallbackReceiver, IGeneratedResourceManager
     {
         public const string HLODLayerStr = "HLOD";
-        [SerializeField]
-        private HLODTreeNode m_root;
 
         [SerializeField]
-        private float m_MinSize = 30.0f;
+        private float m_ChunkSize = 30.0f;
         [SerializeField]
         private float m_LODDistance = 0.3f;
         [SerializeField]
         private float m_CullDistance = 0.01f;
         [SerializeField]
-        private float m_ThresholdSize = 5.0f;
+        private float m_MinObjectSize = 5.0f;
 
         private Type m_BatcherType;
+        
         private Type m_SimplifierType;
         private Type m_StreamingType;
 
@@ -39,37 +37,23 @@ namespace Unity.HLODSystem
         [SerializeField]
         private string m_StreamingTypeStr;
 
+        
+        [SerializeField]
+        private SerializableDynamicObject m_SimplifierOptions = new SerializableDynamicObject();
         [SerializeField]
         private SerializableDynamicObject m_BatcherOptions = new SerializableDynamicObject();
         [SerializeField]
         private SerializableDynamicObject m_StreamingOptions = new SerializableDynamicObject();
-
-        [SerializeField]
-        private float m_SimplifyPolygonRatio = 0.8f;
-
-        [SerializeField]
-        private int m_SimplifyMinPolygonCount = 10;
-        [SerializeField]
-        private int m_SimplifyMaxPolygonCount = 500;
-
-        [SerializeField]
-        private float m_SimplifyThresholdSize = 5.0f;
-
+        
         [SerializeField]
         private List<Object> m_generatedObjects = new List<Object>();
+        [SerializeField]
+        private List<GameObject> m_convertedPrefabObjects = new List<GameObject>();
 
-        private ISpaceManager m_spaceManager;
-        private ActiveHLODTreeNodeManager m_activeManager;
 
-        public float MinSize
+        public float ChunkSize
         {
-            get { return m_MinSize; }
-        }
-
-        public HLODTreeNode Root
-        {
-            set { m_root = value; }
-            get { return m_root; }
+            get { return m_ChunkSize; }
         }
 
         public float LODDistance
@@ -110,98 +94,27 @@ namespace Unity.HLODSystem
             get { return m_StreamingOptions; }
         }
 
-        public float SimplifyPolygonRatio
+        public SerializableDynamicObject SimplifierOptions
         {
-            set { m_SimplifyPolygonRatio = value; }
-            get { return m_SimplifyPolygonRatio; }
+            get { return m_SimplifierOptions; }
         }
 
-        public int SimplifyMinPolygonCount
+        public float MinObjectSize
         {
-            set { m_SimplifyMinPolygonCount = value; }
-            get { return m_SimplifyMinPolygonCount; }
-        }
-
-        public int SimplifyMaxPolygonCount
-        {
-            set { m_SimplifyMaxPolygonCount = value; }
-            get { return m_SimplifyMaxPolygonCount; }
-        }
-
-        public float ThresholdSize
-        {
-            set { m_ThresholdSize = value; }
-            get { return m_ThresholdSize; }
+            set { m_MinObjectSize = value; }
+            get { return m_MinObjectSize; }
         }
 
         
-
-        void Awake()
-        {
-            m_spaceManager = new QuadTreeSpaceManager(this);
-            m_activeManager = new ActiveHLODTreeNodeManager();
-        }
-
-        void Start()
-        {
-            ControllerBase controller = GetComponent<ControllerBase>();
-            m_root.Initialize(controller, m_spaceManager, m_activeManager);
-            m_activeManager.Activate(m_root);
-        }
-
-        void OnEnable()
-        {
-            HLODManager.Instance.RegisterHLOD(this);
-        }
-
-        void OnDisable()
-        {
-            HLODManager.Instance.UnregisterHLOD(this);
-        }
-        private void OnDestroy()
-        {
-            HLODManager.Instance.UnregisterHLOD(this);
-        }
-
-
 #if UNITY_EDITOR
         public List<Object> GeneratedObjects
         {
             get { return m_generatedObjects; }
         }
 
-        public void StartUseInEditor()
+        public List<GameObject> ConvertedPrefabObjects
         {
-            var controller = GetComponent<ControllerBase>();
-            if (controller == null)
-                return;
-
-            Awake();
-            Start();
-
-            controller.OnStart();
-        }
-
-        public void StopUseInEditor()
-        {
-            var controller = GetComponent<ControllerBase>();
-            if (controller == null)
-                return;
-
-            controller.OnStop();
-
-            m_root.Cull();
-            m_spaceManager = null;
-            m_activeManager = null;
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            if (UnityEditor.Selection.activeGameObject == gameObject && m_root != null)
-            {
-                Gizmos.color = Color.red;
-                Gizmos.DrawWireCube(m_root.Bounds.center, m_root.Bounds.size);
-            }
+            get { return m_convertedPrefabObjects; }
         }
 #endif
 
@@ -236,24 +149,7 @@ namespace Unity.HLODSystem
             return ret;
         }
 
-        public void UpdateCull(Camera camera)
-        {
-            if (m_spaceManager == null)
-                return;
-
-            m_spaceManager.UpdateCamera(camera);
-
-            if (m_spaceManager.IsCull(m_root.Bounds) == true)
-            {
-                m_root.Cull();
-            }
-            else
-            {
-                m_activeManager.UpdateActiveNodes();
-            }
-            
-         
-        }
+    
 
         public void OnBeforeSerialize()
         {
@@ -294,6 +190,21 @@ namespace Unity.HLODSystem
                 m_StreamingType = Type.GetType(m_StreamingTypeStr);
             }
             
+        }
+
+        public void AddGeneratedResource(Object obj)
+        {
+            m_generatedObjects.Add(obj);
+        }
+
+        public bool IsGeneratedResource(Object obj)
+        {
+            return m_generatedObjects.Contains(obj);
+        }
+
+        public void AddConvertedPrefabResource(GameObject obj)
+        {
+            m_convertedPrefabObjects.Add(obj);
         }
     }
 

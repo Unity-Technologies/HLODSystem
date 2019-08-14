@@ -1,308 +1,439 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using UnityEditor;
-using UnityEditor.Experimental.SceneManagement;
+using Unity.Collections;
+using Unity.HLODSystem.Utils;
 using UnityEngine;
 
 namespace Unity.HLODSystem
 {
-    public class TexturePacker
+    public class TexturePacker : IDisposable
     {
-        public class TextureAtlas
+        public class MaterialTexture : IDisposable
         {
-            public Texture2D PacktedTexture;
-            public Texture2D[] Textures;
-            public Rect[] UVs;
-        };
-        class Group
-        {
-            public object obj;
-            public HashSet<Texture2D> textures;
+            private DisposableList<WorkingTexture> m_textures = new DisposableList<WorkingTexture>();
+
+            public void Add(WorkingTexture texture)
+            {
+                m_textures.Add(texture.Clone());
+            }
+
+            public MaterialTexture Clone()
+            {
+                MaterialTexture nmt = new MaterialTexture();
+                for (int i = 0; i < m_textures.Count; ++i)
+                {
+                    nmt.Add(m_textures[i]);    
+                }
+
+                return nmt;
+            }
+
+
+            public int Count => m_textures.Count;
+
+            public WorkingTexture this[int index]
+            {
+                get => m_textures[index];
+                set => m_textures[index] = value;
+            }
+
+            public void Dispose()
+            {
+                m_textures.Dispose();
+            }
         }
-        class AtlasGroup
+
+        public class TextureAtlas : IDisposable
         {
-            public List<object> Objects;
-            public TextureAtlas Atlas;
+            private List<object> m_objects;
+            private List<Rect> m_uvs;
+            private List<Guid> m_guids;
+            private DisposableList<WorkingTexture> m_textures;
+
+            public List<object> Objects => m_objects;
+            public List<Rect> UVs => m_uvs;
+            public DisposableList<WorkingTexture> Textures => m_textures;
+
+            protected TextureAtlas(List<object> objs, List<Rect> uvs, List<Guid> guids)
+            {
+                m_objects = objs;
+                m_uvs = uvs;
+                m_guids = guids;
+                m_textures = new DisposableList<WorkingTexture>();
+            }
+            public bool Contains(object obj)
+            {
+                return m_objects.Contains(obj);
+            }
+
+            public Rect GetUV(Guid textureGuid)
+            {
+                int index = m_guids.IndexOf(textureGuid);
+                return m_uvs[index];
+            }
+            public void Dispose()
+            {
+                m_textures.Dispose();
+            }
         }
-        class PackTexture
+
+        class TextureAtlasCreator : TextureAtlas
         {
-            public List<object> Objects;
-            public HashSet<Texture2D> Textures;
-            public int PackableTextureCount;
+            public TextureAtlasCreator(List<object> objs, List<Rect> uvs, List<Guid> guids, DisposableList<TextureCombiner> combiners)
+                : base(objs, uvs, guids) 
+            {
+                for (int i = 0; i < combiners.Count; ++i)
+                {
+                    Textures.Add(combiners[i].GetTexture().Clone());
+                }
+            }
         }
+        
         class Score
         {
-            public PackTexture Lhs;
-            public PackTexture Rhs;
-            public int Match;
+            public Source Lhs;
+            public Source Rhs;
+            public int MatchCount;
+        }
 
-            public static Score GetScore(PackTexture lhs, PackTexture rhs)
+        class TextureCombiner : IDisposable
+        {
+            private WorkingTexture m_texture;
+            public TextureCombiner(Allocator allocator, TextureFormat format, int width, int height, bool linear)
             {
-                int match = lhs.Textures.Intersect(rhs.Textures).Count();
+                m_texture = new WorkingTexture(allocator, format, width, height, linear);
+            }
+            public void Dispose()
+            {
+                m_texture?.Dispose();
+            }
+            
+            public void SetTexture(WorkingTexture source, int x, int y)
+            {
+                m_texture.Blit(source, x, y);
+            }
+
+            public WorkingTexture GetTexture()
+            {
+                return m_texture;
+            }
+
+            
+        }
+
+        class Source : IDisposable
+        {
+            public static Score GetScore(Source lhs, Source rhs)
+            {
+                int match = lhs.m_textureGuids.Intersect(rhs.m_textureGuids).Count();
                 return new Score()
                 {
                     Lhs = lhs,
                     Rhs = rhs,
-                    Match = match
+                    MatchCount = match
                 };
+            }
+
+            public static Source Combine(Source lhs, Source rhs)
+            {
+                Source newSource = new Source();
+                newSource.m_obj = new List<object>();
+                newSource.m_obj.AddRange(lhs.m_obj);
+                newSource.m_obj.AddRange(rhs.m_obj);
+
+                newSource.m_textures = new DisposableList<MaterialTexture>();
+                newSource.m_textureGuids = new List<Guid>();
+                newSource.m_textures.AddRange(lhs.m_textures);
+                newSource.m_textureGuids.AddRange(lhs.m_textureGuids);
+                
+                for (int i = 0; i < rhs.m_textures.Count; ++i)
+                {
+                    if (newSource.m_textureGuids.Contains(rhs.m_textureGuids[i]) == false)
+                    {
+                        newSource.m_textures.Add(rhs.m_textures[i]);
+                        newSource.m_textureGuids.Add(rhs.m_textureGuids[i]);
+                    }
+                }
+
+                return newSource;
+            }
+
+            public static int CombineTextureCount(Source lhs, Source rhs)
+            {
+                int count = lhs.m_textureGuids.Count;
+                for (int i = 0; i < rhs.m_textureGuids.Count; ++i)
+                {
+                    if (lhs.m_textureGuids.Contains(rhs.m_textureGuids[i]) == false)
+                    {
+                        count += 1;
+                    }
+                }
+
+                return count;
+            }
+
+            private List<object> m_obj;
+            private List<Guid> m_textureGuids;
+            private DisposableList<MaterialTexture> m_textures;
+
+
+            //use for combine.
+            //this constructor should not call from out
+            private Source()
+            {
+                
+            }
+            public Source(object obj, DisposableList<MaterialTexture> textures)
+            {
+                m_obj = new List<object>();
+                m_obj.Add(obj);
+                
+                m_textures = textures;
+                m_textureGuids = new List<Guid>(textures.Count);
+
+                for (int i = 0; i < textures.Count; ++i)
+                {
+                    m_textureGuids.Add(textures[i][0].GetGUID());
+                }
+            }
+            public void Dispose()
+            {
+                m_textures?.Dispose();
+            }
+            public int GetTextureCount()
+            {
+                return m_textures.Count;
+            }
+
+            public int GetMaxTextureCount(int packTextureSize, int maxSourceSize)
+            {
+                int minTextureCount = packTextureSize / maxSourceSize;
+                //width * height
+                minTextureCount = minTextureCount * minTextureCount;
+
+                //we can't pack one texture.
+                //so, we should use half size texture.
+                while (minTextureCount < m_textures.Count)
+                    minTextureCount = minTextureCount * 4;
+
+                return minTextureCount;
+            }
+
+            public TextureAtlas CreateAtlas(TextureFormat format, int packTextureSize, bool linear)
+            {
+                int itemCount = Mathf.CeilToInt(Mathf.Sqrt(m_textures.Count));
+                int itemSize = packTextureSize / itemCount;
+                TextureAtlas atlas;
+
+                using (DisposableList<MaterialTexture> resizedTextures = CreateResizedTextures(itemSize, itemSize))
+                using (DisposableList<TextureCombiner> combiners = new DisposableList<TextureCombiner>())
+                {
+                    List<Rect> uvs = new List<Rect>(resizedTextures.Count);
+                    List<Guid> guids = new List<Guid>(resizedTextures.Count);
+                    for (int i = 0; i < resizedTextures.Count; ++i)
+                    {
+                        int x = i % itemCount;
+                        int y = i / itemCount;
+
+                        for (int k = combiners.Count; k < resizedTextures[i].Count; ++k)
+                            combiners.Add(new TextureCombiner(Allocator.Persistent, format, packTextureSize,
+                                packTextureSize, linear));
+
+                        uvs.Add(new Rect(
+                            (float) (x * itemSize)/ (float) packTextureSize,
+                            (float) (y * itemSize)/ (float) packTextureSize,
+                            (float) resizedTextures[i][0].Width / (float) packTextureSize,
+                            (float) resizedTextures[i][0].Height / (float) packTextureSize));
+
+                        guids.Add(m_textures[i][0].GetGUID());
+
+                        for (int k = 0; k < resizedTextures[i].Count; ++k)
+                        {
+                            combiners[k].SetTexture(resizedTextures[i][k], x * itemSize, y * itemSize);
+                        }
+                    }
+
+                    atlas = new TextureAtlasCreator(m_obj, uvs, guids, combiners);
+                }
+
+                return atlas;
+            }
+
+            private DisposableList<MaterialTexture> CreateResizedTextures(int newWidth, int newHeight)
+            {
+                DisposableList<MaterialTexture> resized = new DisposableList<MaterialTexture>();
+                for (int i = 0; i < m_textures.Count; ++i)
+                {
+                    MaterialTexture newMT = new MaterialTexture();
+
+                    for (int k = 0; k < m_textures[i].Count; ++k)
+                    {
+                        int targetWidth = Mathf.Min(newWidth, m_textures[i][k].Width);
+                        int targetHeight = Mathf.Min(newHeight, m_textures[i][k].Height);
+                        WorkingTexture resizedTexture =
+                            m_textures[i][k].Resize(Allocator.Persistent, targetWidth, targetHeight); 
+                        newMT.Add(resizedTexture);
+                        resizedTexture.Dispose();
+                    }
+                    
+                    resized.Add(newMT);
+                }
+
+                return resized;
+            }
+            
+        }
+
+
+        class TaskGroup
+        {
+            private TextureFormat m_format;
+            private int m_packTextureSize;
+            private int m_maxCount;
+            private bool m_linear;
+            private List<Source> m_sources = new List<Source>();
+
+            public TaskGroup(TextureFormat format, int packTextureSize, bool linear, int maxCount)
+            {
+                m_format = format;
+                m_packTextureSize = packTextureSize;
+                m_maxCount = maxCount;
+                m_linear = linear;
+            }
+
+            public void AddSource(Source source)
+            {
+                m_sources.Add(source);
+            }
+
+
+            public void CombineSources()
+            {
+                List<Score> scoreList = new List<Score>();
+                for (int i = 0; i < m_sources.Count; ++i)
+                {
+                    for (int k = i + 1; k < m_sources.Count; ++k)
+                    {
+                        scoreList.Add(Source.GetScore(m_sources[i], m_sources[k]));
+                    }
+                }
+                
+                scoreList.Sort((lhs, rhs) => rhs.MatchCount - lhs.MatchCount);
+
+                for (int i = 0; i < scoreList.Count; ++i)
+                {
+                    Score score = scoreList[i];
+                    if (CanCombine(score.Lhs, score.Rhs) == false)
+                        continue;
+
+                    Source combinedSource = Source.Combine(score.Lhs, score.Rhs);
+                    //Do not dispose lhs, rhs sources
+                    //these just moved so must not be released.
+                    m_sources.Remove(score.Lhs);
+                    m_sources.Remove(score.Rhs);
+                    m_sources.Add(combinedSource);
+
+                    //Remove merged Score and make Score by combinedScore.
+                    scoreList.RemoveAll(s => s.Lhs == score.Lhs || s.Lhs == score.Rhs ||
+                                             s.Rhs == score.Lhs || s.Rhs == score.Rhs);
+
+                    //last is combinedSource.
+                    for (int k = 0; k < m_sources.Count - 1; ++k)
+                    {
+                        scoreList.Add(Source.GetScore(m_sources[k], combinedSource));
+                    }
+
+                    scoreList.Sort((lhs, rhs) => rhs.MatchCount - lhs.MatchCount);
+                    i = -1; //for back to the first loop..
+
+                }
+            }
+
+
+            public DisposableList<TextureAtlas> CreateTextureAtlases()
+            {
+                DisposableList<TextureAtlas> atlases = new DisposableList<TextureAtlas>();
+
+                for (int i = 0; i < m_sources.Count; ++i)
+                {
+                    TextureAtlas item = m_sources[i].CreateAtlas(m_format, m_packTextureSize, m_linear);
+                    atlases.Add(item);
+                }
+                return atlases;
+
+            }
+            
+            private bool CanCombine(Source lhs, Source rhs)
+            {
+                
+                return Source.CombineTextureCount(lhs, rhs) <= m_maxCount;
             }
         }
 
-        List<Group> groups = new List<Group>();
-        List<AtlasGroup> atlasGroups = new List<AtlasGroup>();
+        DisposableList<Source> m_sources = new DisposableList<Source>();
+        DisposableList<TextureAtlas> m_atlas = new DisposableList<TextureAtlas>();
 
         public TexturePacker()
         {
 
         }
-
-        public void  AddTextureGroup(object obj, Texture2D[] textures)
+        
+        public void Dispose()
         {
-            Group group = new Group();
-            group.obj = obj;
-            group.textures = new HashSet<Texture2D>(textures);
+            m_sources.Dispose();
+            m_atlas.Dispose();
+        }
 
-            groups.Add(group);
+         
+        //TODO: must clear what the ownership of texture.
+        public void AddTextureGroup(object obj, List<MaterialTexture> textures)
+        {
+            DisposableList<MaterialTexture> copyTextures = new DisposableList<MaterialTexture>();
+            for (int i = 0; i < textures.Count; ++i)
+            {
+                copyTextures.Add(textures[i].Clone());
+            }
+            Source source = new Source(obj, copyTextures);
+            m_sources.Add(source);
+        }
+        
+        public void Pack(TextureFormat format, int packTextureSize, int maxSourceSize, bool linear)
+        {
+            //First, we should separate each group by count.
+            Dictionary<int, TaskGroup> taskGroups = new Dictionary<int, TaskGroup>();
+            for (int i = 0; i < m_sources.Count; ++i)
+            {
+                int maxCount = m_sources[i].GetMaxTextureCount(packTextureSize, maxSourceSize);
+                if (taskGroups.ContainsKey(maxCount) == false)
+                    taskGroups.Add(maxCount, new TaskGroup(format, packTextureSize, linear, maxCount));
+
+                taskGroups[maxCount].AddSource(m_sources[i]);
+            }
+            
+            //Second, we should figure out which group should be combined from each taskGroup.
+            foreach (var taskGroup in taskGroups.Values)
+            {
+                taskGroup.CombineSources();
+                m_atlas.AddRange(taskGroup.CreateTextureAtlases());
+            }
         }
 
         public TextureAtlas GetAtlas(object obj)
         {
-            foreach (var group in atlasGroups)
+            for (int i = 0; i < m_atlas.Count; ++i)
             {
-                if (group.Objects.Contains(obj))
-                    return group.Atlas;
+                if (m_atlas[i].Contains(obj))
+                    return m_atlas[i];
             }
             return null;
         }
 
         public TextureAtlas[] GetAllAtlases()
         {
-            return atlasGroups.Select(t => t.Atlas).ToArray();
+            return m_atlas.ToArray();
         }
-
-        public void Pack(int packTextureSize, int maxPieceSize)
-        {
-            //First, we should separate each group by count.
-            Dictionary<int, List<Group>> groupCluster = new Dictionary<int, List<Group>>();
-
-            for (int i = 0; i < groups.Count; ++i)
-            {
-                Group group = groups[i];
-                int maximum = GetMaximumTextureCount(packTextureSize, maxPieceSize, group.textures.Count);
-                if ( groupCluster.ContainsKey(maximum) == false )
-                    groupCluster[maximum] = new List<Group>();
-
-                groupCluster[maximum].Add(group);
-            }
-
-            //Second, we should figure out which group should be combined from each cluster.
-            foreach (var cluster in groupCluster)
-            {
-                int maximum = cluster.Key;
-                List<PackTexture> packTextures = new List<PackTexture>();
-
-                foreach (var group in cluster.Value)
-                {
-                    packTextures.Add(new PackTexture()
-                    {
-                        Objects = new List<object>() {group.obj},
-                        Textures = new HashSet<Texture2D>(group.textures),
-                        PackableTextureCount = maximum
-                    });                    
-                }
-
-                List<Score> scoreList = new List<Score>();
-                for (int i = 0; i < packTextures.Count; ++i)
-                {
-                    for (int j = i + 1; j < packTextures.Count; ++j)
-                    {
-                        scoreList.Add(Score.GetScore(packTextures[i], packTextures[j]));
-                    }
-                }
-
-                scoreList.Sort((lhs, rhs) => rhs.Match - lhs.Match);
-
-                for (int i = 0; i < scoreList.Count; ++i)
-                {
-                    HashSet<Texture2D> unionTextures = new HashSet<Texture2D>(scoreList[i].Lhs.Textures.Union(scoreList[i].Rhs.Textures));
-                    if (unionTextures.Count <= maximum)
-                    {
-                        PackTexture lhs = scoreList[i].Lhs;
-                        PackTexture rhs = scoreList[i].Rhs;
-
-                        List<object> newObjects = new List<object>(scoreList[i].Lhs.Objects.Concat(scoreList[i].Rhs.Objects));
-
-                        PackTexture newPackTexture = new PackTexture()
-                        {
-                            Objects = newObjects,
-                            Textures = unionTextures,
-                            PackableTextureCount = maximum
-                        };
-
-                        
-                        packTextures.Remove(lhs);
-                        packTextures.Remove(rhs);
-                        packTextures.Add(newPackTexture);
-
-                        //Remove merged Score and make Score by new Pack Texture.
-                        scoreList.RemoveAll(score => score.Lhs == lhs || score.Lhs == rhs ||
-                                                     score.Rhs == lhs || score.Rhs == rhs );
-
-                        for (int j = 0; j < packTextures.Count - 1; ++j)
-                        {
-                            scoreList.Add(Score.GetScore(packTextures[j], newPackTexture));
-                        }
-
-                        scoreList.Sort((l, r) => r.Match - l.Match);
-
-                        //for start first loop
-                        i = -1;
-                    }
-                }
-
-                foreach (var pack in packTextures)
-                {
-                    var atlas = MakeTextureAtlas(pack, packTextureSize);
-                    atlasGroups.Add(new AtlasGroup()
-                    {
-                        Objects = pack.Objects,
-                        Atlas = atlas
-                    });
-                }
-                
-                Debug.Log("Packing count : " + maximum + ", textures : " + packTextures.Count);
-            }
-        }
-
-        public void SaveTextures(string path, string prefixName)
-        {
-            int index = 1;
-            foreach (var group in atlasGroups)
-            {
-                var name = path + prefixName + index++ + ".png";
-                group.Atlas.PacktedTexture = SaveTexture(group.Atlas.PacktedTexture, name);
-            }
-        }
-
-        private TextureAtlas MakeTextureAtlas(PackTexture packTexture, int packTextureSize)
-        {
-            TextureAtlas atlas = new TextureAtlas();
-            Texture2D packtedTexture = new Texture2D(packTextureSize, packTextureSize, TextureFormat.RGBA32, false);
-
-            int itemCount = (int) Math.Sqrt(packTexture.PackableTextureCount);
-            int itemSize = packTextureSize / itemCount;
-
-            int index = 0;
-
-            atlas.UVs = new Rect[packTexture.Textures.Count];
-            atlas.Textures = packTexture.Textures.ToArray();
-
-            foreach (var texture in atlas.Textures)
-            {
-                int width, height;
-                Color[] buffer = GetTextureColors(texture, itemSize, out width, out height);
-
-                int col = index % itemCount;
-                int row = index / itemCount;
-
-                int x = col * itemSize;
-                int y = row * itemSize;
-
-                packtedTexture.SetPixels(x, y, width, height, buffer);
-
-                atlas.UVs[index] = new Rect(
-                    (float)x / (float)packTextureSize,
-                    (float)y / (float)packTextureSize,
-                    (float)width / (float)packTextureSize,
-                    (float)height / (float)packTextureSize);
-
-                index += 1;
-            }
-
-            packtedTexture.Apply();
-            atlas.PacktedTexture = packtedTexture;
-            return atlas;
-        }
-
         
-        private Color[] GetTextureColors(Texture2D texture, int maxItemSize, out int width, out int height)
-        {
-            //make to texture readable.
-            var assetImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
-            var textureImporter = assetImporter as TextureImporter;
-            if (textureImporter && !textureImporter.isReadable)
-            {
-                textureImporter.isReadable = true;
-                textureImporter.SaveAndReimport();
-            }
-      
-            int sideSize = Math.Max(texture.width, texture.height);
-
-            //if texture can put into an atlas by original size, go ahead.
-            //Also, check mipmap is able to put into an atlas.
-            for (int i = 0; i < texture.mipmapCount; ++i)
-            {
-                if ((sideSize >> i) <= maxItemSize)
-                {
-                    width = texture.width >> i;
-                    height = texture.height >> i;
-                    return texture.GetPixels(i);
-                }
-            }
-
-            //we should resize texture and return it buffers.
-            float ratio = (float)texture.width / (float)texture.height;
-            if (ratio > 1.0f)
-            {
-                width = maxItemSize;
-                height = (int)(maxItemSize / ratio);
-            }
-            else
-            {
-                width = (int) (maxItemSize / ratio);
-                height = maxItemSize;
-            }
-
-            Texture2D resizeTexture = new Texture2D(texture.width, texture.height, texture.format, false);
-            Graphics.CopyTexture(texture, resizeTexture);
-            resizeTexture.Resize(width, height);
-
-            return resizeTexture.GetPixels();
-        }
-
-        private static int GetMaximumTextureCount(int packTextureSize, int maxPieceSize, int textureCount)
-        {
-            int minTextureCount = packTextureSize / maxPieceSize;
-            //width * height
-            minTextureCount = minTextureCount * minTextureCount;
-
-            //we can't pack one texture.
-            //so, we should use half size texture.
-            while (minTextureCount < textureCount)
-                minTextureCount = minTextureCount * 4;
-
-            return minTextureCount;
-        }
-
-        static Texture2D SaveTexture(Texture2D texture, string path)
-        {           
-            var dirPath = Path.GetDirectoryName(path);
-            if (Directory.Exists(path) == false)
-            {
-                Directory.CreateDirectory(dirPath);
-            }
-
-            
-            byte[] binary = texture.EncodeToPNG();
-            File.WriteAllBytes(path,binary);
-
-            AssetDatabase.ImportAsset(path);
-            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-        }
-
     }
 
 }

@@ -10,11 +10,11 @@ namespace Unity.HLODSystem
     {
         private List<HLODTreeNode> m_activeTreeNode = new List<HLODTreeNode>();
 
-        public void UpdateActiveNodes()
+        public void UpdateActiveNodes(float lodDistance)
         {
             for (int i = 0; i < m_activeTreeNode.Count; ++i)
             {
-                m_activeTreeNode[i].Update();
+                m_activeTreeNode[i].Update(lodDistance);
             }
         }
 

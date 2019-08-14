@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using UnityEditor;
 #endif
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 namespace Unity.HLODSystem
 {
     public class HLODManager
     {
         private static HLODManager s_instance = null;
+        private bool IsSRP => GraphicsSettings.renderPipelineAsset != null;
 
         public static HLODManager Instance
         {
@@ -21,24 +22,31 @@ namespace Unity.HLODSystem
                 return s_instance;
             }
         }
-
-        public void RegisterHLOD(HLOD hlod)
+    
+        public void Register(Streaming.ControllerBase controller)
         {
-            if (m_activeHLODs == null)
+            if (m_activeControllers == null)
             {
-                m_activeHLODs = new List<HLOD>();
-                Camera.onPreCull += OnPreCull;
-                RenderPipeline.beginCameraRendering += OnPreCull;
+                m_activeControllers = new List<Streaming.ControllerBase>();
+                if (IsSRP)
+                    RenderPipelineManager.beginCameraRendering += OnPreCull;
+                else
+                    Camera.onPreCull += OnPreCull;
             }
-            m_activeHLODs.Add(hlod);
+            m_activeControllers.Add(controller);
         }
-        public void UnregisterHLOD(HLOD hlod)
+        public void Unregister(Streaming.ControllerBase controller)
         {
-            if ( m_activeHLODs != null)
-                m_activeHLODs.Remove(hlod);
+            if ( m_activeControllers != null)
+                m_activeControllers.Remove(controller);
         }
 
-        private List<HLOD> m_activeHLODs = null;
+        private List<Streaming.ControllerBase> m_activeControllers = null;
+
+        private void OnPreCull(ScriptableRenderContext context, Camera cam)
+        {
+            OnPreCull(cam);
+        }
 
         private void OnPreCull(Camera cam)
         {
@@ -60,12 +68,12 @@ namespace Unity.HLODSystem
                 return;
 #endif
 
-            if (m_activeHLODs == null)
+            if (m_activeControllers == null)
                 return;
 
-            for (int i = 0; i < m_activeHLODs.Count; ++i)
+            for (int i = 0; i < m_activeControllers.Count; ++i)
             {
-                m_activeHLODs[i].UpdateCull(cam);
+                m_activeControllers[i].UpdateCull(cam);
             }
         }
     }

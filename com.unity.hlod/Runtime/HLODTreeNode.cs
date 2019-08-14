@@ -208,9 +208,9 @@ namespace Unity.HLODSystem
         #endregion
         
 
-        public void Update()
+        public void Update(float lodDistance)
         {
-            if (m_spaceManager.IsHigh(m_bounds))
+            if (m_spaceManager.IsHigh(lodDistance, m_bounds))
             {
                 if ( m_fsm.State == State.Release)
                     m_fsm.ChangeState(State.Low);
