@@ -18,7 +18,7 @@ namespace Unity.HLODSystem
             public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destory a HLOD mesh.");
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "You need to generate HLOD before the destroy.");
         }        
-        private SerializedProperty m_MinSizeProperty;
+        private SerializedProperty m_ChunkSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
         private SerializedProperty m_CullDistanceProperty;
         private SerializedProperty m_ThresholdSizeProperty;
@@ -51,7 +51,7 @@ namespace Unity.HLODSystem
 
         void OnEnable()
         {            
-            m_MinSizeProperty = serializedObject.FindProperty("m_MinSize");
+            m_ChunkSizeProperty = serializedObject.FindProperty("m_ChunkSize");
             m_LODDistanceProperty = serializedObject.FindProperty("m_LODDistance");
             m_CullDistanceProperty = serializedObject.FindProperty("m_CullDistance");
             m_ThresholdSizeProperty = serializedObject.FindProperty("m_ThresholdSize");
@@ -86,7 +86,7 @@ namespace Unity.HLODSystem
             if (isShowCommon == true)
             {
 
-                EditorGUILayout.PropertyField(m_MinSizeProperty);
+                EditorGUILayout.PropertyField(m_ChunkSizeProperty);
 
                 m_LODSlider.Draw();
                 EditorGUILayout.PropertyField(m_ThresholdSizeProperty);

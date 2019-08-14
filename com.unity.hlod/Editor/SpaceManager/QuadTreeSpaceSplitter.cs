@@ -19,14 +19,14 @@ namespace Unity.HLODSystem.SpaceManager
     public class QuadTreeSpaceSplitter : ISpaceSplitter
     {
         private float m_looseSize;
-        private float m_minSize;
+        private float m_chunkSize;
         private Vector3 m_rootPosition;
 
-        public QuadTreeSpaceSplitter(Vector3 rootPosition, float looseSize, float minSize)
+        public QuadTreeSpaceSplitter(Vector3 rootPosition, float looseSize, float chunkSize)
         {
             m_rootPosition = rootPosition;
             m_looseSize = looseSize;
-            m_minSize = minSize;
+            m_chunkSize = chunkSize;
         }
         public SpaceNode CreateSpaceTree(Bounds initBounds, List<GameObject> targetObjects, Action<float> onProgress)
         {
@@ -43,7 +43,7 @@ namespace Unity.HLODSystem.SpaceManager
 			while(nodeStack.Count > 0 )
 			{
 				SpaceNode node = nodeStack.Pop();
-				if ( node.Bounds.size.x > m_minSize )
+				if ( node.Bounds.size.x > m_chunkSize )
 				{
                     List<SpaceNode> childNodes = CreateChildSpaceNodes(node);
 					

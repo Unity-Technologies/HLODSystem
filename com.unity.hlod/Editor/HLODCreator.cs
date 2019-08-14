@@ -139,7 +139,7 @@ namespace Unity.HLODSystem
                 Bounds bounds = hlod.GetBounds();
 
                 List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
-                ISpaceSplitter spliter = new QuadTreeSpaceSplitter(hlod.transform.position, 5.0f, hlod.MinSize);
+                ISpaceSplitter spliter = new QuadTreeSpaceSplitter(hlod.transform.position, 5.0f, hlod.ChunkSize);
                 SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlodTargets, progress =>
                 {
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);

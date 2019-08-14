@@ -15,7 +15,7 @@ namespace Unity.HLODSystem
         [SerializeField] private string m_StreamingTypeStr = "";
 
         [SerializeField] private TerrainData m_TerrainData;
-        [SerializeField] private float m_MinSize = 30.0f;
+        [SerializeField] private float m_ChunkSize = 30.0f;
         [SerializeField] private int m_BorderVertexCount = 256;
         [SerializeField] private float m_LODDistance = 0.3f;
         [SerializeField] private float m_CullDistance = 0.01f;
@@ -54,9 +54,9 @@ namespace Unity.HLODSystem
             set { m_TerrainData = value;}
             get { return m_TerrainData; }
         }
-        public float MinSize
+        public float ChunkSize
         {
-            get { return m_MinSize; }
+            get { return m_ChunkSize; }
         }
 
         public int BorderVertexCount

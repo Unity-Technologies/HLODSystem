@@ -14,7 +14,7 @@ namespace Unity.HLODSystem
         public const string HLODLayerStr = "HLOD";
 
         [SerializeField]
-        private float m_MinSize = 30.0f;
+        private float m_ChunkSize = 30.0f;
         [SerializeField]
         private float m_LODDistance = 0.3f;
         [SerializeField]
@@ -51,9 +51,9 @@ namespace Unity.HLODSystem
         private List<GameObject> m_convertedPrefabObjects = new List<GameObject>();
 
 
-        public float MinSize
+        public float ChunkSize
         {
-            get { return m_MinSize; }
+            get { return m_ChunkSize; }
         }
 
         public float LODDistance
@@ -116,41 +116,6 @@ namespace Unity.HLODSystem
         {
             get { return m_convertedPrefabObjects; }
         }
-
-        /*
-        public void StartUseInEditor()
-        {
-            var controller = GetComponent<ControllerBase>();
-            if (controller == null)
-                return;
-
-            Awake();
-            Start();
-
-            controller.OnStart();
-        }
-
-        public void StopUseInEditor()
-        {
-            var controller = GetComponent<ControllerBase>();
-            if (controller == null)
-                return;
-
-            controller.OnStop();
-
-            m_root.Cull();
-            m_spaceManager = null;
-            m_activeManager = null;
-        }
-
-        private void OnDrawGizmosSelected()
-        {
-            if (UnityEditor.Selection.activeGameObject == gameObject && m_root != null)
-            {
-                Gizmos.color = Color.red;
-                Gizmos.DrawWireCube(m_root.Bounds.center, m_root.Bounds.size);
-            }
-        }*/
 #endif
 
         Bounds CalcLocalBounds(Renderer renderer)

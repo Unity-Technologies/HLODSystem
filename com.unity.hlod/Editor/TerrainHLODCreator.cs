@@ -872,7 +872,7 @@ namespace Unity.HLODSystem
 
 
                     QuadTreeSpaceSplitter splitter =
-                        new QuadTreeSpaceSplitter(m_hlod.transform.position, 0.0f, m_hlod.MinSize * 2.0f);
+                        new QuadTreeSpaceSplitter(m_hlod.transform.position, 0.0f, m_hlod.ChunkSize * 2.0f);
 
                     SpaceNode rootNode = splitter.CreateSpaceTree(GetBounds(data), null, progress => { });
 
