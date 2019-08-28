@@ -25,7 +25,6 @@ namespace Unity.HLODSystem.SpaceManager
             }
             preRelative = preRelative * QualitySettings.lodBias;
             camPosition = hlodTransform.worldToLocalMatrix.MultiplyPoint(cam.transform.position);
-
         }
 
         public bool IsHigh(float lodDistance, Bounds bounds)
@@ -38,6 +37,15 @@ namespace Unity.HLODSystem.SpaceManager
             return relativeHeight > lodDistance;
         }
 
+        public float GetDistanceSqure(Bounds bounds)
+        {
+            float x = bounds.center.x - camPosition.x;
+            float z = bounds.center.z - camPosition.z;
+
+            float square = x * x + z * z;
+            return square;
+        }
+        
         public bool IsCull(float cullDistance, Bounds bounds)
         {
             float distance = GetDistance(bounds.center, camPosition);
@@ -48,11 +56,13 @@ namespace Unity.HLODSystem.SpaceManager
 
         private float GetDistance(Vector3 boundsPos, Vector3 camPos)
         {
-            float x = Mathf.Abs(boundsPos.x - camPos.x);
-            float z = Mathf.Abs(boundsPos.z - camPos.z);
+            float x = boundsPos.x - camPos.x;
+            float z = boundsPos.z - camPos.z;
             float square = x * x + z * z;
             return Mathf.Sqrt(square);
         }
+
+       
     }
 
 }

@@ -10,6 +10,10 @@ namespace Unity.HLODSystem.Streaming
     using ControllerID = Int32;
     public abstract class ControllerBase : MonoBehaviour
     {
+        public interface ILoadHandle : IEnumerator
+        {
+            GameObject Result { get; }
+        }
         #region Interface
         public abstract void Install();
 
@@ -18,9 +22,9 @@ namespace Unity.HLODSystem.Streaming
         public abstract void OnStop();
 
         //This should be a coroutine.
-        public abstract IEnumerator GetHighObject(ControllerID id, Action<GameObject> callback);
+        public abstract ILoadHandle GetHighObject(ControllerID id, int level, float distance);
 
-        public abstract IEnumerator GetLowObject(ControllerID id, Action<GameObject> callback);
+        public abstract ILoadHandle GetLowObject(ControllerID id, int level, float distance);
 
         public abstract void ReleaseHighObject(ControllerID id);
         public abstract void ReleaseLowObject(ControllerID id);
@@ -30,17 +34,14 @@ namespace Unity.HLODSystem.Streaming
         void Awake()
         {
             m_spaceManager = new QuadTreeSpaceManager();
-            m_activeManager = new ActiveHLODTreeNodeManager();
         }
 
         void Start()
         {
-            ControllerBase controller = GetComponent<ControllerBase>();
-            m_root.Initialize(controller, m_spaceManager, m_activeManager);
-            m_activeManager.Activate(m_root);
-
+            m_root.Initialize(this, m_spaceManager, null);
             OnStart();
         }
+
         void OnEnable()
         {
             HLODManager.Instance.Register(this);
@@ -53,7 +54,10 @@ namespace Unity.HLODSystem.Streaming
 
         void OnDestroy()
         {
+            OnStop();
             HLODManager.Instance.Unregister(this);
+            m_spaceManager = null;
+            m_root = null;
         }
         #endregion
         
@@ -65,14 +69,8 @@ namespace Unity.HLODSystem.Streaming
 
             m_spaceManager.UpdateCamera(this.transform, camera);
 
-            if (m_spaceManager.IsCull(m_cullDistance, m_root.Bounds) == true)
-            {
-                m_root.Cull();
-            }
-            else
-            {
-                m_activeManager.UpdateActiveNodes(m_lodDistance);
-            }
+            m_root.Cull(m_spaceManager.IsCull(m_cullDistance, m_root.Bounds));
+            m_root.Update(m_lodDistance);
             
          
         }
@@ -80,7 +78,6 @@ namespace Unity.HLODSystem.Streaming
  
         #region variables
         private ISpaceManager m_spaceManager;
-        private ActiveHLODTreeNodeManager m_activeManager;
         
         [SerializeField]
         private HLODTreeNode m_root;
@@ -106,8 +103,6 @@ namespace Unity.HLODSystem.Streaming
             get { return m_lodDistance; }
         }
         #endregion
-        
-
     }
 
 }

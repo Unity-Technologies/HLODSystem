@@ -220,17 +220,21 @@ namespace Unity.HLODSystem.Streaming
 
             Queue<HLODTreeNode> hlodTreeNodes = new Queue<HLODTreeNode>();
             Queue<SpaceNode> spaceNodes = new Queue<SpaceNode>();
+            Queue<int> levels = new Queue<int>();
 
             hlodTreeNodes.Enqueue(root);
             spaceNodes.Enqueue(rootNode);
+            levels.Enqueue(0);
 
             while (hlodTreeNodes.Count > 0)
             {
                 var hlodTreeNode = hlodTreeNodes.Dequeue();
                 var spaceNode = spaceNodes.Dequeue();
+                int level = levels.Dequeue();
 
                 convertedTable[spaceNode] = hlodTreeNode;
 
+                hlodTreeNode.Level = level;
                 hlodTreeNode.Bounds = spaceNode.Bounds;
                 if (spaceNode.HasChild() == true)
                 {
@@ -242,6 +246,7 @@ namespace Unity.HLODSystem.Streaming
 
                         hlodTreeNodes.Enqueue(treeNode);
                         spaceNodes.Enqueue(spaceNode.GetChild(i));
+                        levels.Enqueue(level + 1);
                     }
 
                     hlodTreeNode.ChildNodes = childTreeNodes;

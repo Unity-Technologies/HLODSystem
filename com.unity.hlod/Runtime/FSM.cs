@@ -9,7 +9,7 @@ namespace Unity.HLODSystem
     public class FSM<T> where T : struct
     {
         private T m_currentState = default;
-        private IEnumerator m_lastRun = null;
+        private T m_lastState = default;
 
         //event ordering
         //exiting -> entering -> exited -> entered
@@ -18,29 +18,42 @@ namespace Unity.HLODSystem
         private Dictionary<T, Action> m_enteredFunctions = new Dictionary<T, Action>();
         private Dictionary<T, Action> m_exitedFunctions = new Dictionary<T, Action>();
 
-        public T State
-        {
-            get { return m_currentState; }
-        }
+        private CustomCoroutine m_currentCoroutine = null;
+        private CustomCoroutine m_reservedCoroutine = null;
 
-        public IEnumerator LastRunEnumerator
+        public T CurrentState => m_currentState;
+        public T LastState => m_lastState;
+
+        public void Update()
         {
-            get { return m_lastRun; }
+            if (m_currentCoroutine == null)
+            {
+                m_currentCoroutine = m_reservedCoroutine;
+                m_reservedCoroutine = null;
+            }
+
+            if (m_currentCoroutine == null)
+                return;
+
+            if (m_currentCoroutine.MoveNext() == false)
+            {
+                m_currentCoroutine = null;
+            }
         }
 
         public void ChangeState(T state)
         {
-            if (EqualityComparer<T>.Default.Equals(state, m_currentState))
+            if (EqualityComparer<T>.Default.Equals(state, m_lastState))
                 return;
 
-            Func<IEnumerator> entering = GetValue(m_enteringFunctions, state);
-            Func<IEnumerator> exiting = GetValue(m_exitingFunctions, m_currentState);
-            Action entered = GetValue(m_enteredFunctions, state);
-            Action exited = GetValue(m_exitedFunctions, m_currentState);
+            m_lastState = state;
 
-            m_lastRun = CoroutineRunner.RunCoroutine(Changing(m_lastRun, entering, exiting, entered, exited));
-            m_currentState = state;
+            var routine = ChangeStateRoutine(state);
+            m_reservedCoroutine = new CustomCoroutine(routine);
+            
         }
+
+        
 
         public void RegisterEnteringFunction(T state, Func<IEnumerator> func)
         {
@@ -78,21 +91,26 @@ namespace Unity.HLODSystem
             m_exitedFunctions.Remove(state);
         }
 
-
-        private IEnumerator Changing(IEnumerator lastRun, Func<IEnumerator> entering, Func<IEnumerator> exiting, Action entered, Action exited)
+        private IEnumerator ChangeStateRoutine( T targetState )
         {
-            //wait until the last coroutine finished.
-            yield return lastRun;
+            if (EqualityComparer<T>.Default.Equals(targetState, m_currentState))
+                yield break;
 
 
+            Func<IEnumerator> entering = GetValue(m_enteringFunctions, targetState);
+            Func<IEnumerator> exiting = GetValue(m_exitingFunctions, m_currentState);
+            Action entered = GetValue(m_enteredFunctions, targetState);
+            Action exited = GetValue(m_exitedFunctions, m_currentState);
 
             //exiting -> entering -> exited -> entered
             if (exiting != null) yield return exiting();
             if (entering != null) yield return entering();
             if (exited != null) exited();
             if (entered != null) entered();
-        }
 
+            m_currentState = targetState;
+        }
+        
         private void AddOrUpdate<KEY, VALUE>(Dictionary<KEY, VALUE> container, KEY key, VALUE value)
         {
             if (container.ContainsKey(key))

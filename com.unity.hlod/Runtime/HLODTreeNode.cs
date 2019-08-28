@@ -11,6 +11,8 @@ namespace Unity.HLODSystem
     [Serializable]
     public class HLODTreeNode
     {
+        [SerializeField] 
+        private int m_level;
         [SerializeField]
         private Bounds m_bounds;
         [SerializeField]
@@ -21,9 +23,17 @@ namespace Unity.HLODSystem
         [SerializeField]
         private List<int> m_lowObjectIds = new List<int>();
 
-        private List<GameObject> m_highObjects = new List<GameObject>();
-        private List<GameObject> m_lowObjects = new List<GameObject>();
+        private Dictionary<int, GameObject> m_highObjects = new Dictionary<int, GameObject>();
+        private Dictionary<int, GameObject> m_lowObjects = new Dictionary<int, GameObject>();
 
+        private Dictionary<int, GameObject> m_loadedHighObjects;
+        private Dictionary<int, GameObject> m_loadedLowObjects;
+
+        public int Level
+        {
+            set { m_level = value; }
+            get { return m_level; }
+        }
         public Bounds Bounds
         {
             set { m_bounds = value; }
@@ -57,19 +67,27 @@ namespace Unity.HLODSystem
         private State m_lastState = State.Release;
 
         private ControllerBase m_controller;
-        private ActiveHLODTreeNodeManager m_activeManager;
         private ISpaceManager m_spaceManager;
+        private HLODTreeNode m_parent;
 
-        public void Initialize(ControllerBase controller, ISpaceManager spaceManager, ActiveHLODTreeNodeManager activeManager)
+        private float m_boundsLength;
+        private float m_distance;
+        
+        private bool m_isVisible;
+        private bool m_isVisibleHierarchy;
+
+
+        public void Initialize(ControllerBase controller, ISpaceManager spaceManager, HLODTreeNode parent)
         {
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
-                m_childTreeNodes[i].Initialize(controller, spaceManager, activeManager);
+                m_childTreeNodes[i].Initialize(controller, spaceManager, this);
             }
 
             //set to initialize state
             m_fsm.ChangeState(State.Release);
 
+            m_fsm.RegisterEnteringFunction(State.Release, OnEnteringRelease);
             m_fsm.RegisterEnteredFunction(State.Release, OnEnteredRelease);
 
             m_fsm.RegisterEnteringFunction(State.Low, OnEnteringLow);
@@ -79,60 +97,92 @@ namespace Unity.HLODSystem
             m_fsm.RegisterEnteringFunction(State.High, OnEnteringHigh);
             m_fsm.RegisterEnteredFunction(State.High, OnEnteredHigh);
             m_fsm.RegisterExitedFunction(State.High, OnExitedHigh);
-
+            
             m_controller = controller;
             m_spaceManager = spaceManager;
-            m_activeManager = activeManager;
+            m_parent = parent;
+            
+            m_isVisible = true;
+            m_isVisibleHierarchy = true;
+
+            m_boundsLength = m_bounds.extents.x * m_bounds.extents.x + m_bounds.extents.z * m_bounds.extents.z;
         }
 
-        public void Cull()
+        public void Cull(bool isCull)
         {
-            Release();
+            if (isCull)
+            {
+                Release();
+            }
+            else
+            {
+                if (m_fsm.LastState == State.Release)
+                {
+                    m_fsm.ChangeState(State.Low);
+                }
+            }
         }
 
         #region FSM functions
 
+        IEnumerator OnEnteringRelease()
+        {
+            if ( m_parent == null )
+                yield break;
+
+            while (m_parent.m_fsm.CurrentState == State.High)
+                yield return null;
+        }
         void OnEnteredRelease()
         {
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
+                m_childTreeNodes[i].m_isVisible = false;
                 m_childTreeNodes[i].Release();
-                m_activeManager.Deactivate(m_childTreeNodes[i]);
             }
-
+     
         }
-
+        
         IEnumerator OnEnteringLow()
         {
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
+            if (m_lowObjects.Count == m_lowObjectIds.Count)
+                yield break;
+             
+            if ( m_loadedLowObjects == null ) 
+                m_loadedLowObjects = new Dictionary<int, GameObject>();
+                         
+            for (int i = 0; i < m_lowObjectIds.Count; ++i)
             {
-                m_activeManager.Deactivate(m_childTreeNodes[i]);
+                int id = m_lowObjectIds[i];
+             
+                var loadHandle = m_controller.GetLowObject(id, Level, m_distance);
+                yield return loadHandle;
+                             
+                loadHandle.Result.SetActive(false);
+                m_loadedLowObjects.Add(id, loadHandle.Result);
+
             }
-
-            yield return LoadLowMeshes();
         }
-
+        
         void OnEnteredLow()
         {
-            for (int i = 0; i < m_lowObjects.Count; ++i)
-            {
-                m_lowObjects[i].SetActive(true);
-            }
+            m_lowObjects = m_loadedLowObjects;
+            m_loadedLowObjects = null;
 
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
                 m_childTreeNodes[i].Release();
             }
-            
+         
         }
 
         void OnExitedLow()
         {
-            for (int i = 0; i < m_lowObjectIds.Count; ++i)
+            foreach (var item in m_lowObjects)
             {
-                m_controller.ReleaseLowObject(m_lowObjectIds[i]);
+                item.Value.SetActive(false);
+                m_controller.ReleaseLowObject(item.Key);
             }
-
             m_lowObjects.Clear();
         }
 
@@ -140,66 +190,61 @@ namespace Unity.HLODSystem
         {
             //child low mesh should be load before change to high.
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
-            {
+            {                
+                m_childTreeNodes[i].m_isVisible = false;
                 m_childTreeNodes[i].m_fsm.ChangeState(State.Low);
             }
 
+            if ( m_loadedHighObjects == null )
+                m_loadedHighObjects = new Dictionary<int, GameObject>();
+            
             for (int i = 0; i < m_highObjectIds.Count; ++i)
             {
                 int id = m_highObjectIds[i];
-                yield return m_controller.GetHighObject(id, go =>
-                {
-                    go.SetActive(false);
-                    m_highObjects.Add(go);
-                });
+
+
+                var loadHandle = m_controller.GetHighObject(id, Level, m_distance);
+                yield return loadHandle;
+                                
+                loadHandle.Result.SetActive(false);
+                m_loadedHighObjects.Add(id, loadHandle.Result);
 
             }
 
-            //wait for child nodes were finished.
-            //it needs because avoid flickering.
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
-                yield return m_childTreeNodes[i].m_fsm.LastRunEnumerator;
+                while (m_childTreeNodes[i].m_fsm.CurrentState == State.Release)
+                    yield return null;
             }
         }
+
         void OnEnteredHigh()
         {
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
-                m_activeManager.Activate(m_childTreeNodes[i]);
-                m_childTreeNodes[i].m_fsm.ChangeState(State.Low);
+                m_childTreeNodes[i].m_isVisible = true;
             }
 
-            for (int i = 0; i < m_highObjects.Count; ++i)
-            {
-                m_highObjects[i].SetActive(true);
-            }
+            m_highObjects = m_loadedHighObjects;
+            m_loadedHighObjects = null;
         }
 
         void OnExitedHigh()
         {
-            for (int i = 0; i < m_highObjectIds.Count; ++i)
+            foreach (var item in m_highObjects)
             {
-                m_controller.ReleaseHighObject(m_highObjectIds[i]);
+                item.Value.SetActive(false);
+                m_controller.ReleaseHighObject(item.Key);
             }
-
             m_highObjects.Clear();
-
-        }
-
-        IEnumerator LoadLowMeshes()
-        {
-            for (int i = 0; i < m_lowObjectIds.Count; ++i)
+            
+            for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
-                int id = m_lowObjectIds[i];
-                yield return m_controller.GetLowObject(id, go =>
-                {
-                    go.SetActive(false);
-                    m_lowObjects.Add(go);
-                });
-
+                m_childTreeNodes[i].Release();
+                m_childTreeNodes[i].m_isVisible = false;
             }
         }
+
 
         void Release()
         {
@@ -210,18 +255,53 @@ namespace Unity.HLODSystem
 
         public void Update(float lodDistance)
         {
-            if (m_spaceManager.IsHigh(lodDistance, m_bounds))
+            if (m_fsm.LastState!= State.Release)
             {
-                if ( m_fsm.State == State.Release)
+                if (m_spaceManager.IsHigh(lodDistance, m_bounds))
+                {
+                    if ( m_fsm.CurrentState == State.Low &&
+                         m_isVisible == true)       //< if isVisible is false, it loaded from parent but not showing. 
+                                                    //< We have to wait for showing after then, change state to high.
+                        m_fsm.ChangeState(State.High);
+                }
+                else
+                {
                     m_fsm.ChangeState(State.Low);
-                m_fsm.ChangeState(State.High);
+                }
             }
-            else
+
+            m_distance = m_spaceManager.GetDistanceSqure(m_bounds) - m_boundsLength;
+
+            m_fsm.Update();
+            UpdateVisible();
+            
+            for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
-                m_fsm.ChangeState(State.Low);
+                m_childTreeNodes[i].Update(lodDistance);
             }
         }
 
+        private void UpdateVisible()
+        {
+            if (m_parent != null)
+            {
+                m_isVisibleHierarchy = m_isVisible && m_parent.m_isVisibleHierarchy;
+            }
+            else
+            {
+                m_isVisibleHierarchy = m_isVisible;    
+            }
+
+            foreach (var item in m_highObjects)
+            {
+                item.Value.SetActive(m_isVisibleHierarchy);
+            }
+
+            foreach (var item in m_lowObjects)
+            {
+                item.Value.SetActive(m_isVisibleHierarchy);
+            }
+        }
 
     }
 
