@@ -87,9 +87,6 @@ namespace Unity.HLODSystem.Streaming
 
         private GameObject m_hlodMeshesRoot;
         
-        //private Dictionary<GameObject, AddressableLoadManager.Handle> m_loadedHandles = new Dictionary<GameObject, AddressableLoadManager.Handle>();
-        //private Dictionary<GameObject, AsyncOperationHandle<GameObject>> m_loadedHandles = new Dictionary<GameObject, AsyncOperationHandle<GameObject>>();
-        
         public override void OnStart()
         {
             m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
@@ -186,7 +183,6 @@ namespace Unity.HLODSystem.Streaming
 
                     //high object's priority is always lowest.
                     loadInfo.Handle = AddressableLoadManager.Instance.LoadAsset(this, m_highObjects[id].Address, Int32.MaxValue, distance);
-                    //var handle = Addressables.LoadAssetAsync<GameObject>(m_highObjects[id].Address);
                     yield return loadInfo.Handle;
 
                     if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
@@ -239,16 +235,12 @@ namespace Unity.HLODSystem.Streaming
             {
                 LoadInfo loadInfo = new LoadInfo();
                 m_createdLowObjects.Add(id, loadInfo);
-                Debug.Log("GetLowObject1: " + m_lowObjects[id]);
 
                 loadInfo.Handle = AddressableLoadManager.Instance.LoadAsset(this, m_lowObjects[id], level, distance);
-                    //var handle = Addressables.LoadAssetAsync<GameObject>(m_lowObjects[id]);
                 yield return loadInfo.Handle;
-                Debug.Log("GetLowObject2: " + m_lowObjects[id]);
 
                 if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
                 {
-                    Debug.Log("GetLowObject3: " + m_lowObjects[id]);
                     Debug.LogError("Failed to load asset");
                     yield break;
                 }
@@ -258,18 +250,13 @@ namespace Unity.HLODSystem.Streaming
                     yield break;
                 }
 
-                Debug.Log("GetLowObject6: " + m_lowObjects[id]);
                 GameObject go = (GameObject) Instantiate(loadInfo.Handle.Result);
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
                 ChangeLayersRecursively(go.transform, layer);
-                Debug.Log("GetLowObject7: " + m_lowObjects[id]);
-
                 loadInfo.GameObject = go;
 
                 ret = go;
-                
-                Debug.Log("GetLowObject8: " + m_lowObjects[id]);
                 
             }
 
@@ -298,7 +285,6 @@ namespace Unity.HLODSystem.Streaming
                 LoadInfo info = m_createdHighObjects[id];
                 DestoryObject(info.GameObject);
                 AddressableLoadManager.Instance.UnloadAsset(info.Handle);
-                //Addressables.Release(handle);
             }
 
             m_createdHighObjects.Remove(id);
@@ -310,7 +296,6 @@ namespace Unity.HLODSystem.Streaming
             
             DestoryObject(info.GameObject);
             AddressableLoadManager.Instance.UnloadAsset(info.Handle);
-            //Addressables.Release(handle);
         }
 
         private void DestoryObject(Object obj)

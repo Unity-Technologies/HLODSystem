@@ -160,8 +160,6 @@ namespace Unity.HLODSystem
 
                 m_currentHandle.Start();
                 
-                Debug.Log($"LoadingAsset: {m_currentHandle.Priority}, {m_currentHandle.Distance}");
-                
                 while (m_currentHandle != null && m_currentHandle.MoveNext())
                 {
                     yield return null;
@@ -171,7 +169,6 @@ namespace Unity.HLODSystem
 
         public Handle LoadAsset(AddressableController controller, string address, int priority, float distance)
         {
-            Debug.Log($"LoadAsset: {address}, {priority}, {distance}");
             Handle handle = new Handle(controller, address, priority, distance);
             InsertHandle(handle);
             return handle;
@@ -179,8 +176,6 @@ namespace Unity.HLODSystem
 
         public void UnloadAsset(Handle handle)
         {
-            Debug.Log($"UnloadAsset: {handle.Address}, {handle.Priority}, {handle.Distance}");
-            
             m_loadQueue.Remove(handle);
             handle.Stop();
             if (m_currentHandle == handle)
