@@ -86,6 +86,8 @@ namespace Unity.HLODSystem.Streaming
         private Dictionary<int, LoadInfo> m_createdLowObjects = new Dictionary<int, LoadInfo>();
 
         private GameObject m_hlodMeshesRoot;
+
+        public event Action<GameObject> HighObjectCreated;
         
         public override void OnStart()
         {
@@ -206,6 +208,7 @@ namespace Unity.HLODSystem.Streaming
                 ret = go;
             }
 
+            HighObjectCreated?.Invoke(ret);
             callback(ret);
         }
 
@@ -260,6 +263,7 @@ namespace Unity.HLODSystem.Streaming
                 
             }
 
+            
             callback(ret);
 
             
