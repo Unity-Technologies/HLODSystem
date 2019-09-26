@@ -794,7 +794,6 @@ namespace Unity.HLODSystem
                     Name = name,
                     ParentIndex = parentQueue.Dequeue(),
                     Target = node,
-                    CurrentLevel = depth,
                 };
 
 
