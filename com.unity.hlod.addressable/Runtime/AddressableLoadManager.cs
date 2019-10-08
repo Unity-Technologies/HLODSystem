@@ -15,7 +15,7 @@ namespace Unity.HLODSystem
         public class Handle : IEnumerator
         {
             public event Action<Handle> Completed;
-            public Handle(AddressableController controller, string address, int priority, float distance)
+            public Handle(AddressableHLODController controller, string address, int priority, float distance)
             {
                 m_controller = controller;
                 m_address = address;
@@ -35,7 +35,7 @@ namespace Unity.HLODSystem
                 get { return m_distance; }
             }
 
-            public AddressableController Controller
+            public AddressableHLODController Controller
             {
                 get { return m_controller; }
             }
@@ -96,7 +96,7 @@ namespace Unity.HLODSystem
             }
 
 
-            private AddressableController m_controller;
+            private AddressableHLODController m_controller;
             private string m_address;
             private int m_priority;
             private float m_distance;
@@ -125,11 +125,11 @@ namespace Unity.HLODSystem
 
         private Handle m_currentHandle = null;
         private LinkedList<Handle> m_loadQueue = new LinkedList<Handle>();
-        public void RegisterController(AddressableController controller)
+        public void RegisterController(AddressableHLODController controller)
         {
         }
 
-        public void UnregisterController(AddressableController controller)
+        public void UnregisterController(AddressableHLODController controller)
         {
             var node = m_loadQueue.First;
             while (node != null)
@@ -167,7 +167,7 @@ namespace Unity.HLODSystem
             }
         }
 
-        public Handle LoadAsset(AddressableController controller, string address, int priority, float distance)
+        public Handle LoadAsset(AddressableHLODController controller, string address, int priority, float distance)
         {
             Handle handle = new Handle(controller, address, priority, distance);
             InsertHandle(handle);

@@ -35,10 +35,10 @@ namespace Unity.HLODSystem
                 }
             }
 
-            List<ControllerBase> controllers = new List<ControllerBase>();
+            List<HLODControllerBase> controllers = new List<HLODControllerBase>();
             for (int i = 0; i < roots.Length; ++i)
             {
-                controllers.AddRange(roots[i].GetComponentsInChildren<ControllerBase>());
+                controllers.AddRange(roots[i].GetComponentsInChildren<HLODControllerBase>());
             }
 
             for (int i = 0; i < controllers.Count; ++i)

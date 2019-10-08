@@ -23,11 +23,11 @@ namespace Unity.HLODSystem
             }
         }
     
-        public void Register(Streaming.ControllerBase controller)
+        public void Register(Streaming.HLODControllerBase controller)
         {
             if (m_activeControllers == null)
             {
-                m_activeControllers = new List<Streaming.ControllerBase>();
+                m_activeControllers = new List<Streaming.HLODControllerBase>();
                 if (IsSRP)
                     RenderPipelineManager.beginCameraRendering += OnPreCull;
                 else
@@ -35,13 +35,13 @@ namespace Unity.HLODSystem
             }
             m_activeControllers.Add(controller);
         }
-        public void Unregister(Streaming.ControllerBase controller)
+        public void Unregister(Streaming.HLODControllerBase controller)
         {
             if ( m_activeControllers != null)
                 m_activeControllers.Remove(controller);
         }
 
-        private List<Streaming.ControllerBase> m_activeControllers = null;
+        private List<Streaming.HLODControllerBase> m_activeControllers = null;
 
         private void OnPreCull(ScriptableRenderContext context, Camera cam)
         {

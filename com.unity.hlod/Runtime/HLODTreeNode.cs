@@ -66,7 +66,7 @@ namespace Unity.HLODSystem
         private FSM<State> m_fsm = new FSM<State>();
         private State m_lastState = State.Release;
 
-        private ControllerBase m_controller;
+        private HLODControllerBase m_controller;
         private ISpaceManager m_spaceManager;
         private HLODTreeNode m_parent;
 
@@ -77,7 +77,7 @@ namespace Unity.HLODSystem
         private bool m_isVisibleHierarchy;
 
 
-        public void Initialize(ControllerBase controller, ISpaceManager spaceManager, HLODTreeNode parent)
+        public void Initialize(HLODControllerBase controller, ISpaceManager spaceManager, HLODTreeNode parent)
         {
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {

@@ -9,7 +9,7 @@ using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
 {
-    public class AddressableController : ControllerBase
+    public class AddressableHLODController : HLODControllerBase
     {
         class LoadHandle : ILoadHandle
         {
