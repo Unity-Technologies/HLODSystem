@@ -13,6 +13,11 @@
       "displayName": "Basic",
       "description": "A sample showing how to use HLOD basically.",
       "path": "Samples~/Assets/Basic"
+    },
+	{
+      "displayName": "Simplify mesh",
+      "description": "A sample showing how to simplify HLOD mesh.",
+      "path": "Samples~/Assets/SimplifyMesh"
     }
   ]
 }
