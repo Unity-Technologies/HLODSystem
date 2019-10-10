@@ -145,11 +145,11 @@ namespace Unity.HLODSystem
         
         IEnumerator OnEnteringLow()
         {
-            if (m_lowObjects.Count == m_lowObjectIds.Count)
-                yield break;
-             
             if ( m_loadedLowObjects == null ) 
                 m_loadedLowObjects = new Dictionary<int, GameObject>();
+            
+            if (m_lowObjects.Count == m_lowObjectIds.Count)
+                yield break;
                          
             for (int i = 0; i < m_lowObjectIds.Count; ++i)
             {
