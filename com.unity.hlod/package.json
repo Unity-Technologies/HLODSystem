@@ -7,5 +7,12 @@
 	"keywords": ["HLOD"],
 	"category": "",
 	"dependencies": {
-	}
+	},
+	"samples": [
+    {
+      "displayName": "Basic",
+      "description": "A sample showing how to use HLOD basically.",
+      "path": "Samples~/Assets/Basic"
+    }
+  ]
 }
