@@ -162,7 +162,7 @@ namespace Unity.HLODSystem
         {
             [SerializeField] private string m_name;
             [SerializeField] private string m_id;
-            [SerializeField] private string m_assetPath;
+            [SerializeField] private string m_assetGuid;
             [SerializeField] private string m_jsonData;
             [SerializeField] private List<SerializableTexture> m_textures;
             
@@ -197,12 +197,13 @@ namespace Unity.HLODSystem
                 {
                     Material mat = material.ToMaterial();
                     m_jsonData = EditorJsonUtility.ToJson(mat);
-                    m_assetPath = "";
+                    m_assetGuid = "";
                 }
                 else
                 {
                     m_jsonData = "";
-                    m_assetPath = AssetDatabase.GetAssetPath(material.InstanceID);
+                    string path  = AssetDatabase.GetAssetPath(material.InstanceID);
+                    m_assetGuid = AssetDatabase.AssetPathToGUID(path);
                 }
 
                 m_id = material.Guid;
@@ -210,7 +211,7 @@ namespace Unity.HLODSystem
 
             public Material To()
             {
-                if (string.IsNullOrEmpty(m_assetPath))
+                if (string.IsNullOrEmpty(m_assetGuid))
                 {
                     Material mat = new Material(Shader.Find("Standard"));
                     EditorJsonUtility.FromJsonOverwrite(m_jsonData, mat);
@@ -219,7 +220,8 @@ namespace Unity.HLODSystem
                 }
                 else
                 {
-                    return AssetDatabase.LoadAssetAtPath<Material>(m_assetPath);
+                    string path = AssetDatabase.GUIDToAssetPath(m_assetGuid);
+                    return AssetDatabase.LoadAssetAtPath<Material>(path);
                 }
             }
         }
