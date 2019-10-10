@@ -126,6 +126,7 @@ namespace Unity.HLODSystem
                 int sy = Mathf.Max(source.Height >> 1, 1);
                 
                 WorkingTexture mipmap = new WorkingTexture(Allocator.Persistent, source.Format, sx, sy, source.Linear);
+                mipmap.Name = source.Name;
 
                 for (int y = 0; y < sy; ++y)
                 {
@@ -133,10 +134,10 @@ namespace Unity.HLODSystem
                     {
                         Color color = new Color();
 
-                        int x1 = Mathf.Max(x * 2 + 0, sx - 1);
-                        int x2 = Mathf.Max(x * 2 + 1, sx - 1);
-                        int y1 = Mathf.Max(y * 2 + 0, sy - 1);
-                        int y2 = Mathf.Max(y * 2 + 1, sy - 1);
+                        int x1 = Mathf.Min(x * 2 + 0, source.Width -1);
+                        int x2 = Mathf.Min(x * 2 + 1, source.Width - 1);
+                        int y1 = Mathf.Min(y * 2 + 0, source.Height - 1);
+                        int y2 = Mathf.Min(y * 2 + 1, source.Height - 1);
 
                         color += source.GetPixel(x1, y1);
                         color += source.GetPixel(x1, y2);

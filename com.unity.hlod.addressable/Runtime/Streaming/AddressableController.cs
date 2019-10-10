@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.HLODSystem.Utils;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -10,6 +11,50 @@ namespace Unity.HLODSystem.Streaming
 {
     public class AddressableController : ControllerBase
     {
+        class LoadHandle : ILoadHandle
+        {
+            public LoadHandle()
+            {
+                
+            }
+            public bool MoveNext()
+            {
+                return m_coroutine.MoveNext();
+            }
+
+            public void Reset()
+            {
+                m_coroutine.Reset();
+            }
+
+            public void OnLoad(GameObject gameObject)
+            {
+                m_gameObject = gameObject;
+            }
+
+            public object Current
+            {
+                get
+                {
+                    return m_coroutine.Current;
+                }
+            }
+
+            public GameObject Result
+            {
+                set => m_gameObject = value;
+                get => m_gameObject;
+            }
+
+
+            public void Start(IEnumerator routine)
+            {
+                m_coroutine = new CustomCoroutine(routine);
+            }
+          
+            private CustomCoroutine  m_coroutine;
+            private GameObject m_gameObject;
+        }
         [Serializable]
         public class ChildObject
         {
@@ -29,26 +74,34 @@ namespace Unity.HLODSystem.Streaming
         [SerializeField]
         private List<string> m_lowObjects = new List<string>();
 
+
+        class LoadInfo
+        {
+            public GameObject GameObject;
+            public AddressableLoadManager.Handle Handle;
+        }
         
 
-        private Dictionary<int, GameObject> m_createdHighObjects = new Dictionary<int, GameObject>();
-        private Dictionary<int, GameObject> m_createdLowObjects = new Dictionary<int, GameObject>();
+        private Dictionary<int, LoadInfo> m_createdHighObjects = new Dictionary<int, LoadInfo>();
+        private Dictionary<int, LoadInfo> m_createdLowObjects = new Dictionary<int, LoadInfo>();
 
         private GameObject m_hlodMeshesRoot;
-        
-        private Dictionary<GameObject, AsyncOperationHandle> m_loadedHandles = new Dictionary<GameObject, AsyncOperationHandle>();
+
+        public event Action<GameObject> HighObjectCreated;
         
         public override void OnStart()
         {
             m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
             m_hlodMeshesRoot.transform.SetParent(transform, false);
 
+            AddressableLoadManager.Instance.RegisterController(this);
+
         }
 
         public override void OnStop()
         {
+            AddressableLoadManager.Instance.UnregisterController(this);
         }
-
 
 
         public override void Install()
@@ -100,7 +153,7 @@ namespace Unity.HLODSystem.Streaming
             return id;
         }
 
-        public override IEnumerator GetHighObject(int id, Action<GameObject> callback)
+        private IEnumerator GetHighObjectImpl(int id, int level, float distance, Action<GameObject> callback)
         {
             GameObject ret = null;
             int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
@@ -110,15 +163,15 @@ namespace Unity.HLODSystem.Streaming
             if (m_createdHighObjects.ContainsKey(id))
             {
                 //this id being loaded
-                while (m_createdHighObjects[id] == null)
+                while (m_createdHighObjects[id].Handle.Status == AsyncOperationStatus.None)
                     yield return null;
-
-                ret = m_createdHighObjects[id];
+                
+                ret = m_createdHighObjects[id].GameObject;
             }
             else
             {
-                //marking to this id being loaded.
-                m_createdHighObjects.Add(id, null);
+                LoadInfo loadInfo = new LoadInfo();
+                m_createdHighObjects.Add(id, loadInfo);
 
                 GameObject go = null;
 
@@ -130,36 +183,43 @@ namespace Unity.HLODSystem.Streaming
                 else
                 {
 
-                    var op = Addressables.LoadAssetAsync<GameObject>(m_highObjects[id].Address);
-                    //var op = Addressables.InstantiateAsync(m_highObjects[id].Address);
-                    yield return op;
+                    //high object's priority is always lowest.
+                    loadInfo.Handle = AddressableLoadManager.Instance.LoadAsset(this, m_highObjects[id].Address, Int32.MaxValue, distance);
+                    yield return loadInfo.Handle;
+
+                    if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
+                        yield break;
                     
-                    if ( op.Status ==AsyncOperationStatus.Failed)
+                    if ( m_createdHighObjects.ContainsKey(id) == false )
                         yield break;
 
-
-                    go = Instantiate(op.Result);
+                    go = (GameObject)Instantiate(loadInfo.Handle.Result);
                     go.SetActive(false);
                     go.transform.parent = m_highObjects[id].Parent.transform;
                     go.transform.localPosition = m_highObjects[id].Position;
                     go.transform.localRotation = m_highObjects[id].Rotation;
                     go.transform.localScale = m_highObjects[id].Scale;
 
-                    m_loadedHandles.Add(go, op);
                     ChangeLayersRecursively(go.transform, layer);
+                    loadInfo.GameObject = go;
 
                 }
-                m_createdHighObjects[id] = go;
 
                 ret = go;
-
-                
             }
 
+            HighObjectCreated?.Invoke(ret);
             callback(ret);
         }
 
-        public override IEnumerator GetLowObject(int id, Action<GameObject> callback)
+        public override ILoadHandle GetHighObject(int id, int level, float distance)
+        {
+            LoadHandle handle = new LoadHandle();
+            handle.Start( GetHighObjectImpl(id, level, distance, o => { handle.Result = o; }));
+            return handle;
+        }
+
+        public IEnumerator GetLowObjectImpl(int id, int level, float distance, Action<GameObject> callback)
         {
             GameObject ret = null;
             int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
@@ -169,37 +229,51 @@ namespace Unity.HLODSystem.Streaming
             if (m_createdLowObjects.ContainsKey(id))
             {
                 //this id being loaded
-                while (m_createdLowObjects[id] == null)
+                while (m_createdLowObjects[id].Handle.Status == AsyncOperationStatus.None)
                     yield return null;
 
-                ret = m_createdLowObjects[id];
+                ret = m_createdLowObjects[id].GameObject;
             }
             else
             {
-                m_createdLowObjects.Add(id, null);
+                LoadInfo loadInfo = new LoadInfo();
+                m_createdLowObjects.Add(id, loadInfo);
 
-                //var op = Addressables.InstantiateAsync(m_lowObjects[id]);
-                var op = Addressables.LoadAssetAsync<GameObject>(m_lowObjects[id]);
-                yield return op;
-                
-                if ( op.Status ==AsyncOperationStatus.Failed)
+                loadInfo.Handle = AddressableLoadManager.Instance.LoadAsset(this, m_lowObjects[id], level, distance);
+                yield return loadInfo.Handle;
+
+                if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
+                {
+                    Debug.LogError("Failed to load asset");
                     yield break;
+                }
 
-                GameObject go = Instantiate(op.Result);
+                if (m_createdLowObjects.ContainsKey(id) == false)
+                {
+                    yield break;
+                }
+
+                GameObject go = (GameObject) Instantiate(loadInfo.Handle.Result);
                 go.SetActive(false);
                 go.transform.SetParent(m_hlodMeshesRoot.transform, false);
-                
-                m_loadedHandles.Add(go, op);
                 ChangeLayersRecursively(go.transform, layer);
-
-                m_createdLowObjects[id] = go;
+                loadInfo.GameObject = go;
 
                 ret = go;
+                
             }
 
+            
             callback(ret);
 
             
+        }
+
+        public override ILoadHandle GetLowObject(int id, int level, float distance)
+        {
+            LoadHandle handle = new LoadHandle();
+            handle.Start(GetLowObjectImpl(id, level, distance, o => { handle.Result = o; }));
+            return handle;
         }
 
         public override void ReleaseHighObject(int id)
@@ -207,34 +281,25 @@ namespace Unity.HLODSystem.Streaming
             if (string.IsNullOrEmpty(m_highObjects[id].Address) == true)
             {
                 if ( m_createdHighObjects[id] != null)
-                    m_createdHighObjects[id].SetActive(false);
+                    m_createdHighObjects[id].GameObject.SetActive(false);
 
             }
             else
             {
-                GameObject go = m_createdHighObjects[id];
-                var op = m_loadedHandles[go];
-                
-                m_loadedHandles.Remove(go);
-                DestoryObject(go);
-                Addressables.Release(op);
-                
-                //Addressables.ReleaseInstance(m_createdHighObjects[id]);
+                LoadInfo info = m_createdHighObjects[id];
+                DestoryObject(info.GameObject);
+                AddressableLoadManager.Instance.UnloadAsset(info.Handle);
             }
 
             m_createdHighObjects.Remove(id);
         }
         public override void ReleaseLowObject(int id)
         {
-            GameObject go = m_createdLowObjects[id];
-            var op = m_loadedHandles[go];
+            LoadInfo info = m_createdLowObjects[id];
             m_createdLowObjects.Remove(id);
-
-            m_loadedHandles.Remove(go);
-            DestoryObject(go);
-            Addressables.Release(op);
-
-            //Addressables.ReleaseInstance(go);
+            
+            DestoryObject(info.GameObject);
+            AddressableLoadManager.Instance.UnloadAsset(info.Handle);
         }
 
         private void DestoryObject(Object obj)

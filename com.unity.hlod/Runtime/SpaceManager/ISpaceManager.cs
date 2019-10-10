@@ -12,6 +12,8 @@ namespace Unity.HLODSystem.SpaceManager
         bool IsHigh(float lodDistance, Bounds bounds);
 
         bool IsCull(float cullDistance, Bounds bounds);
+
+        float GetDistanceSqure(Bounds bounds);
     }
 
 }
