@@ -9,7 +9,7 @@ using System.Threading;
 using UnityEditor;
 using UnityEngine;
 
-namespace CustomUnityCacheClient
+namespace Unity.HLODSystem.CustomUnityCacheClient
 {
     /// <summary>
     /// The type of a particular file.

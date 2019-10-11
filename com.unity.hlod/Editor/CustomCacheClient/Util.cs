@@ -6,7 +6,7 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-namespace CustomUnityCacheClient
+namespace Unity.HLODSystem.CustomUnityCacheClient
 {
     internal static class Util
     {

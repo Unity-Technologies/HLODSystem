@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Net;
-using CustomUnityCacheClient;
 using UnityEditor;
 using UnityEngine;
 
 
-namespace CustomUnityCacheClient
+namespace Unity.HLODSystem.CustomUnityCacheClient
 {
     public class CustomCacheClientGUI : EditorWindow
     {

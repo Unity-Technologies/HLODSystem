@@ -6,7 +6,7 @@ using UnityEditor.Experimental.AssetImporters;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using TextureCompressionQuality = UnityEditor.TextureCompressionQuality;
-using CustomUnityCacheClient;
+using Unity.HLODSystem.CustomUnityCacheClient;
 
 namespace Unity.HLODSystem
 {
