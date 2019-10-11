@@ -168,11 +168,11 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         private Stream m_nextWriteStream;
         private bool m_inTrx;
 
-        private CancellationTokenSource mToken;
+        private CancellationTokenSource m_Token;
         public bool CacheEnabled { get; set; }
 
-        private static CustomCacheClient mInstance;
-        private static readonly object mLock = new object();
+        private static CustomCacheClient m_Instance;
+        private static readonly object m_Lock = new object();
 
         private CustomCacheClient(string host, int port = 8126)
         {
@@ -181,8 +181,8 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             m_host = host;
             m_port = port;
 
-            mToken = new CancellationTokenSource();
-            Thread thread = new Thread(() => CheckConnectionStatus(mToken.Token));
+            m_Token = new CancellationTokenSource();
+            Thread thread = new Thread(() => CheckConnectionStatus(m_Token.Token));
             thread.Start();
         }
 
@@ -195,21 +195,21 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         /// <param name="port">The port number of the Cache Server. Default port is 8126.</param>
         public static CustomCacheClient GetInstance(string host, int port)
         {
-            if (null == mInstance || (null != mInstance && (host != mInstance.m_host || port != mInstance.m_port)))
+            if (null == m_Instance || (null != m_Instance && (host != m_Instance.m_host || port != m_Instance.m_port)))
             {
-                lock (mLock)
+                lock (m_Lock)
                 {
                     //Ensure the previous instance of CheckConnectionStatus() that checks
                     //the connection status periodically is terminated
-                    if (mInstance != null)
-                        mInstance.mToken.Cancel();
+                    if (m_Instance != null)
+                        m_Instance.m_Token.Cancel();
 
-                    mInstance = new CustomCacheClient(host, port);
+                    m_Instance = new CustomCacheClient(host, port);
                     Debug.Log("Initialized a new instance of HLOD Cache Client");
                 }
             }
 
-            return mInstance;
+            return m_Instance;
         }
 
         /// <summary>
@@ -217,7 +217,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         /// </summary>
         public static CustomCacheClient GetInstance()
         {
-            return mInstance;
+            return m_Instance;
         }
 
 
@@ -544,12 +544,12 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
                 if (token.IsCancellationRequested)
                     return;
 
-                if (mInstance.CacheEnabled && !mInstance.IsConnected)
+                if (m_Instance.CacheEnabled && !m_Instance.IsConnected)
                 {
                     Debug.Log("HLOD Asset Cache Client is disconnected. Reconnecting...");
-                    mInstance.Connect(5000);
+                    m_Instance.Connect(5000);
 
-                    Debug.Log(mInstance.IsConnected ? "\tSuccess" : "\tFailed");
+                    Debug.Log(m_Instance.IsConnected ? "\tSuccess" : "\tFailed");
                 }
 
                 Thread.Sleep(60000);

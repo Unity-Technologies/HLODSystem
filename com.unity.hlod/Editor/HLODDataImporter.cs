@@ -65,11 +65,11 @@ namespace Unity.HLODSystem
                             if (isTextureCached && textureIndex < compressedTextures.Count)
                             {
                                 //Compressed Texture is cached. Load it into the texture
-                                Texture2D dummyTexture = st.To();
-                                var srgb = GraphicsFormatUtility.IsSRGBFormat(dummyTexture.graphicsFormat);
-                                texture = new Texture2D(dummyTexture.width, dummyTexture.height, compressFormat, true,
-                                    !srgb);
-                                texture.name = dummyTexture.name;
+                                var srgb = GraphicsFormatUtility.IsSRGBFormat(st.GraphicsFormat);
+                                texture = new Texture2D(st.Width, st.Height, compressFormat, true, !srgb)
+                                {
+                                    name = st.Name, wrapMode = st.WrapMode
+                                };
 
                                 byte[] image = compressedTextures[textureIndex++];
                                 texture.LoadRawTextureData(image);
