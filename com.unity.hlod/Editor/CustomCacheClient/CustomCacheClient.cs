@@ -230,28 +230,35 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         /// <exception cref="Exception"></exception>
         public void Connect(int timeoutMs)
         {
-            if (IsConnected) return;
-
-            m_tcpClient = new TcpClient();
-
-            var client = m_tcpClient;
-            var op = client.BeginConnect(m_host, m_port, null, null);
-
-            bool connectionSucceeded = op.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(timeoutMs));
-
-            if (!connectionSucceeded)
-                return;
-
             try
             {
-                m_stream = client.GetStream();
-            }
-            catch
-            {
-                return;
-            }
+                if (IsConnected) return;
 
-            SendVersion();
+                m_tcpClient = new TcpClient();
+
+                var client = m_tcpClient;
+                var op = client.BeginConnect(m_host, m_port, null, null);
+
+                bool connectionSucceeded = op.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(timeoutMs));
+
+                if (!connectionSucceeded)
+                    return;
+
+                try
+                {
+                    m_stream = client.GetStream();
+                }
+                catch
+                {
+                    return;
+                }
+
+                SendVersion();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex.Message);
+            }
         }
 
 

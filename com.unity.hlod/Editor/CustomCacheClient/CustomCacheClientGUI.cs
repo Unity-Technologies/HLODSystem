@@ -1,25 +1,20 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using UnityEditor;
 using UnityEngine;
-
 
 namespace Unity.HLODSystem.CustomUnityCacheClient
 {
     public class CustomCacheClientGUI : EditorWindow
     {
+        private SettingsUtil.CacheServerSettings mCacheServerSettings;
         private bool mToggleCacheEnabled;
         private bool gotIpFromSettings;
         private bool mValidHostAddress = true;
         private bool mConnectedToHost = false;
-
         private bool mShowMessage = false;
-
-        //private bool mIpChanged = false;
         private string mCacheServerIpAddress = string.Empty;
-
-        public const string HLOD_CACHE_ENABLED = "HLODCacheEnabled";
-        public const string HLOD_CACHE_SERVER_IP = "HLODCacheServerIP";
 
         [MenuItem("HLOD Utils/Custom Asset Caching")]
         static void Init()
@@ -32,112 +27,183 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
 
         void OnGUI()
         {
-            int port;
-            string ipAddress;
-
-            GUILayout.BeginVertical();
-
-            bool isCacheEnabled = IsCachingEnabled(out ipAddress, out port);
-
-            mToggleCacheEnabled = EditorGUILayout.Toggle("Cache Textures", isCacheEnabled);
-            EditorPrefs.SetBool(HLOD_CACHE_ENABLED, mToggleCacheEnabled);
-
-            EditorGUI.BeginDisabledGroup(!mToggleCacheEnabled);
-            GUILayout.BeginHorizontal();
-
-            if (!gotIpFromSettings)
+            EditorGUILayout.BeginVertical();
             {
-                gotIpFromSettings = true;
-                mCacheServerIpAddress = EditorPrefs.GetString(HLOD_CACHE_SERVER_IP);
-            }
+                mToggleCacheEnabled = EditorGUILayout.Toggle("Cache Textures", mToggleCacheEnabled);
+                mCacheServerSettings.enabled = mToggleCacheEnabled;
 
-            mCacheServerIpAddress = EditorGUILayout.TextField("Cache Server IP Address", mCacheServerIpAddress);
-
-            /*if (mCacheServerIpAddress != (ipAddress + ":" + port))
-                mIpChanged = true;*/
-
-            if (GUILayout.Button("Test Connection", EditorStyles.miniButton, GUILayout.Width(150)))
-            {
-                mShowMessage = true;
-
-                ipAddress = ValidateIpAddress(mCacheServerIpAddress, ref port);
-
-                mValidHostAddress = !string.IsNullOrEmpty(ipAddress);
-
-                if (mValidHostAddress)
+                EditorGUI.BeginDisabledGroup(!mToggleCacheEnabled);
                 {
-                    try
+                    EditorGUILayout.BeginHorizontal();
                     {
-                        CustomCacheClient.GetInstance(ipAddress, port);
-                        CustomCacheClient.GetInstance().Connect(5000);
-                        mConnectedToHost = CustomCacheClient.GetInstance().IsConnected;
+                        if (!gotIpFromSettings)
+                        {
+                            gotIpFromSettings = true;
+                            mCacheServerIpAddress = mCacheServerSettings.host + ":" + mCacheServerSettings.port;
+                        }
+
+                        mCacheServerIpAddress =
+                            EditorGUILayout.TextField("Cache Server IP Address", mCacheServerIpAddress);
+
+                        if (GUILayout.Button("Test Connection", EditorStyles.miniButton, GUILayout.Width(150)))
+                        {
+                            mShowMessage = true;
+                            mCacheServerSettings.host =
+                                SettingsUtil.ValidateIpAddress(mCacheServerIpAddress, ref mCacheServerSettings.port);
+                            mValidHostAddress = !string.IsNullOrEmpty(mCacheServerSettings.host);
+
+                            if (mValidHostAddress)
+                            {
+                                try
+                                {
+                                    CustomCacheClient.GetInstance(mCacheServerSettings.host, mCacheServerSettings.port);
+                                    CustomCacheClient.GetInstance().Connect(5000);
+                                    mConnectedToHost = CustomCacheClient.GetInstance().IsConnected;
+                                }
+                                catch
+                                {
+                                    mConnectedToHost = false;
+                                }
+                            }
+                            else
+                            {
+                                mConnectedToHost = false;
+                            }
+                        }
                     }
-                    catch
+                    EditorGUILayout.EndHorizontal();
+
+                    if (mShowMessage)
                     {
-                        mConnectedToHost = false;
+                        if (!mValidHostAddress)
+                        {
+                            EditorGUILayout.BeginVertical();
+                            EditorGUILayout.HelpBox("Invalid Host Address", MessageType.Error, true);
+                            EditorGUILayout.EndVertical();
+                        }
+                        else if (mValidHostAddress && !mConnectedToHost)
+                        {
+                            EditorGUILayout.BeginVertical();
+                            EditorGUILayout.HelpBox("Connection to Host failed", MessageType.Warning, true);
+                            EditorGUILayout.EndVertical();
+                        }
+                        else if (mValidHostAddress && mConnectedToHost)
+                        {
+                            EditorGUILayout.BeginVertical();
+                            EditorGUILayout.HelpBox("Connection to Host succeeded", MessageType.Info, true);
+                            EditorGUILayout.EndVertical();
+                        }
                     }
                 }
-                else
-                {
-                    mConnectedToHost = false;
-                }
+                EditorGUI.EndDisabledGroup();
             }
 
-            GUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+        }
 
-            if (mShowMessage)
-            {
-                if (!mValidHostAddress)
-                {
-                    GUILayout.BeginVertical();
-                    EditorGUILayout.HelpBox("Invalid Host Address", MessageType.Error, true);
-                    GUILayout.EndVertical();
-                }
-                else if (mValidHostAddress && !mConnectedToHost)
-                {
-                    GUILayout.BeginVertical();
-                    EditorGUILayout.HelpBox("Connection to Host failed", MessageType.Warning, true);
-                    GUILayout.EndVertical();
-                }
-                else if (mValidHostAddress && mConnectedToHost)
-                {
-                    GUILayout.BeginVertical();
-                    EditorGUILayout.HelpBox("Connection to Host succeeded", MessageType.Info, true);
-                    GUILayout.EndVertical();
-
-                    EditorPrefs.SetString(HLOD_CACHE_SERVER_IP, ipAddress + ":" + port.ToString());
-                }
-            }
-
-            EditorGUI.EndDisabledGroup();
-            GUILayout.EndVertical();
-            //Debug.Log(CustomCacheClient.GetInstance().CacheEnabled);
+        void OnEnable()
+        {
+            mCacheServerSettings = SettingsUtil.GetCacheServerSettings();
+            mToggleCacheEnabled = mCacheServerSettings.enabled;
         }
 
         void OnDestroy()
         {
-           SetCacheSettings();
+            SettingsUtil.ApplyCacheServerSettings(mToggleCacheEnabled);
+
+            if (mValidHostAddress && mConnectedToHost)
+                SettingsUtil.SetCacheServerSettings(mCacheServerSettings);
         }
-        
+
         void OnLostFocus()
         {
-            SetCacheSettings();
+            SettingsUtil.ApplyCacheServerSettings(mToggleCacheEnabled);
+
+            if (mValidHostAddress && mConnectedToHost)
+                SettingsUtil.SetCacheServerSettings(mCacheServerSettings);
+        }
+    }
+
+    public static class SettingsUtil
+    {
+        private const string mCacheServerSettingsFile = "HLODCacheServerSettings.asset";
+
+        [Serializable]
+        public class CacheServerSettings
+        {
+            public bool enabled;
+            public string host;
+            public int port;
         }
 
-        private void SetCacheSettings()
+        /// <summary>
+        /// Gets the settings of Cache Server from ProjectSettings Folder
+        /// <returns>Cache Server Settings Settings</returns>
+        /// </summary>
+        public static CacheServerSettings GetCacheServerSettings()
         {
-            //Enable/Disable Cache
-            CustomCacheClient.GetInstance().CacheEnabled = mToggleCacheEnabled;
-
-            if (mToggleCacheEnabled)
-                CustomCacheClient.GetInstance().Connect(5000);
-            else
+            try
             {
-                CustomCacheClient.GetInstance().Close();
+                string filePath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "ProjectSettings",
+                    mCacheServerSettingsFile);
+
+                if (File.Exists(filePath))
+                {
+                    string dataAsJson = File.ReadAllText(filePath);
+                    CacheServerSettings cacheServerSettings = JsonUtility.FromJson<CacheServerSettings>(dataAsJson);
+
+                    return cacheServerSettings;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex.Message);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the settings of Cache Server from ProjectSettings Folder
+        /// <param name="cacheServerSettings">Cache Server Settings</param>
+        /// </summary>
+        public static void SetCacheServerSettings(CacheServerSettings cacheServerSettings)
+        {
+            try
+            {
+                string filePath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "ProjectSettings",
+                    mCacheServerSettingsFile);
+
+                using (var stream = File.CreateText(filePath))
+                    stream.Write(EditorJsonUtility.ToJson(cacheServerSettings, true));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(ex.Message);
             }
         }
 
-        private static string ValidateIpAddress(string ipAddress, ref int port)
+        /// <summary>
+        /// Enables or disables the Cache Client on the fly 
+        /// </summary>
+        public static void ApplyCacheServerSettings(bool cacheEnabled)
+        {
+            //Enable/Disable Cache
+            CustomCacheClient.GetInstance().CacheEnabled = cacheEnabled;
+
+            if (cacheEnabled)
+                CustomCacheClient.GetInstance().Connect(5000);
+            else
+                CustomCacheClient.GetInstance().Close();
+        }
+
+        /// <summary>
+        /// Parses the Host and Port number input by user
+        /// <param name="ipAddress">Host and Port number separated by ':'</param>
+        /// <param name="port">Out parameter that holds the reference to the port number extracted from IpAddress:port String</param>
+        /// <returns>IP Address. Port number is returned as a reference</returns>
+        /// </summary>
+        public static string ValidateIpAddress(string ipAddress, ref int port)
         {
             bool isValidPort = true;
 
@@ -152,38 +218,23 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
 
             return isValidIpAddress && isValidPort ? ipAddress : null;
         }
-
-        public static bool IsCachingEnabled(out string host, out int port)
-        {
-            string rawHost = EditorPrefs.GetString(HLOD_CACHE_SERVER_IP);
-
-            Int32.TryParse(rawHost.Substring(rawHost.IndexOf(":", StringComparison.Ordinal) + 1),
-                out port);
-            host = rawHost.Substring(0, rawHost.IndexOf(":", StringComparison.Ordinal));
-
-            return EditorPrefs.GetBool(HLOD_CACHE_ENABLED);
-        }
     }
 
     [InitializeOnLoad]
     public class InitCustomCacheClient
     {
         /// <summary>
-        /// Sets the initial settings of the Cache Client and creates an instance
+        /// Creates an instance of Cache Client and Sets the initial settings of it
         /// </summary>
         static InitCustomCacheClient()
         {
-            //Create initial keys
-            if (!EditorPrefs.HasKey(CustomCacheClientGUI.HLOD_CACHE_ENABLED))
-                EditorPrefs.SetBool(CustomCacheClientGUI.HLOD_CACHE_ENABLED, false);
+            //Get Cache Server Settings
+            SettingsUtil.CacheServerSettings
+                cacheServerSettings = SettingsUtil.GetCacheServerSettings();
+            CustomCacheClient client =
+                CustomCacheClient.GetInstance(cacheServerSettings.host, cacheServerSettings.port);
 
-            if (!EditorPrefs.HasKey(CustomCacheClientGUI.HLOD_CACHE_SERVER_IP))
-                EditorPrefs.SetString(CustomCacheClientGUI.HLOD_CACHE_SERVER_IP, "127.0.0.1:8126");
-
-            bool isCacheEnabled = CustomCacheClientGUI.IsCachingEnabled(out var ipAddress, out var port);
-            CustomCacheClient client = CustomCacheClient.GetInstance(ipAddress, port);
-
-            if (isCacheEnabled)
+            if (cacheServerSettings.enabled)
             {
                 client.CacheEnabled = true;
                 client.Connect(5000);
