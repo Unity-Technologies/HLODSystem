@@ -145,16 +145,30 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             {
                 byte[] buildTargetBuffer = BitConverter.GetBytes((int) buildTarget);
                 byte[] fileBinary = File.ReadAllBytes(assetPath);
-                byte[] res = new byte[buildTargetBuffer.Length + fileBinary.Length];
+                byte[] projectName = Encoding.ASCII.GetBytes(GetProjectRootFolderName());
+                byte[] res = new byte[fileBinary.Length + projectName.Length + buildTargetBuffer.Length];
 
                 fileBinary.CopyTo(res, 0);
-                buildTargetBuffer.CopyTo(res, fileBinary.Length);
+                projectName.CopyTo(res, fileBinary.Length);
+                buildTargetBuffer.CopyTo(res, fileBinary.Length + projectName.Length);
 
                 var hash = md5.ComputeHash(res);
                 string md5Hash = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                
+
                 return Hash128.Compute(md5Hash).ToString();
             }
+        }
+
+        /// <summary>
+        /// Get Project Root Folder Name.
+        /// This makes sure that the same asset used in different projects will have different hashes.
+        /// For example, C:/AAA/Asset/MyAsset.asset and C:/BBB/Asset/MyAsset.asset will produce different hashes.
+        /// </summary>
+        /// <returns>Project Root Folder Name</returns>
+        private static string GetProjectRootFolderName()
+        {
+            DirectoryInfo directoryInfo = new DirectoryInfo(Directory.GetParent(Application.dataPath).FullName);
+            return directoryInfo.Name;
         }
 
         /// <summary>
