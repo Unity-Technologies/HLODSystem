@@ -154,6 +154,8 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
 
                     return cacheServerSettings;
                 }
+
+                return new CacheServerSettings {host = "127.0.0.1", port = 8126};
             }
             catch (Exception ex)
             {

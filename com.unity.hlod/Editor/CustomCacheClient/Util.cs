@@ -135,48 +135,33 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         /// </summary>
         /// <param name="assetPath">Path of target asset</param>
         /// <param name="buildTarget">Active build target</param>
-        /// <returns>Hash String</returns>
+        /// <returns>Platform-dependent Hash String of an asset</returns>
         public static string GetHashForBuildTarget(string assetPath, BuildTarget buildTarget)
         {
-            string md5Hash = CalculateMD5(assetPath);
-
-            if (null == md5Hash)
-                return null;
-
-            string targetPlatform = string.Empty;
-
-            if (buildTarget == BuildTarget.Android)
-                targetPlatform = "and";
-            else if (buildTarget == BuildTarget.iOS)
-                targetPlatform = "ios";
-            else
-                targetPlatform = "win";
-
-            string chars = md5Hash + targetPlatform;
-
-            return Hash128.Compute(chars).ToString();
-        }
-
-        /// <summary>
-        /// Get MD5 Hash of given fileName
-        /// </summary>
-        /// <param name="fileName">Path of target asset</param>
-        /// <returns>Hash String</returns>
-        private static string CalculateMD5(string fileName)
-        {
-            if (!File.Exists(fileName))
+            if (!File.Exists(assetPath))
                 return null;
 
             using (var md5 = MD5.Create())
             {
-                using (var stream = File.OpenRead(fileName))
-                {
-                    var hash = md5.ComputeHash(stream);
-                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                }
+                byte[] buildTargetBuffer = BitConverter.GetBytes((int) buildTarget);
+                byte[] fileBinary = File.ReadAllBytes(assetPath);
+                byte[] res = new byte[buildTargetBuffer.Length + fileBinary.Length];
+
+                fileBinary.CopyTo(res, 0);
+                buildTargetBuffer.CopyTo(res, fileBinary.Length);
+
+                var hash = md5.ComputeHash(res);
+                string md5Hash = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                
+                return Hash128.Compute(md5Hash).ToString();
             }
         }
 
+        /// <summary>
+        /// Checks if the Asset Exists in the cache by reading the server response stream
+        /// </summary>
+        /// <param name="header">First 2 bytes of server response stream</param>
+        /// <param name="itemType">The type of the item being requested</param>
         public static bool AssetExistsInServer(byte[] header, string itemType)
         {
             try
@@ -193,6 +178,11 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             return false;
         }
 
+        /// <summary>
+        /// Gets the size of the item to download by reading the server response stream
+        /// </summary>
+        /// <param name="header">Server Response Stream</param>
+        /// <returns>Size of the item to be downlaoded</returns>
         public static int GetItemSize(byte[] header)
         {
             int itemSize = 0;
@@ -210,6 +200,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             return itemSize;
         }
 
+        /*
         //Used for testing purposes only
         public static string GetUploadFilePath(string guidStr)
         {
@@ -240,6 +231,6 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
                 Directory.CreateDirectory(downloadFolder);
 
             return Path.Combine(downloadFolder, guidStr);
-        }
+        }*/
     }
 }
