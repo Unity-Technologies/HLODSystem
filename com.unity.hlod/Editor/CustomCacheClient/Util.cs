@@ -165,9 +165,8 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
                 buildTargetBuffer.CopyTo(res, fileBinary.Length + projectName.Length);
 
                 var hash = md5.ComputeHash(res);
-                string md5Hash = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-
-                return Hash128.Compute(md5Hash).ToString();
+                
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }
         }
 

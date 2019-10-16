@@ -111,7 +111,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         {
             SettingsUtil.ApplyCacheServerSettings(mToggleCacheEnabled);
 
-            if (mValidHostAddress && mConnectedToHost)
+            if (mValidHostAddress)
                 SettingsUtil.SetCacheServerSettings(mCacheServerSettings);
         }
 
@@ -119,7 +119,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         {
             SettingsUtil.ApplyCacheServerSettings(mToggleCacheEnabled);
 
-            if (mValidHostAddress && mConnectedToHost)
+            if (mValidHostAddress)
                 SettingsUtil.SetCacheServerSettings(mCacheServerSettings);
         }
     }
