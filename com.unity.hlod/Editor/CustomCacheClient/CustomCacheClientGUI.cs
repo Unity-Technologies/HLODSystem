@@ -14,6 +14,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         private bool mValidHostAddress = true;
         private bool mConnectedToHost = false;
         private bool mShowMessage = false;
+        private bool mSettingsFileWritable = false;
         private string mCacheServerIpAddress = string.Empty;
 
         [MenuItem("HLOD Utils/Custom Asset Caching")]
@@ -21,15 +22,22 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         {
             CustomCacheClientGUI window = (CustomCacheClientGUI) GetWindow(typeof(CustomCacheClientGUI), true,
                 "Custom Asset Caching");
-            window.minSize = new Vector2(500, 300);
+            window.minSize = new Vector2(500, 400);
             window.Show();
+        }
+
+        void OnEnable()
+        {
+            mCacheServerSettings = SettingsUtil.GetCacheServerSettings();
+            mToggleCacheEnabled = mCacheServerSettings.enabled;
+            mSettingsFileWritable = SettingsUtil.IsSettingsFileWriteable();
         }
 
         void OnGUI()
         {
             EditorGUILayout.BeginVertical();
             {
-                mToggleCacheEnabled = EditorGUILayout.Toggle("Cache Textures", mToggleCacheEnabled);
+                mToggleCacheEnabled = EditorGUILayout.Toggle("Enable Cache", mToggleCacheEnabled);
                 mCacheServerSettings.enabled = mToggleCacheEnabled;
 
                 EditorGUI.BeginDisabledGroup(!mToggleCacheEnabled);
@@ -43,9 +51,9 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
                         }
 
                         mCacheServerIpAddress =
-                            EditorGUILayout.TextField("Cache Server IP Address", mCacheServerIpAddress);
+                            EditorGUILayout.TextField("Default IP Address", mCacheServerIpAddress);
 
-                        if (GUILayout.Button("Test Connection", EditorStyles.miniButton, GUILayout.Width(150)))
+                        if (GUILayout.Button("Check Connection", EditorStyles.miniButton, GUILayout.Width(150)))
                         {
                             mShowMessage = true;
                             mCacheServerSettings.host =
@@ -84,15 +92,24 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
                         else if (mValidHostAddress && !mConnectedToHost)
                         {
                             EditorGUILayout.BeginVertical();
-                            EditorGUILayout.HelpBox("Connection to Host failed", MessageType.Warning, true);
+                            EditorGUILayout.HelpBox("Connection failed", MessageType.Warning, true);
                             EditorGUILayout.EndVertical();
                         }
                         else if (mValidHostAddress && mConnectedToHost)
                         {
                             EditorGUILayout.BeginVertical();
-                            EditorGUILayout.HelpBox("Connection to Host succeeded", MessageType.Info, true);
+                            EditorGUILayout.HelpBox("Connection succeeded", MessageType.Info, true);
                             EditorGUILayout.EndVertical();
                         }
+                    }
+
+                    if (!mSettingsFileWritable)
+                    {
+                        EditorGUILayout.BeginVertical();
+                        EditorGUILayout.HelpBox("Cache Server Settings file is read-only and cannot be changed" +
+                                                @" (ProjectSettings\" + SettingsUtil.mCacheServerSettingsFile + ").",
+                            MessageType.Warning, true);
+                        EditorGUILayout.EndVertical();
                     }
                 }
                 EditorGUI.EndDisabledGroup();
@@ -101,21 +118,22 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             EditorGUILayout.EndVertical();
         }
 
-        void OnEnable()
+        private void OnFocus()
         {
-            mCacheServerSettings = SettingsUtil.GetCacheServerSettings();
-            mToggleCacheEnabled = mCacheServerSettings.enabled;
+            mSettingsFileWritable = SettingsUtil.IsSettingsFileWriteable();
         }
 
-        void OnDestroy()
+        void OnLostFocus()
         {
+            //Continue writing to the Settings File even if mSettingsFileWritable = false
+            //as this will result in an Error Message in the log to attract the client's attention.
             SettingsUtil.ApplyCacheServerSettings(mToggleCacheEnabled);
 
             if (mValidHostAddress)
                 SettingsUtil.SetCacheServerSettings(mCacheServerSettings);
         }
 
-        void OnLostFocus()
+        void OnDestroy()
         {
             SettingsUtil.ApplyCacheServerSettings(mToggleCacheEnabled);
 
@@ -126,7 +144,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
 
     public static class SettingsUtil
     {
-        private const string mCacheServerSettingsFile = "HLODCacheServerSettings.asset";
+        public const string mCacheServerSettingsFile = "HLODCacheServerSettings.asset";
 
         [Serializable]
         public class CacheServerSettings
@@ -219,6 +237,22 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             bool isValidIpAddress = IPAddress.TryParse(ipAddress, out _);
 
             return isValidIpAddress && isValidPort ? ipAddress : null;
+        }
+
+        /// <summary>
+        /// Check if Settings File can be changed, as it might be locked by VCS  
+        /// </summary>
+        public static bool IsSettingsFileWriteable()
+        {
+            string filePath = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "ProjectSettings",
+                mCacheServerSettingsFile);
+
+            FileInfo fileInfo = new FileInfo(filePath);
+
+            if (!fileInfo.Exists)
+                return true;
+
+            return !fileInfo.IsReadOnly;
         }
     }
 
