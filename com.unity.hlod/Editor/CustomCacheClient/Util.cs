@@ -10,11 +10,23 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
 {
     internal static class Util
     {
+        /// <summary>
+        /// Reverses the hex digits for each byte in a GUID before converting to a string, the same way Unity serializes GUIDs to strings.
+        /// </summary>
+        /// <returns>Reversed bytes</returns>
+        /// <param name="b">Integer whose bytes to be revesed</param>
         private static int ReverseByte(int b)
         {
             return ((b & 0x0F) << 4) | ((b >> 4) & 0x0F);
         }
 
+        /// <summary>
+        /// Convert string to HEX byte array.
+        /// </summary>
+        /// <returns>The to byte array.</returns>
+        /// <param name="input">Input String that needs to be reversed</param>
+        /// <param name="asGuid">Indicates if the input string is a guid. Based on Cache Server TCP CLient
+        /// protocol, only guid bytes need to be reversed. If the param is false, bytes are not reversed.</param>
         private static byte[] StringToByteArray(string input, bool asGuid)
         {
             var bytes = new byte[input.Length / 2];
