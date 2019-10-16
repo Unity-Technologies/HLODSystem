@@ -382,23 +382,18 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             try
             {
                 var fileId = FileId.From(guidStr, hashStr);
-                MemoryStream memoryStream = Download(AssetFileType.Resource, fileId);
 
-                if (null == memoryStream)
-                    return DownloadResult.FileNotFound;
-
-                BinaryFormatter bin = new BinaryFormatter();
-                memoryStream.Position = 0;
-                compressedTextures = (List<byte[]>) bin.Deserialize(memoryStream);
-
-                /*string downloadPath = Util.GetDownloadFilePath(guidStr);
-                using (FileStream file = new FileStream(downloadPath, FileMode.Create, FileAccess.Write))
+                using (MemoryStream memoryStream = Download(AssetFileType.Resource, fileId))
                 {
-                    memoryStream.Position = 0;
-                    memoryStream.WriteTo(file);
-                }*/
 
-                memoryStream.Dispose();
+                    if (null == memoryStream)
+                        return DownloadResult.FileNotFound;
+
+                    BinaryFormatter bin = new BinaryFormatter();
+                    memoryStream.Position = 0;
+                    compressedTextures = (List<byte[]>)bin.Deserialize(memoryStream);
+                    memoryStream.Dispose();
+                }
 
                 return DownloadResult.Success;
             }
