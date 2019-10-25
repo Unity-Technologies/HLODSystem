@@ -7,5 +7,22 @@
 	"keywords": ["HLOD"],
 	"category": "",
 	"dependencies": {
-	}
+	},
+	"samples": [
+    {
+      "displayName": "Basic",
+      "description": "A sample showing how to use HLOD basically.",
+      "path": "Samples~/Assets/Basic"
+    },
+	{
+      "displayName": "Simplify mesh",
+      "description": "A sample showing how to simplify HLOD mesh.",
+      "path": "Samples~/Assets/SimplifyMesh"
+    },
+	{
+      "displayName": "Combine material",
+      "description": "A sample showing how to combine materials of mesh.",
+      "path": "Samples~/Assets/CombineMaterial"
+    }
+  ]
 }
