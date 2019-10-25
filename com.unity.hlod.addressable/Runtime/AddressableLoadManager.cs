@@ -12,7 +12,7 @@ namespace Unity.HLODSystem
     
     public class AddressableLoadManager : MonoBehaviour
     {
-        public class Handle : IEnumerator
+        public class Handle
         {
             public event Action<Handle> Completed;
             public Handle(AddressableHLODController controller, string address, int priority, float distance)
@@ -56,27 +56,7 @@ namespace Unity.HLODSystem
             {
                 get { return m_asyncHandle.Result; }
             }
-            public bool MoveNext()
-            {
-                if (m_startLoad == false)
-                    return true;
-                return !m_asyncHandle.IsDone;
-            }
-
-            public void Reset()
-            {
-            }
-
-            public object Current
-            {
-                get
-                {
-                    if (m_startLoad == false)
-                        return null;
-                    return m_asyncHandle.Result;
-                }
-            }
-
+            
             public void Start()
             {
                 m_startLoad = true;

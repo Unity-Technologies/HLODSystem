@@ -154,12 +154,15 @@ namespace Unity.HLODSystem
             for (int i = 0; i < m_lowObjectIds.Count; ++i)
             {
                 int id = m_lowObjectIds[i];
-             
-                var loadHandle = m_controller.GetLowObject(id, Level, m_distance);
-                yield return loadHandle;
+
+                GameObject result = null;
+                
+                m_controller.GetLowObject(id, Level, m_distance, o => { result = o; });
+                while ( result == null)
+                    yield return null;
                              
-                loadHandle.Result.SetActive(false);
-                m_loadedLowObjects.Add(id, loadHandle.Result);
+                result.SetActive(false);
+                m_loadedLowObjects.Add(id, result);
 
             }
         }
@@ -202,12 +205,14 @@ namespace Unity.HLODSystem
             {
                 int id = m_highObjectIds[i];
 
-
-                var loadHandle = m_controller.GetHighObject(id, Level, m_distance);
-                yield return loadHandle;
+                GameObject result = null;
+                
+                m_controller.GetHighObject(id, Level, m_distance, (o => { result = o; }));
+                while (result == null)
+                    yield return null;
                                 
-                loadHandle.Result.SetActive(false);
-                m_loadedHighObjects.Add(id, loadHandle.Result);
+                result.SetActive(false);
+                m_loadedHighObjects.Add(id, result);
 
             }
 

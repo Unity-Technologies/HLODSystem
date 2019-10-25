@@ -10,10 +10,6 @@ namespace Unity.HLODSystem.Streaming
     using ControllerID = Int32;
     public abstract class HLODControllerBase : MonoBehaviour
     {
-        public interface ILoadHandle : IEnumerator
-        {
-            GameObject Result { get; }
-        }
         #region Interface
         public abstract void Install();
 
@@ -22,9 +18,9 @@ namespace Unity.HLODSystem.Streaming
         public abstract void OnStop();
 
         //This should be a coroutine.
-        public abstract ILoadHandle GetHighObject(ControllerID id, int level, float distance);
+        public abstract void GetHighObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
 
-        public abstract ILoadHandle GetLowObject(ControllerID id, int level, float distance);
+        public abstract void GetLowObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
 
         public abstract void ReleaseHighObject(ControllerID id);
         public abstract void ReleaseLowObject(ControllerID id);
