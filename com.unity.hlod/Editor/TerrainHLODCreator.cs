@@ -25,7 +25,7 @@ namespace Unity.HLODSystem
         }
         public static IEnumerator Destroy(TerrainHLOD hlod)
         {
-            var controller = hlod.GetComponent<ControllerBase>();
+            var controller = hlod.GetComponent<HLODControllerBase>();
             if (controller == null)
                 yield break;
 

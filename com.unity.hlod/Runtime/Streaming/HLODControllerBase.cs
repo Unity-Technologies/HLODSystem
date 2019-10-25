@@ -8,7 +8,7 @@ using UnityEngine;
 namespace Unity.HLODSystem.Streaming
 {
     using ControllerID = Int32;
-    public abstract class ControllerBase : MonoBehaviour
+    public abstract class HLODControllerBase : MonoBehaviour
     {
         public interface ILoadHandle : IEnumerator
         {

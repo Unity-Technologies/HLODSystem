@@ -144,7 +144,7 @@ namespace Unity.HLODSystem.Streaming
 
             
 
-            var addressableController = root.AddComponent<AddressableController>();
+            var addressableController = root.AddComponent<AddressableHLODController>();
 
             for (int i = 0; i < infos.Count; ++i)
             {

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Streaming
 {
-    public class DefaultController : ControllerBase
+    public class DefaultHLODController : HLODControllerBase
     {
         class LoadHandle : ILoadHandle
         {
