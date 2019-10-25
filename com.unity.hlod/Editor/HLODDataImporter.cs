@@ -4,7 +4,9 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Experimental.AssetImporters;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using TextureCompressionQuality = UnityEditor.TextureCompressionQuality;
+using Unity.HLODSystem.CustomUnityCacheClient;
 
 namespace Unity.HLODSystem
 {
@@ -13,6 +15,15 @@ namespace Unity.HLODSystem
     {
         public override void OnImportAsset(AssetImportContext ctx)
         {
+            List<byte[]> compressedTextures = new List<byte[]>();
+            int textureIndex = 0;
+
+            //Check if the Asset exists in the Cache Server.
+            bool isTextureCached = CustomCacheClient.GetInstance().GetCachedTextures(
+                                       ctx.assetPath,
+                                       ctx.selectedBuildTarget,
+                                       out compressedTextures) == DownloadResult.Success;
+
             var buildTargetGroup = BuildPipeline.GetBuildTargetGroup(ctx.selectedBuildTarget);
             try
             {
@@ -49,8 +60,32 @@ namespace Unity.HLODSystem
                         for (int ti = 0; ti < sm.GetTextureCount(); ++ti)
                         {
                             HLODData.SerializableTexture st = sm.GetTexture(ti);
-                            Texture2D texture = st.To();
-                            EditorUtility.CompressTexture(texture, compressFormat, TextureCompressionQuality.Normal);
+                            Texture2D texture;
+
+                            if (isTextureCached && textureIndex < compressedTextures.Count)
+                            {
+                                //Compressed Texture is cached. Load it into the texture
+                                var srgb = GraphicsFormatUtility.IsSRGBFormat(st.GraphicsFormat);
+                                texture = new Texture2D(st.Width, st.Height, compressFormat, true, !srgb)
+                                {
+                                    name = st.Name, wrapMode = st.WrapMode
+                                };
+
+                                byte[] image = compressedTextures[textureIndex++];
+                                texture.LoadRawTextureData(image);
+                                texture.Apply();
+                            }
+                            else
+                            {
+                                //Compressed Texture is not cached. Compress it and put it to the
+                                //list of Compressed Textures to be put into the Cache Server
+                                texture = st.To();
+                                EditorUtility.CompressTexture(texture, compressFormat,
+                                    TextureCompressionQuality.Normal);
+
+                                byte[] compTexture = texture.GetRawTextureData();
+                                compressedTextures.Add(compTexture);
+                            }
 
                             mat.SetTexture(st.Name, texture);
                             ctx.AddObjectToAsset(texture.name, texture);
@@ -127,6 +162,16 @@ namespace Unity.HLODSystem
             {
                 EditorUtility.ClearProgressBar();
             }
+
+            if (!isTextureCached && compressedTextures.Count > 0)
+            {
+                //Upload the Compressed Textures to the Cache Server
+                if (CustomCacheClient.GetInstance().PutCachedTextures(
+                        ctx.assetPath,
+                        compressedTextures,
+                        ctx.selectedBuildTarget) == UploadResult.Failure)
+                    Debug.LogError("Caching Failed for " + ctx.assetPath);
+            }
         }
 
         private TextureFormat GetCompressFormat(HLODData data, BuildTargetGroup group)
@@ -144,14 +189,15 @@ namespace Unity.HLODSystem
 
         private void UpdateProgress(string filename, int current, int max)
         {
-            float pos = (float)current/ (float)max;
-            EditorUtility.DisplayProgressBar("Importing", "Importing " + filename, pos);            
+            float pos = (float) current / (float) max;
+            EditorUtility.DisplayProgressBar("Importing", "Importing " + filename, pos);
         }
     }
 
     public class HLODDataRemimporter : IActiveBuildTargetChanged
     {
         public int callbackOrder { get; }
+
         public void OnActiveBuildTargetChanged(BuildTarget previousTarget, BuildTarget newTarget)
         {
             string[] guids = AssetDatabase.FindAssets("t:RootData");
