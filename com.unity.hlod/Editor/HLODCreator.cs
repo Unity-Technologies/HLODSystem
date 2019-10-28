@@ -73,15 +73,13 @@ namespace Unity.HLODSystem
             while (trevelQueue.Count > 0)
             {
                 int currentNodeIndex = results.Count;
-                int currentLevel = levelQueue.Dequeue();
                 string name = nameQueue.Dequeue();
                 SpaceNode node = trevelQueue.Dequeue();
                 HLODBuildInfo info = new HLODBuildInfo
                 {
                     Name = name,
                     ParentIndex = parentQueue.Dequeue(),
-                    Target = node,
-                    CurrentLevel = currentLevel
+                    Target = node
                 };
 
 
@@ -90,7 +88,6 @@ namespace Unity.HLODSystem
                     trevelQueue.Enqueue(node.GetChild(i));
                     parentQueue.Enqueue(currentNodeIndex);
                     nameQueue.Enqueue(name + "_" + (i + 1));
-                    levelQueue.Enqueue(currentLevel + 1);
                 }
                 
 
@@ -209,7 +206,7 @@ namespace Unity.HLODSystem
         public static IEnumerator Destroy(HLOD hlod)
         {
 
-            var controller = hlod.GetComponent<ControllerBase>();
+            var controller = hlod.GetComponent<HLODControllerBase>();
             if (controller == null)
                 yield break;
 

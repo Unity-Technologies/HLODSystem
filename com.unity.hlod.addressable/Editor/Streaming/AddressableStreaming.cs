@@ -85,50 +85,49 @@ namespace Unity.HLODSystem.Streaming
 
             string filenamePrefix = $"{path}{root.name}";
             Dictionary<int, HLODData> hlodDatas = new Dictionary<int, HLODData>();
-            hlodDatas.Add(-1, new HLODData());
-            hlodDatas[-1].CompressionData = compressionData;
-            
-            //string filename = $"{path}{root.name}.hlod";
-//            using (Stream stream = new FileStream(filename, FileMode.Create))
+
+            for (int i = 0; i < infos.Count; ++i)
             {
-                
-                for (int i = 0; i < infos.Count; ++i)
+                if (hlodDatas.ContainsKey(infos[i].ParentIndex) == false)
                 {
-                    if (hlodDatas.ContainsKey(infos[i].CurrentLevel) == false)
+                    HLODData newData = new HLODData();
+                    newData.CompressionData = compressionData;
+                    hlodDatas.Add(infos[i].ParentIndex, newData);
+                }
+
+                HLODData data = hlodDatas[infos[i].ParentIndex];
+                data.AddFromWokringObjects(infos[i].Name, infos[i].WorkingObjects);
+
+                if (writeNoPrefab)
+                {
+                    if (hlodDatas.ContainsKey(i) == false)
                     {
                         HLODData newData = new HLODData();
                         newData.CompressionData = compressionData;
-                        hlodDatas.Add(infos[i].CurrentLevel, newData);
+                        hlodDatas.Add(i, newData);
                     }
 
-                    HLODData data = hlodDatas[infos[i].CurrentLevel];
-                    data.AddFromWokringObjects(infos[i].Name, infos[i].WorkingObjects);
-                
-                    if (writeNoPrefab)
-                    {
-                        HLODData prefabData = hlodDatas[-1];
-                        var spaceNode = infos[i].Target;
+                    HLODData prefabData = hlodDatas[i];
+                    var spaceNode = infos[i].Target;
 
-                        for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
+                    for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
+                    {
+                        if (PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]) == false)
                         {
-                            if (PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]) == false)
-                            {
-                                prefabData.AddFromGameObject(spaceNode.Objects[oi]);
-                            }
+                            prefabData.AddFromGameObject(spaceNode.Objects[oi]);
                         }
                     }
-                    
-                    if (onProgress != null)
-                        onProgress((float) i / (float) infos.Count);
                 }
-                
-                //HLODDataSerializer.Write(stream, data);
+
+                if (onProgress != null)
+                    onProgress((float) i / (float) infos.Count);
             }
+             
 
             Dictionary<int, RootData> rootDatas = new Dictionary<int, RootData>();
             foreach (var item in hlodDatas)
             {
-                string filename = $"{filenamePrefix}_level{item.Key}.hlod";
+                string filename = $"{filenamePrefix}_group{item.Key}.hlod";
                 using (Stream stream = new FileStream(filename, FileMode.Create))
                 {
                     HLODDataSerializer.Write(stream, item.Value);
@@ -145,7 +144,7 @@ namespace Unity.HLODSystem.Streaming
 
             
 
-            var addressableController = root.AddComponent<AddressableController>();
+            var addressableController = root.AddComponent<AddressableHLODController>();
 
             for (int i = 0; i < infos.Count; ++i)
             {
@@ -159,7 +158,7 @@ namespace Unity.HLODSystem.Streaming
 
                     if (PrefabUtility.IsPartOfAnyPrefab(obj) == false)
                     {
-                        GameObject rootGameObject = rootDatas[-1].GetRootObject(obj.name);
+                        GameObject rootGameObject = rootDatas[i].GetRootObject(obj.name);
                         if (rootGameObject != null)
                         {
                             GameObject go = PrefabUtility.InstantiatePrefab(rootGameObject) as GameObject;
@@ -200,7 +199,7 @@ namespace Unity.HLODSystem.Streaming
                 }
 
                 {
-                    string filename = $"{filenamePrefix}_level{infos[i].CurrentLevel}.hlod";
+                    string filename = $"{filenamePrefix}_group{infos[i].ParentIndex}.hlod";
                     int lowId = addressableController.AddLowObject(filename + "." + infos[i].Name);
                     hlodTreeNode.LowObjectIds.Add(lowId);
                 }

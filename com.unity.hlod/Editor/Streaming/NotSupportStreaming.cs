@@ -120,7 +120,7 @@ namespace Unity.HLODSystem.Streaming
             RootData rootData = AssetDatabase.LoadAssetAtPath<RootData>(filename);
             m_manager.AddGeneratedResource(rootData);
        
-            var defaultController = root.AddComponent<DefaultController>();
+            var defaultController = root.AddComponent<DefaultHLODController>();
             GameObject hlodRoot = new GameObject("HLODRoot");
             hlodRoot.transform.SetParent(root.transform, false);
             m_manager.AddGeneratedResource(hlodRoot);

@@ -37,7 +37,7 @@ namespace Unity.HLODSystem
             [SerializeField] private byte[] m_colors;
             [SerializeField] private List<int[]> m_indices;
 
-            private static byte[] ArrayToBytes<T>(T[] arr) 
+            private static byte[] ArrayToBytes<T>(T[] arr)
                 where T : struct
             {
                 int dataSize = Marshal.SizeOf<T>();
@@ -49,6 +49,7 @@ namespace Unity.HLODSystem
                     Marshal.StructureToPtr(arr[i], ptr, false);
                     Marshal.Copy(ptr, buffer, i * dataSize, dataSize);
                 }
+
                 Marshal.FreeHGlobal(ptr);
 
                 return buffer;
@@ -59,7 +60,7 @@ namespace Unity.HLODSystem
             {
                 int dataSize = Marshal.SizeOf<T>();
                 T[] array = new T[bytes.Length / dataSize];
-                
+
                 IntPtr ptr = Marshal.AllocHGlobal(dataSize);
                 for (int i = 0; i < array.Length; ++i)
                 {
@@ -75,7 +76,7 @@ namespace Unity.HLODSystem
             public void From(WorkingMesh mesh)
             {
                 m_name = mesh.name;
-                
+
                 m_vertices = ArrayToBytes(mesh.vertices);
                 m_normals = ArrayToBytes(mesh.normals);
                 m_tangents = ArrayToBytes(mesh.tangents);
@@ -112,7 +113,7 @@ namespace Unity.HLODSystem
                 {
                     mesh.SetTriangles(m_indices[i], i);
                 }
-                
+
                 return mesh;
             }
         }
@@ -132,6 +133,26 @@ namespace Unity.HLODSystem
             {
                 set { m_name = value; }
                 get { return m_name; }
+            }
+
+            public int Height
+            {
+                get { return m_height; }
+            }
+
+            public int Width
+            {
+                get { return m_width; }
+            }
+
+            public GraphicsFormat GraphicsFormat
+            {
+                get { return m_format; }
+            }
+
+            public TextureWrapMode WrapMode
+            {
+                get { return m_wrapMode; }
             }
 
             public void From(Texture2D texture)
@@ -162,19 +183,20 @@ namespace Unity.HLODSystem
         {
             [SerializeField] private string m_name;
             [SerializeField] private string m_id;
-            [SerializeField] private string m_assetPath;
+            [SerializeField] private string m_assetGuid;
             [SerializeField] private string m_jsonData;
             [SerializeField] private List<SerializableTexture> m_textures;
-            
+
             public string ID
             {
                 get { return m_id; }
             }
+
             public void AddTexture(SerializableTexture texture)
             {
-                if (m_textures == null) 
+                if (m_textures == null)
                     m_textures = new List<SerializableTexture>();
-                
+
                 m_textures.Add(texture);
             }
 
@@ -189,20 +211,22 @@ namespace Unity.HLODSystem
             {
                 return m_textures[index];
             }
+
             public void From(WorkingMaterial material)
             {
                 m_name = material.Name;
-                bool needWrite = material.NeedWrite(); 
-                if ( needWrite )
+                bool needWrite = material.NeedWrite();
+                if (needWrite)
                 {
                     Material mat = material.ToMaterial();
                     m_jsonData = EditorJsonUtility.ToJson(mat);
-                    m_assetPath = "";
+                    m_assetGuid = "";
                 }
                 else
                 {
                     m_jsonData = "";
-                    m_assetPath = AssetDatabase.GetAssetPath(material.InstanceID);
+                    string path  = AssetDatabase.GetAssetPath(material.InstanceID);
+                    m_assetGuid = AssetDatabase.AssetPathToGUID(path);
                 }
 
                 m_id = material.Guid;
@@ -210,7 +234,7 @@ namespace Unity.HLODSystem
 
             public Material To()
             {
-                if (string.IsNullOrEmpty(m_assetPath))
+                if (string.IsNullOrEmpty(m_assetGuid))
                 {
                     Material mat = new Material(Shader.Find("Standard"));
                     EditorJsonUtility.FromJsonOverwrite(m_jsonData, mat);
@@ -219,7 +243,8 @@ namespace Unity.HLODSystem
                 }
                 else
                 {
-                    return AssetDatabase.LoadAssetAtPath<Material>(m_assetPath);
+                    string path = AssetDatabase.GUIDToAssetPath(m_assetGuid);
+                    return AssetDatabase.LoadAssetAtPath<Material>(path);
                 }
             }
         }
@@ -241,11 +266,12 @@ namespace Unity.HLODSystem
             {
                 return m_mesh.To();
             }
+
             public List<string> GetMaterialIds()
             {
                 return m_materialIds;
             }
-            
+
             public void From(WorkingObject obj)
             {
                 Name = obj.Name;
@@ -264,6 +290,7 @@ namespace Unity.HLODSystem
             set { m_name = value; }
             get { return m_name; }
         }
+
         public TextureCompressionData CompressionData
         {
             set { m_compressionData = value; }
@@ -284,7 +311,7 @@ namespace Unity.HLODSystem
                 SerializableObject so = new SerializableObject();
                 so.From(wo);
                 m_objects.Add(so);
-                
+
                 AddFromWorkingMaterials(wo.Materials);
             }
         }
@@ -293,14 +320,13 @@ namespace Unity.HLODSystem
         {
             using (WorkingObject wo = new WorkingObject(Allocator.Temp))
             {
-
                 var mr = go.GetComponent<MeshRenderer>();
                 if (mr == null)
                     return;
-                
+
                 wo.FromRenderer(mr);
                 wo.Name = go.name;
-                
+
                 SerializableObject so = new SerializableObject();
                 so.From(wo);
 
@@ -308,7 +334,7 @@ namespace Unity.HLODSystem
                 {
                     WorkingMaterial wm = wo.Materials[mi];
                     string[] textureNames = wm.GetTextureNames();
-                    
+
                     SerializableMaterial sm = new SerializableMaterial();
                     sm.From(wm);
 
@@ -317,7 +343,7 @@ namespace Unity.HLODSystem
                         WorkingTexture tex = wm.GetTexture(textureNames[ti]);
                         if (tex == null)
                             continue;
-                        
+
                         SerializableTexture st = new SerializableTexture();
                         st.From(tex.ToTexture());
                         st.Name = textureNames[ti];
@@ -326,9 +352,8 @@ namespace Unity.HLODSystem
                     }
 
                     m_materials.Add(sm);
-
                 }
-                
+
                 m_objects.Add(so);
             }
         }
@@ -342,10 +367,10 @@ namespace Unity.HLODSystem
                 //Prevent duplication
                 if (wm.NeedWrite() == false && GetMaterial(wm.Guid) != null)
                     continue;
-                
+
                 SerializableMaterial sm = new SerializableMaterial();
                 sm.From(wmList[i]);
-                
+
                 string[] textureNames = wm.GetTextureNames();
                 for (int ti = 0; ti < textureNames.Length; ++ti)
                 {
@@ -353,10 +378,10 @@ namespace Unity.HLODSystem
                     SerializableTexture st = new SerializableTexture();
                     st.From(wt.ToTexture());
                     st.Name = textureNames[ti];
-                    
+
                     sm.AddTexture(st);
                 }
-                
+
                 m_materials.Add(sm);
             }
         }
@@ -370,7 +395,7 @@ namespace Unity.HLODSystem
         {
             return m_objects;
         }
-        
+
         public int GetMaterialCount()
         {
             if (m_materials == null)
@@ -389,8 +414,5 @@ namespace Unity.HLODSystem
 
             return null;
         }
-        
-        
-
     }
 }

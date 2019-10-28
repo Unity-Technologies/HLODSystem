@@ -15,7 +15,7 @@ namespace Unity.HLODSystem
         public class Handle : IEnumerator
         {
             public event Action<Handle> Completed;
-            public Handle(AddressableController controller, string address, int priority, float distance)
+            public Handle(AddressableHLODController controller, string address, int priority, float distance)
             {
                 m_controller = controller;
                 m_address = address;
@@ -35,7 +35,7 @@ namespace Unity.HLODSystem
                 get { return m_distance; }
             }
 
-            public AddressableController Controller
+            public AddressableHLODController Controller
             {
                 get { return m_controller; }
             }
@@ -96,7 +96,7 @@ namespace Unity.HLODSystem
             }
 
 
-            private AddressableController m_controller;
+            private AddressableHLODController m_controller;
             private string m_address;
             private int m_priority;
             private float m_distance;
@@ -123,13 +123,14 @@ namespace Unity.HLODSystem
         #endregion
 
 
+        private bool m_isLoading = false;
         private Handle m_currentHandle = null;
         private LinkedList<Handle> m_loadQueue = new LinkedList<Handle>();
-        public void RegisterController(AddressableController controller)
+        public void RegisterController(AddressableHLODController controller)
         {
         }
 
-        public void UnregisterController(AddressableController controller)
+        public void UnregisterController(AddressableHLODController controller)
         {
             var node = m_loadQueue.First;
             while (node != null)
@@ -148,26 +149,7 @@ namespace Unity.HLODSystem
 
         }
 
-        IEnumerator Start()
-        {
-            while (true)
-            {
-                while (m_loadQueue.First == null)
-                    yield return null;
-
-                m_currentHandle = m_loadQueue.First.Value;
-                m_loadQueue.RemoveFirst();
-
-                m_currentHandle.Start();
-                
-                while (m_currentHandle != null && m_currentHandle.MoveNext())
-                {
-                    yield return null;
-                }
-            }
-        }
-
-        public Handle LoadAsset(AddressableController controller, string address, int priority, float distance)
+        public Handle LoadAsset(AddressableHLODController controller, string address, int priority, float distance)
         {
             Handle handle = new Handle(controller, address, priority, distance);
             InsertHandle(handle);
@@ -185,7 +167,6 @@ namespace Unity.HLODSystem
 
         private void InsertHandle(Handle handle)
         {
-            
             var node = m_loadQueue.First;
             while (node != null && node.Value.Priority < handle.Priority)
             {
@@ -198,10 +179,36 @@ namespace Unity.HLODSystem
             }
 
             if (node == null)
-                m_loadQueue.AddLast(handle);
+            {
+                if (m_isLoading == true)
+                {
+                    m_loadQueue.AddLast(handle);
+                }
+                else
+                {
+                    StartLoad(handle);
+                }
+            }
             else
+            {
                 m_loadQueue.AddBefore(node, handle);
-            //m_loadQueue.AddLast(handle);
+            }
+        }
+
+        private void StartLoad(Handle handle)
+        {
+            handle.Completed += handle1 =>
+            {
+                m_isLoading = false;
+                if (m_loadQueue.Count > 0)
+                {
+                    Handle nextHandle = m_loadQueue.First.Value;
+                    m_loadQueue.RemoveFirst();
+                    StartLoad(nextHandle);
+                }
+            };
+            m_isLoading = true;
+            handle.Start();
         }
    
     }
