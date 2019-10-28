@@ -86,10 +86,14 @@ namespace Unity.HLODSystem
         }
         #region Singleton
         private static AddressableLoadManager s_instance;
+        private static bool s_isDestroyed = false;
         public static AddressableLoadManager Instance
         {
             get
             {
+                if (s_isDestroyed)
+                    return null;
+                
                 if (s_instance == null)
                 {
                     GameObject go = new GameObject("AddressableLoadManager");
@@ -106,6 +110,12 @@ namespace Unity.HLODSystem
         private bool m_isLoading = false;
         private Handle m_currentHandle = null;
         private LinkedList<Handle> m_loadQueue = new LinkedList<Handle>();
+
+        private void OnDestroy()
+        {
+            s_isDestroyed = true;
+        }
+
         public void RegisterController(AddressableHLODController controller)
         {
         }

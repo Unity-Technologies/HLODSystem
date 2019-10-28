@@ -57,7 +57,8 @@ namespace Unity.HLODSystem.Streaming
 
         public override void OnStop()
         {
-            AddressableLoadManager.Instance.UnregisterController(this);
+            if ( AddressableLoadManager.Instance != null)
+                AddressableLoadManager.Instance.UnregisterController(this);
         }
 
 
