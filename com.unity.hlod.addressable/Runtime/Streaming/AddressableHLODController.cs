@@ -141,7 +141,7 @@ namespace Unity.HLODSystem.Streaming
                         return;
                     }
 
-                    GameObject gameObject = (GameObject)Instantiate(handle.Result, m_highObjects[id].Parent.transform, true);
+                    GameObject gameObject = Instantiate(handle.Result, m_highObjects[id].Parent.transform, true);
                     gameObject.transform.localPosition = m_highObjects[id].Position;
                     gameObject.transform.localRotation = m_highObjects[id].Rotation;
                     gameObject.transform.localScale = m_highObjects[id].Scale;
@@ -208,14 +208,14 @@ namespace Unity.HLODSystem.Streaming
                 }
                 
                 
-                GameObject go = (GameObject) Instantiate(loadInfo.Handle.Result, m_hlodMeshesRoot.transform, false);
+                GameObject go = Instantiate(loadInfo.Handle.Result, m_hlodMeshesRoot.transform, false);
                 go.SetActive(false);
                 ChangeLayersRecursively(go.transform, layer);
                 loadInfo.GameObject = go;
                 
                 for (int i = 0; i < loadInfo.Callbacks.Count; ++i)
                 {
-                    loadInfo.Callbacks[i]?.Invoke(gameObject);
+                    loadInfo.Callbacks[i]?.Invoke(go);
                 }
                 loadInfo.Callbacks.Clear();
             };

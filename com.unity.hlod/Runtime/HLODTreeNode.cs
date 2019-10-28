@@ -5,6 +5,7 @@ using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace Unity.HLODSystem
 {
@@ -87,14 +88,16 @@ namespace Unity.HLODSystem
             //set to initialize state
             m_fsm.ChangeState(State.Release);
 
-            m_fsm.RegisterEnteringFunction(State.Release, OnEnteringRelease);
+            m_fsm.RegisterIsReadyToEnterFunction(State.Release, IsReadyToEnterRelease);
             m_fsm.RegisterEnteredFunction(State.Release, OnEnteredRelease);
 
             m_fsm.RegisterEnteringFunction(State.Low, OnEnteringLow);
+            m_fsm.RegisterIsReadyToEnterFunction(State.Low, IsReadyToEnterLow);
             m_fsm.RegisterEnteredFunction(State.Low, OnEnteredLow);
             m_fsm.RegisterExitedFunction(State.Low, OnExitedLow);
 
             m_fsm.RegisterEnteringFunction(State.High, OnEnteringHigh);
+            m_fsm.RegisterIsReadyToEnterFunction(State.High, IsReadyToEnterHigh);
             m_fsm.RegisterEnteredFunction(State.High, OnEnteredHigh);
             m_fsm.RegisterExitedFunction(State.High, OnExitedHigh);
             
@@ -125,14 +128,14 @@ namespace Unity.HLODSystem
 
         #region FSM functions
 
-        IEnumerator OnEnteringRelease()
+        bool IsReadyToEnterRelease()
         {
-            if ( m_parent == null )
-                yield break;
+            if (m_parent == null)
+                return true;
 
-            while (m_parent.m_fsm.CurrentState == State.High)
-                yield return null;
+            return m_parent.m_fsm.CurrentState != State.High;
         }
+        
         void OnEnteredRelease()
         {
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
@@ -140,32 +143,32 @@ namespace Unity.HLODSystem
                 m_childTreeNodes[i].m_isVisible = false;
                 m_childTreeNodes[i].Release();
             }
-     
         }
-        
-        IEnumerator OnEnteringLow()
+
+        void OnEnteringLow()
         {
             if ( m_loadedLowObjects == null ) 
                 m_loadedLowObjects = new Dictionary<int, GameObject>();
             
             if (m_lowObjects.Count == m_lowObjectIds.Count)
-                yield break;
-                         
+                return;
+            
             for (int i = 0; i < m_lowObjectIds.Count; ++i)
             {
                 int id = m_lowObjectIds[i];
 
-                GameObject result = null;
-                
-                m_controller.GetLowObject(id, Level, m_distance, o => { result = o; });
-                while ( result == null)
-                    yield return null;
-                             
-                result.SetActive(false);
-                m_loadedLowObjects.Add(id, result);
-
+                m_controller.GetLowObject(id, Level, m_distance, o =>
+                {
+                    o.SetActive(false);
+                    m_loadedLowObjects.Add(id, o);
+                });
             }
         }
+        bool IsReadyToEnterLow()
+        {
+            return m_loadedLowObjects.Count == m_lowObjectIds.Count;
+        }
+        
         
         void OnEnteredLow()
         {
@@ -189,7 +192,7 @@ namespace Unity.HLODSystem
             m_lowObjects.Clear();
         }
 
-        IEnumerator OnEnteringHigh()
+        void OnEnteringHigh()
         {
             //child low mesh should be load before change to high.
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
@@ -201,28 +204,35 @@ namespace Unity.HLODSystem
             if ( m_loadedHighObjects == null )
                 m_loadedHighObjects = new Dictionary<int, GameObject>();
             
+            if (m_loadedHighObjects.Count == m_highObjectIds.Count)
+                return;
+
+            
             for (int i = 0; i < m_highObjectIds.Count; ++i)
             {
                 int id = m_highObjectIds[i];
 
-                GameObject result = null;
-                
-                m_controller.GetHighObject(id, Level, m_distance, (o => { result = o; }));
-                while (result == null)
-                    yield return null;
-                                
-                result.SetActive(false);
-                m_loadedHighObjects.Add(id, result);
-
-            }
-
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
-            {
-                while (m_childTreeNodes[i].m_fsm.CurrentState == State.Release)
-                    yield return null;
+                m_controller.GetHighObject(id, Level, m_distance, (o =>
+                {
+                    o.SetActive(false);
+                    m_loadedHighObjects.Add(id, o);
+                }));
             }
         }
 
+        bool IsReadyToEnterHigh()
+        {
+            if ( m_loadedHighObjects.Count != m_highObjectIds.Count )
+                return false;
+            
+            for (int i = 0; i < m_childTreeNodes.Count; ++i)
+            {
+                if (m_childTreeNodes[i].m_fsm.CurrentState == State.Release)
+                    return false;
+            }
+
+            return true;
+        }
         void OnEnteredHigh()
         {
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
@@ -264,10 +274,13 @@ namespace Unity.HLODSystem
             {
                 if (m_spaceManager.IsHigh(lodDistance, m_bounds))
                 {
-                    if ( m_fsm.CurrentState == State.Low &&
-                         m_isVisible == true)       //< if isVisible is false, it loaded from parent but not showing. 
-                                                    //< We have to wait for showing after then, change state to high.
+                    //if isVisible is false, it loaded from parent but not showing. 
+                    //We have to wait for showing after then, change state to high.
+                    if (m_fsm.CurrentState == State.Low &&
+                        m_isVisible == true)
+                    {
                         m_fsm.ChangeState(State.High);
+                    }
                 }
                 else
                 {

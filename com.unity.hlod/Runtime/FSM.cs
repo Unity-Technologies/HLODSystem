@@ -10,131 +10,135 @@ namespace Unity.HLODSystem
     {
         private T m_currentState = default;
         private T m_lastState = default;
-
+        private T m_transactionTargetState = default;
+        
         //event ordering
         //exiting -> entering -> exited -> entered
-        private Dictionary<T, Func<IEnumerator>> m_enteringFunctions = new Dictionary<T, Func<IEnumerator>>();
-        private Dictionary<T, Func<IEnumerator>> m_exitingFunctions = new Dictionary<T, Func<IEnumerator>>();
-        private Dictionary<T, Action> m_enteredFunctions = new Dictionary<T, Action>();
-        private Dictionary<T, Action> m_exitedFunctions = new Dictionary<T, Action>();
+        class Functions
+        {
+            public Action EnteringFunction;
+            public Func<bool> IsReadyToEnterFunction;
+            public Action EnteredFunction;
 
-        private CustomCoroutine m_currentCoroutine = null;
-        private CustomCoroutine m_reservedCoroutine = null;
+            public Action ExitingFunction;
+            public Func<bool> IsReadyToExitFunction;
+            public Action ExitedFunction;
+        }
+
+        private Dictionary<T, Functions> m_functions = new Dictionary<T, Functions>();
 
         public T CurrentState => m_currentState;
         public T LastState => m_lastState;
 
         public void Update()
         {
-            if (m_currentCoroutine == null)
+            //transaction still progressing. have to check to finish.
+            if (Compare(m_currentState, m_transactionTargetState) == false)
             {
-                m_currentCoroutine = m_reservedCoroutine;
-                m_reservedCoroutine = null;
+                if (GetFunctions(m_currentState).IsReadyToExitFunction?.Invoke() == false)
+                    return;
+                if (GetFunctions(m_transactionTargetState).IsReadyToEnterFunction?.Invoke() == false)
+                    return;
+                
+                //the transaction has been finished.
+                GetFunctions(m_currentState).ExitedFunction?.Invoke();
+                GetFunctions(m_transactionTargetState).EnteredFunction?.Invoke();
+
+                m_currentState = m_transactionTargetState;
             }
-
-            if (m_currentCoroutine == null)
-                return;
-
-            if (m_currentCoroutine.MoveNext() == false)
+            
+            Debug.Assert(Compare(m_currentState, m_transactionTargetState));
+            
+            //Here the transaction is always complete.
+            //We have to check to start a new transaction.
+            if (Compare(m_currentState, m_lastState) == false)
             {
-                m_currentCoroutine = null;
+                StartTransaction(m_currentState, m_lastState);
             }
         }
 
         public void ChangeState(T state)
         {
-            if (EqualityComparer<T>.Default.Equals(state, m_lastState))
-                return;
-
             m_lastState = state;
-
-            var routine = ChangeStateRoutine(state);
-            m_reservedCoroutine = new CustomCoroutine(routine);
-            
+            //it means, completed the last transaction. we should do it immediately. 
+            if (Compare(m_currentState, m_transactionTargetState))
+            {
+                StartTransaction(m_currentState, m_lastState);
+            }
         }
 
-        
-
-        public void RegisterEnteringFunction(T state, Func<IEnumerator> func)
+        public void RegisterEnteringFunction(T state, Action func)
         {
-            AddOrUpdate(m_enteringFunctions, state, func);
+            GetFunctions(state).EnteringFunction = func;
         }
         public void UnregisterEnteringFunction(T state)
         {
-            m_enteringFunctions.Remove(state);
+            GetFunctions(state).EnteringFunction = null;
         }
 
-        public void RegisterExitingFunction(T state, Func<IEnumerator> func)
+        public void RegisterIsReadyToEnterFunction(T state, Func<bool> func)
         {
-            AddOrUpdate(m_exitingFunctions, state, func);
+            GetFunctions(state).IsReadyToEnterFunction = func;
         }
-        public void UnregisterExitingFunction(T state)
+        public void UnregisterIsReadyToEnterFunction(T state)
         {
-            m_exitingFunctions.Remove(state);
+            GetFunctions(state).IsReadyToEnterFunction = null;
         }
-
         public void RegisterEnteredFunction(T state, Action func)
         {
-            AddOrUpdate(m_enteredFunctions, state, func);
+            GetFunctions(state).EnteredFunction = func;
         }
         public void UnregisterEnteredFunction(T state)
         {
-            m_enteredFunctions.Remove(state);
+            GetFunctions(state).EnteredFunction = null;
         }
 
+        public void RegisterExitingFunction(T state, Action func)
+        {
+            GetFunctions(state).ExitingFunction = func;
+        }
+        public void UnregisterExitingFunction(T state)
+        {
+            GetFunctions(state).ExitingFunction = null;
+        }
+        public void RegisterIsReadyToExitFunction(T state, Func<bool> func)
+        {
+            GetFunctions(state).IsReadyToExitFunction = func;
+        }
+        public void UnregisterIsReadyToExitFunction(T state)
+        {
+            GetFunctions(state).IsReadyToExitFunction = null;
+        }
         public void RegisterExitedFunction(T state, Action func)
         {
-            AddOrUpdate(m_exitedFunctions, state, func);
+            GetFunctions(state).ExitedFunction = func;
         }
         public void UnregisterExitedFunction(T state)
         {
-            m_exitedFunctions.Remove(state);
-        }
-
-        private IEnumerator ChangeStateRoutine( T targetState )
-        {
-            if (EqualityComparer<T>.Default.Equals(targetState, m_currentState))
-                yield break;
-
-
-            Func<IEnumerator> entering = GetValue(m_enteringFunctions, targetState);
-            Func<IEnumerator> exiting = GetValue(m_exitingFunctions, m_currentState);
-            Action entered = GetValue(m_enteredFunctions, targetState);
-            Action exited = GetValue(m_exitedFunctions, m_currentState);
-
-            //exiting -> entering -> exited -> entered
-            if (exiting != null) yield return exiting();
-            if (entering != null) yield return entering();
-            if (exited != null) exited();
-            if (entered != null) entered();
-
-            m_currentState = targetState;
+            GetFunctions(state).ExitedFunction = null;
         }
         
-        private void AddOrUpdate<KEY, VALUE>(Dictionary<KEY, VALUE> container, KEY key, VALUE value)
+        private Functions GetFunctions(T state)
         {
-            if (container.ContainsKey(key))
-            {
-                container[key] = value;
-            }
-            else
-            {
-                container.Add(key, value);
-            }
+            if ( m_functions.ContainsKey(state) == false )
+                m_functions.Add(state, new Functions());
+
+            return m_functions[state];
         }
 
-        private VALUE GetValue<KEY, VALUE>(Dictionary<KEY, VALUE> container, KEY key)
+        private void StartTransaction(T current, T target)
         {
-            VALUE value;
-            if (container.TryGetValue(key, out value))
-            {
-                return value;
-            }
-            else
-            {
-                return default(VALUE);
-            }
+            m_transactionTargetState = target;
+            
+            GetFunctions(current).ExitingFunction?.Invoke();
+            GetFunctions(target).EnteringFunction?.Invoke();
         }
+
+        private static bool Compare(T lhs, T rhs)
+        {
+            return EqualityComparer<T>.Default.Equals(lhs, rhs);
+        }
+
     }
 
 }

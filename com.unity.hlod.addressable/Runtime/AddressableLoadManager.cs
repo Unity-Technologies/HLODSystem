@@ -52,7 +52,7 @@ namespace Unity.HLODSystem
                 }
             }
 
-            public Object Result
+            public GameObject Result
             {
                 get { return m_asyncHandle.Result; }
             }
@@ -60,7 +60,7 @@ namespace Unity.HLODSystem
             public void Start()
             {
                 m_startLoad = true;
-                m_asyncHandle = Addressables.LoadAssetAsync<Object>(m_address);
+                m_asyncHandle = Addressables.LoadAssetAsync<GameObject>(m_address);
                 m_asyncHandle.Completed += handle =>
                 {
                     Completed?.Invoke(this);
@@ -82,7 +82,7 @@ namespace Unity.HLODSystem
             private float m_distance;
             private bool m_startLoad = false;
 
-            private AsyncOperationHandle<Object> m_asyncHandle;
+            private AsyncOperationHandle<GameObject> m_asyncHandle;
         }
         #region Singleton
         private static AddressableLoadManager s_instance;
