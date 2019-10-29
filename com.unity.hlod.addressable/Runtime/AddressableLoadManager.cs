@@ -12,7 +12,7 @@ namespace Unity.HLODSystem
     
     public class AddressableLoadManager : MonoBehaviour
     {
-        public class Handle : IEnumerator
+        public class Handle
         {
             public event Action<Handle> Completed;
             public Handle(AddressableHLODController controller, string address, int priority, float distance)
@@ -52,35 +52,15 @@ namespace Unity.HLODSystem
                 }
             }
 
-            public Object Result
+            public GameObject Result
             {
                 get { return m_asyncHandle.Result; }
             }
-            public bool MoveNext()
-            {
-                if (m_startLoad == false)
-                    return true;
-                return !m_asyncHandle.IsDone;
-            }
-
-            public void Reset()
-            {
-            }
-
-            public object Current
-            {
-                get
-                {
-                    if (m_startLoad == false)
-                        return null;
-                    return m_asyncHandle.Result;
-                }
-            }
-
+            
             public void Start()
             {
                 m_startLoad = true;
-                m_asyncHandle = Addressables.LoadAssetAsync<Object>(m_address);
+                m_asyncHandle = Addressables.LoadAssetAsync<GameObject>(m_address);
                 m_asyncHandle.Completed += handle =>
                 {
                     Completed?.Invoke(this);
@@ -102,14 +82,18 @@ namespace Unity.HLODSystem
             private float m_distance;
             private bool m_startLoad = false;
 
-            private AsyncOperationHandle<Object> m_asyncHandle;
+            private AsyncOperationHandle<GameObject> m_asyncHandle;
         }
         #region Singleton
         private static AddressableLoadManager s_instance;
+        private static bool s_isDestroyed = false;
         public static AddressableLoadManager Instance
         {
             get
             {
+                if (s_isDestroyed)
+                    return null;
+                
                 if (s_instance == null)
                 {
                     GameObject go = new GameObject("AddressableLoadManager");
@@ -126,6 +110,12 @@ namespace Unity.HLODSystem
         private bool m_isLoading = false;
         private Handle m_currentHandle = null;
         private LinkedList<Handle> m_loadQueue = new LinkedList<Handle>();
+
+        private void OnDestroy()
+        {
+            s_isDestroyed = true;
+        }
+
         public void RegisterController(AddressableHLODController controller)
         {
         }

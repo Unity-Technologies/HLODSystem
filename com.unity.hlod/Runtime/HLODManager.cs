@@ -60,11 +60,11 @@ namespace Unity.HLODSystem
             }
             else
             {
-                if (cam != Camera.main)
+                if (cam != HLODCameraRecognizer.RecognizedCamera)
                     return;
             }
 #else
-            if (cam != Camera.main)
+            if (cam != HLODCameraRecognizer.RecognizedCamera)
                 return;
 #endif
 

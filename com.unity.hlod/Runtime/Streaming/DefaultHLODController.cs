@@ -7,33 +7,6 @@ namespace Unity.HLODSystem.Streaming
 {
     public class DefaultHLODController : HLODControllerBase
     {
-        class LoadHandle : ILoadHandle
-        {
-            public LoadHandle(GameObject result)
-            {
-                m_result = result;
-            }
-            public bool MoveNext()
-            {
-                return false;
-            }
-
-            public void Reset()
-            {
-            }
-
-            public object Current
-            {
-                get { return null; }
-            }
-
-            public GameObject Result
-            {
-                get { return m_result; }
-            }
-
-            private GameObject m_result;
-        }
         [SerializeField]
         private List<GameObject> m_gameObjectList = new List<GameObject>();
         [SerializeField]
@@ -53,14 +26,14 @@ namespace Unity.HLODSystem.Streaming
             return id;
         }
 
-        public override ILoadHandle GetHighObject(int id, int level, float distance)
+        public override void GetHighObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
         {
-            return new LoadHandle(m_gameObjectList[id]);
+            loadDoneCallback?.Invoke(m_gameObjectList[id]);            
         }
 
-        public override ILoadHandle GetLowObject(int id, int level, float distance)
+        public override void GetLowObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
         {
-            return new LoadHandle(m_lowGameObjects[id]);
+            loadDoneCallback?.Invoke(m_lowGameObjects[id]);
         }
         
         public override void OnStart()
