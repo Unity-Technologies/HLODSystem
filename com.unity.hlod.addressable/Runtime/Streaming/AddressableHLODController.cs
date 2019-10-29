@@ -43,6 +43,7 @@ namespace Unity.HLODSystem.Streaming
         private Dictionary<int, LoadInfo> m_createdLowObjects = new Dictionary<int, LoadInfo>();
 
         private GameObject m_hlodMeshesRoot;
+        private int m_hlodLayerIndex;
 
         public event Action<GameObject> HighObjectCreated;
         
@@ -50,6 +51,8 @@ namespace Unity.HLODSystem.Streaming
         {
             m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
             m_hlodMeshesRoot.transform.SetParent(transform, false);
+
+            m_hlodLayerIndex = LayerMask.NameToLayer(HLOD.HLODLayerStr);
 
             AddressableLoadManager.Instance.RegisterController(this);
 
@@ -110,59 +113,7 @@ namespace Unity.HLODSystem.Streaming
             m_lowObjects.Add(address);
             return id;
         }
-
-        private void GetHighObjectImpl(int id, int level, float distance, Action<GameObject> callback)
-        {
-            int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
-            if (layer < 0 || layer > 31)
-                layer = 0;
-            
-            LoadInfo loadInfo = new LoadInfo();
-            m_createdHighObjects.Add(id, loadInfo);
-
-            if (m_highObjects[id].GameObject != null)
-            {
-                loadInfo.GameObject = m_highObjects[id].GameObject;
-                ChangeLayersRecursively(loadInfo.GameObject.transform, layer);
-                callback?.Invoke(loadInfo.GameObject);
-            }
-            else
-            {
-                //high object's priority is always lowest.
-                loadInfo.Callbacks = new List<Action<GameObject>>();
-                loadInfo.Callbacks.Add(callback);
-                loadInfo.Handle =
-                    AddressableLoadManager.Instance.LoadAsset(this, m_highObjects[id].Address, Int32.MaxValue,
-                        distance);
-                loadInfo.Handle.Completed += handle =>
-                {
-                    if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
-                    {
-                        Debug.LogError("Failed to load asset: " + m_highObjects[id].Address);
-                        return;
-                    }
-
-                    GameObject gameObject = Instantiate(handle.Result, m_highObjects[id].Parent.transform, true);
-                    gameObject.transform.localPosition = m_highObjects[id].Position;
-                    gameObject.transform.localRotation = m_highObjects[id].Rotation;
-                    gameObject.transform.localScale = m_highObjects[id].Scale;
-                    gameObject.SetActive(false);
-                    ChangeLayersRecursively(gameObject.transform, layer);
-
-                    loadInfo.GameObject = gameObject;
-                    HighObjectCreated?.Invoke(gameObject);
-                    
-                    for (int i = 0; i < loadInfo.Callbacks.Count; ++i)
-                    {
-                        loadInfo.Callbacks[i]?.Invoke(gameObject);
-                    }
-                    loadInfo.Callbacks.Clear();
-                };
-                
-            }
-
-        }
-
+       
         public override void GetHighObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
         {
             //already processing object to load.
@@ -182,48 +133,30 @@ namespace Unity.HLODSystem.Streaming
             }
             else
             {
-                GetHighObjectImpl(id, level, distance, loadDoneCallback);    
+                if (m_highObjects[id].GameObject != null)
+                {
+                    LoadInfo loadInfo = new LoadInfo();
+                    loadInfo.GameObject = m_highObjects[id].GameObject;
+                    ChangeLayersRecursively(loadInfo.GameObject.transform, m_hlodLayerIndex);
+                    loadDoneCallback?.Invoke(loadInfo.GameObject);
+                    m_createdHighObjects.Add(id, loadInfo);
+                }
+                else
+                {
+                    //high object's priority is always lowest.
+                    LoadInfo loadInfo = CreateLoadInfo(m_highObjects[id].Address, Int32.MaxValue, distance,
+                        m_highObjects[id].Parent, m_highObjects[id].Position, m_highObjects[id].Rotation, m_highObjects[id].Scale);
+                    m_createdHighObjects.Add(id, loadInfo);
+                    
+                    loadInfo.Callbacks = new List<Action<GameObject>>();
+                    loadInfo.Callbacks.Add(loadDoneCallback);
+                    loadInfo.Callbacks.Add(o => { HighObjectCreated?.Invoke(o); });
+                }
+                
             }            
             
         }
 
-        public void GetLowObjectImpl(int id, int level, float distance, Action<GameObject> callback)
-        {
-            int layer = LayerMask.NameToLayer(HLOD.HLODLayerStr);
-            if (layer < 0 || layer > 31)
-                layer = 0;
-
-            LoadInfo loadInfo = new LoadInfo();
-            m_createdLowObjects.Add(id, loadInfo);
-
-            loadInfo.Callbacks = new List<Action<GameObject>>();
-            loadInfo.Callbacks.Add(callback);
-            
-            loadInfo.Handle = AddressableLoadManager.Instance.LoadAsset(this, m_lowObjects[id], level, distance);
-            loadInfo.Handle.Completed += handle =>
-            {
-                if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
-                {
-                    Debug.LogError("Failed to load asset: " + m_lowObjects[id]);
-                    return;
-                }
-                
-                
-                GameObject go = Instantiate(loadInfo.Handle.Result, m_hlodMeshesRoot.transform, false);
-                go.SetActive(false);
-                ChangeLayersRecursively(go.transform, layer);
-                loadInfo.GameObject = go;
-                
-                for (int i = 0; i < loadInfo.Callbacks.Count; ++i)
-                {
-                    loadInfo.Callbacks[i]?.Invoke(go);
-                }
-                loadInfo.Callbacks.Clear();
-            };
-
-      
-            
-        }
 
         public override void GetLowObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
         {
@@ -244,7 +177,11 @@ namespace Unity.HLODSystem.Streaming
             }
             else
             {
-                GetLowObjectImpl(id, level, distance, loadDoneCallback);    
+                LoadInfo loadInfo = CreateLoadInfo(m_lowObjects[id], level, distance, m_hlodMeshesRoot.transform, Vector3.zero, Quaternion.identity,Vector3.one);
+                m_createdLowObjects.Add(id, loadInfo);
+
+                loadInfo.Callbacks = new List<Action<GameObject>>();
+                loadInfo.Callbacks.Add(loadDoneCallback);    
             }
         }
 
@@ -285,6 +222,35 @@ namespace Unity.HLODSystem.Streaming
 #else
             Destroy(obj);
 #endif
+        }
+        
+        private LoadInfo CreateLoadInfo(string address, int priority, float distance, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
+        {
+            LoadInfo loadInfo = new LoadInfo();
+            loadInfo.Handle = AddressableLoadManager.Instance.LoadAsset(this, address, priority, distance);
+            loadInfo.Handle.Completed += handle =>
+            {
+                if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
+                {
+                    Debug.LogError("Failed to load asset: " + address);
+                    return;
+                }
+   
+                GameObject gameObject = Instantiate(handle.Result, parent, false);
+                gameObject.transform.localPosition = localPosition;
+                gameObject.transform.localRotation = localRotation;
+                gameObject.transform.localScale = localScale;
+                gameObject.SetActive(false);
+                ChangeLayersRecursively(gameObject.transform, m_hlodLayerIndex);
+                loadInfo.GameObject = gameObject;
+                
+                for (int i = 0; i < loadInfo.Callbacks.Count; ++i)
+                {
+                    loadInfo.Callbacks[i]?.Invoke(gameObject);
+                }
+                loadInfo.Callbacks.Clear();
+            };
+            return loadInfo;
         }
 
         static void ChangeLayersRecursively(Transform trans, int layer)
