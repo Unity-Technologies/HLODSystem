@@ -222,6 +222,11 @@ namespace Unity.HLODSystem
 
             public TextureAtlas CreateAtlas(TextureFormat format, int packTextureSize, bool linear)
             {
+                if (m_textures.Count == 0)
+                {
+                    return null;
+                }
+                
                 int itemCount = Mathf.CeilToInt(Mathf.Sqrt(m_textures.Count));
                 int itemSize = packTextureSize / itemCount;
                 TextureAtlas atlas;
@@ -358,7 +363,8 @@ namespace Unity.HLODSystem
                 for (int i = 0; i < m_sources.Count; ++i)
                 {
                     TextureAtlas item = m_sources[i].CreateAtlas(m_format, m_packTextureSize, m_linear);
-                    atlases.Add(item);
+                    if ( item != null )
+                        atlases.Add(item);
                 }
                 return atlases;
 
