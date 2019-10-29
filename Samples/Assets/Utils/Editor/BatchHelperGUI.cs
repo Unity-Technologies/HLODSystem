@@ -71,9 +71,10 @@ public class BatchHelperGUI : Editor
                 rot = Quaternion.Euler(0.0f, randRotation, 0.0f);
 
                 GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-                instance.transform.position = pos;
-                instance.transform.rotation = rot;
                 instance.transform.parent = transform;
+                instance.transform.localPosition = pos;
+                instance.transform.localRotation = rot;
+                
                 instance.transform.localScale = new Vector3(randScale, randScale, randScale);
             }
 
