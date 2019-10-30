@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcf7219bab7fe46a1ad266029b2fee19, type: 3}
+  m_Name: Readme
+  m_EditorClassIdentifier: 
+  icon: {fileID: 2800000, guid: a186f8a87ca4f4d3aa864638ad5dfb65, type: 3}
+  iconMaxWidth: 128
+  title: Simple batcher
+  sections:
+  - heading: What is it?
+    text: This sample shows combine meshes into one mesh each node. It can more reduce
+      batch count but the look may differ from the original.
+    linkText: 
+    url: 
+  - heading: Where should watch?
+    text: 'This sample has one HLOD. You should watch the HLOD component which located
+      in the root. You can see the HLOD component in there.HLOD nodes will bake when
+      you push  Generate button. '
+    linkText: 
+    url: 
+  - heading: More information
+    text: If you want to more information, please check this.
+    linkText: HowToUseHLOD
+    url: https://docs.google.com/document/d/18HgBIr8oJweKaXtsIHZlh0s5HuXvQVmVfVcMPHAYS1A/edit?usp=sharing
+  loadedLayout: 0
