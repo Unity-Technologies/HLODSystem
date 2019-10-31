@@ -1,0 +1,193 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Default Local Group
+  m_EditorClassIdentifier: 
+  m_GroupName: Default Local Group
+  m_Data:
+    m_SerializedData: []
+  m_GUID: 8cb52a1ab9dc9b04c92cc91e6d630d99
+  m_SerializeEntries:
+  - m_GUID: 04fa4995cb1cfcd4eb8dc1defa230c89
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/CliffEdge01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 05bd0d55a4d4bb348b78e309354f493e
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Medium/Models/VegetationMedium01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 0bbfe428d424d304b8e01a34fbfaa932
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/CliffEdge02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 0e7a0cbe96ebe3747a42d2e165016ddc
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/RockSwamp01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 14de1b0cd6881d94187e1deb3d02986a
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/Ridge02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 1bbc79192e08ae0459d75d02d1f45249
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Medium/Models/VegetationMedium03.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 1bef84e0c7710744fa629af598d7e511
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Misc/Models/FungusClump.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 212368ab19d8225429a208adc2442249
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/RockFloating04.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 21880eb3f26ed7f4ea0648ac43fd486a
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/RockLedge01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 2498c7bd50bb5824898f8d36624375f4
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Misc/Models/GroundCover01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 266f03476f36b2945b733736a459bf7a
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Small/Small/VegetationSmall01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 28deb9f2de69da84a8b4690810e91ebb
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/RockFloating02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 2be1311ba057652448cee2e5e7f1e84b
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/RockFloating01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 362e8229a15ec8740aca91e6ec290477
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/CliffBig03.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 444c567cdf5dbb548861108ecae53204
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/SmallRock03.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 48e9b3f8587ad7e46afa325dad953978
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge05_02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 4ad71d0c76d63374e9c5fef03ba3b118
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Small/Small/VegetationSmall01_02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 4c27bf02daa2a7248821d10516e3a864
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/CliffBig02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 4e6d935ac5b6b8c43a7c623bec3f9d0d
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Medium/Models/VegetationMedium05.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 50b92cf3f08f03745bbc74de550c2dc7
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge04.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 518ed587d1152cc45bd20aa8f7b3578e
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Medium/Models/VegetationMedium02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 528bcfb2338ecb2418b75a2b59da9848
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 6faa4076a385e5e42a2cabd7f38a7b56
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/RockChunk01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 716aa1302ba12d04289cac00ae054a73
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/SmallRock01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 79a4364fb85fe924a9ae2ad673bebdcf
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Misc/Models/GroundCover02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 7acb6b7ad4c81464185b5008078f2118
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/CliffEdge03.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 80322bf1c46281b42b1197ea37d48332
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge06.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 810a1b223d1ae12409785d307cb074cb
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/CliffEdge04.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 843d122e5e84aa84db8a1036fe1d3dd8
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/CliffBig01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 86873b3ddd4a1a548a9d25799c621b3d
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge07.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 8eaceb728e8170e4ea6bde32da984bc7
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge03_02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 963d66c7000d793448bc1424962886ab
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge03.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 9ad0ee2e631896b49a1c0a73b7d815b5
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Medium/Models/VegetationMedium04.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: 9d1ed9c23e004e84e8283be2bdba967f
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Small/Small/VegetationSmall02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: a4181c3067a7a5c448ec8fca35647597
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/RockLedge02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: c5712480ad7732348bdc1eedb4b0b25c
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/Ridge01.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: d64fd6a0931b7a34389216abb957525d
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge05.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: d6fbdfad7dffcb44182ff67dbe3bdbba
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Medium/Models/VegetationMedium04_02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: ee66908065bbfd749bae2cde22f0ad46
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/RockFloating03.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: f119fa83f1038ac4b833f21a41cae9d1
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: f19200800740c5549b0e845fc0a9bc4d
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Vegetation/Large/Models/VegetationLarge01_02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  - m_GUID: fef53f08537c45b45b13802e05610943
+    m_Address: Assets/3D Game Kit - Environment Pack/Environment/Rocks/Models/SmallRock02.fbx
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 3dcd85d22168b324ea5caf56816b1953, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 57d6cbaab18f6cb4a849da90cf0574a0, type: 2}
+    - {fileID: 11400000, guid: e2c25247f083ddf4aad57846a37fb0b9, type: 2}
