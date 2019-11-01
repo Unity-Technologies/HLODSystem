@@ -39,13 +39,16 @@ namespace Unity.HLODSystem.Streaming
             };
 
             public static string[] SupportTextureFormatStrings;
+            public static Dictionary<TextureFormat, int> SupportTextureFormatIndex;
 
             static Styles()
             {
                 SupportTextureFormatStrings = new string[SupportTextureFormats.Length];
+                SupportTextureFormatIndex = new Dictionary<TextureFormat, int>();
                 for (int i = 0; i < SupportTextureFormats.Length; ++i)
                 {
                     SupportTextureFormatStrings[i] = SupportTextureFormats[i].ToString();
+                    SupportTextureFormatIndex[SupportTextureFormats[i]] = i;
                 }
             }
         }
@@ -327,6 +330,7 @@ namespace Unity.HLODSystem.Streaming
 
             EditorGUILayout.EndHorizontal();
 
+            // It stores return value from foldout and uses it as a condition.
             if (showFormat = EditorGUILayout.Foldout(showFormat, "Compress Format"))
             {
                 EditorGUI.indentLevel += 1;
@@ -341,7 +345,9 @@ namespace Unity.HLODSystem.Streaming
         
         private static TextureFormat PopupFormat(string label, TextureFormat format)
         {
-            int selectIndex = Array.IndexOf(Styles.SupportTextureFormats, format);
+            int selectIndex = 0;
+            //no matter the format exists or not.
+            Styles.SupportTextureFormatIndex.TryGetValue(format, out selectIndex);
             selectIndex = EditorGUILayout.Popup(label, selectIndex, Styles.SupportTextureFormatStrings);
             if (selectIndex < 0)
                 selectIndex = 0;
