@@ -5,16 +5,16 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Simplifier
 {
-    class NotUseSimplifier : ISimplifier
+    class None : ISimplifier
     {
         [InitializeOnLoadMethod]
         static void RegisterType()
         {
             //This simplifier should be first always.
-            SimplifierTypes.RegisterType(typeof(NotUseSimplifier), -1);
+            SimplifierTypes.RegisterType(typeof(None), -1);
         }
 
-        public NotUseSimplifier(SerializableDynamicObject simplifierOptions)
+        public None(SerializableDynamicObject simplifierOptions)
         {
 
         }
