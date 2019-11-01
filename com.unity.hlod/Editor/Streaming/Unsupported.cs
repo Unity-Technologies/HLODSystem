@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
 {
-    class NotSupportStreaming : IStreamingBuilder
+    class Unsupported : IStreamingBuilder
     {
         static class Styles
         {
@@ -53,13 +53,13 @@ namespace Unity.HLODSystem.Streaming
         [InitializeOnLoadMethod]
         static void RegisterType()
         {
-            StreamingBuilderTypes.RegisterType(typeof(NotSupportStreaming), -1);
+            StreamingBuilderTypes.RegisterType(typeof(Unsupported), -1);
         }
 
         private IGeneratedResourceManager m_manager;
         private SerializableDynamicObject m_streamingOptions;
 
-        public NotSupportStreaming(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
+        public Unsupported(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
         {
             m_manager = manager;
             m_streamingOptions = streamingOptions;
