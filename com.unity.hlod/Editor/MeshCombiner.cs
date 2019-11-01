@@ -79,10 +79,27 @@ namespace Unity.HLODSystem
                     }
                 }
 
-                if ( normalCount > 0 )
+                if (normalCount > 0)
+                {
                     FillBuffer(ref normals, mesh.normals, remapper, Vector3.up);
-                if (tangentCount> 0 )
-                    FillBuffer(ref tangents, mesh.tangents, remapper, new Vector4(1,0,0,1));
+                    for (int ni = startIndex; ni < normals.Count; ++ni)
+                    {
+                        normals[ni] = infos[i].Transform.MultiplyVector(normals[ni]);
+                    }
+                }
+
+                if (tangentCount > 0)
+                {
+                    FillBuffer(ref tangents, mesh.tangents, remapper, new Vector4(1, 0, 0, 1));
+                    for (int ti = startIndex; ti < tangents.Count; ++ti)
+                    {
+                        Vector3 tanVec = new Vector3(tangents[ti].x, tangents[ti].y, tangents[ti].z);
+                        tanVec = infos[i].Transform.MultiplyVector(tanVec);
+                        Vector4 transTan = new Vector4(tanVec.x, tanVec.y, tanVec.z, tangents[ti].w);
+                        tangents[ti] = transTan;
+                    }
+                }
+
                 if ( UV1Count > 0 )
                     FillBuffer(ref uv1s, mesh.uv, remapper, Vector2.zero);
                 if ( UV2Count > 0 )
