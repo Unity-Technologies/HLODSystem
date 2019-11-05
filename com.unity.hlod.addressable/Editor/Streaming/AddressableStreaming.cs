@@ -205,7 +205,7 @@ namespace Unity.HLODSystem.Streaming
                     if (rootDatas[infos[i].ParentIndex].GetRootObject(infos[i].Name) != null)
                     {
                         string filename = $"{filenamePrefix}_group{infos[i].ParentIndex}.hlod";
-                        int lowId = addressableController.AddLowObject(filename + "." + infos[i].Name);
+                        int lowId = addressableController.AddLowObject(filename + "[" + infos[i].Name + "]");
                         hlodTreeNode.LowObjectIds.Add(lowId);    
                     }
 
