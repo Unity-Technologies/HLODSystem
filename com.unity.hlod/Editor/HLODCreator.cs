@@ -89,6 +89,10 @@ namespace Unity.HLODSystem
                     parentQueue.Enqueue(currentNodeIndex);
                     nameQueue.Enqueue(name + "_" + (i + 1));
                 }
+
+
+                if (info.WorkingObjects.Count == 0)
+                    continue;
                 
 
                 results.Add(info);
