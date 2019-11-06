@@ -142,6 +142,14 @@ namespace Unity.HLODSystem
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);
                 });
 
+                if (hlodTargets.Count == 0)
+                {
+                    EditorUtility.DisplayDialog("Empty HLOD sources.",
+                        "There are no objects to be included in the HLOD.",
+                        "Ok");
+                    yield break;
+                }
+                
 
                 using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.MinObjectSize))
                 {
