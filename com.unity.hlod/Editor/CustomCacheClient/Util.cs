@@ -142,6 +142,95 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             return true;
         }
 
+        private class StreamForMD5 : Stream
+        {
+            private byte[] m_addedBytes;
+            private Stream m_fileStream;
+            private long m_position;
+
+            public StreamForMD5(BuildTarget buildTarget, string projectName, string assetPath)
+            {
+                byte[] buildTargetBuffer = BitConverter.GetBytes((int) buildTarget);
+                byte[] projectNameBuffer = Encoding.ASCII.GetBytes(projectName);
+                m_fileStream = File.Open(assetPath, FileMode.Open, FileAccess.Read);
+
+                m_addedBytes = new byte[buildTargetBuffer.Length + projectNameBuffer.Length];
+                projectNameBuffer.CopyTo(m_addedBytes, 0);
+                buildTargetBuffer.CopyTo(m_addedBytes, projectNameBuffer.Length);
+
+                m_position = 0;
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                m_fileStream.Dispose();
+                base.Dispose(disposing);
+            }
+
+            public override void Flush()
+            {
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                if (m_position < m_fileStream.Length)
+                {
+                    m_fileStream.Seek(m_position, SeekOrigin.Begin);
+                    int readCount = m_fileStream.Read(buffer, offset, count);
+                    m_position += readCount;
+                    return readCount;
+                }
+                else
+                {
+                    long startPos = m_position - m_fileStream.Length;
+                    int readCount = count;
+                    if (m_addedBytes.Length < startPos + readCount)
+                    {
+                        readCount = (int) (m_addedBytes.Length - startPos);
+                    }
+
+                    if (readCount == 0)
+                        return 0;
+                    
+                    Array.Copy(m_addedBytes, startPos, buffer, offset, readCount );
+                    m_position += readCount;
+                    return readCount;
+                }
+            }
+
+            public override long Seek(long offset, SeekOrigin origin)
+            {
+                if (origin == SeekOrigin.Begin)
+                    m_position = offset;
+                else if (origin == SeekOrigin.Current)
+                    m_position += offset;
+                else if (origin == SeekOrigin.End)
+                    m_position = Length + offset;
+
+                return m_position;
+            }
+
+            public override void SetLength(long value)
+            {
+                throw new IOException("SetLength is not supported in this stream.");
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                throw new IOException("Write is not supported in this stream.");
+            }
+
+            public override bool CanRead => true;
+            public override bool CanSeek => true;
+            public override bool CanWrite => false;
+            public override long Length => m_fileStream.Length + m_addedBytes.Length;
+            public override long Position
+            {
+                get { return m_position;}
+                set { m_position = value; }
+            }
+        }
+
         /// <summary>
         /// Get Hash of the given Asset File based on the Build Target
         /// </summary>
@@ -153,21 +242,14 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             if (!File.Exists(assetPath))
                 return null;
 
+
             using (var md5 = MD5.Create())
+            using (var stream = new StreamForMD5(buildTarget, GetProjectRootFolderName(), assetPath))
             {
-                byte[] buildTargetBuffer = BitConverter.GetBytes((int) buildTarget);
-                byte[] fileBinary = File.ReadAllBytes(assetPath);
-                byte[] projectName = Encoding.ASCII.GetBytes(GetProjectRootFolderName());
-                byte[] res = new byte[fileBinary.Length + projectName.Length + buildTargetBuffer.Length];
-
-                fileBinary.CopyTo(res, 0);
-                projectName.CopyTo(res, fileBinary.Length);
-                buildTargetBuffer.CopyTo(res, fileBinary.Length + projectName.Length);
-
-                var hash = md5.ComputeHash(res);
-                
+                var hash = md5.ComputeHash(stream);
                 return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }
+            
         }
 
         /// <summary>
