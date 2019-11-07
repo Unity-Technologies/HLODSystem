@@ -63,8 +63,12 @@ namespace Unity.HLODSystem.Utils
         }
         public  WorkingMaterial(Allocator allocator, int materialId, bool copy) : this(allocator)
         {
+            Material mat = EditorUtility.InstanceIDToObject(materialId) as Material;
+
+            Name = mat.name;
             m_instanceID = materialId;
             m_copy = copy;
+            m_guid = System.Guid.NewGuid().ToString("N");
         }
 
         public bool NeedWrite()
