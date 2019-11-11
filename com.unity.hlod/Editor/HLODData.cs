@@ -244,6 +244,18 @@ namespace Unity.HLODSystem
                 else
                 {
                     string path = AssetDatabase.GUIDToAssetPath(m_assetGuid);
+                    var objects = AssetDatabase.LoadAllAssetsAtPath(path);
+                    for (int i = 0; i < objects.Length; ++i)
+                    {
+                        Material mat = objects[i] as Material;
+                        
+                        if (mat == null)
+                            continue;
+
+                        if (mat.name == m_name)
+                            return mat;
+                    }
+                    
                     return AssetDatabase.LoadAssetAtPath<Material>(path);
                 }
             }
