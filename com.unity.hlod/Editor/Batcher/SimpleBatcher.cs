@@ -156,7 +156,7 @@ namespace Unity.HLODSystem
                 Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
                 if (mat != null)
                 {
-                    material = new WorkingMaterial(Allocator.Invalid, mat.GetInstanceID(), true);
+                    material = new WorkingMaterial(Allocator.Invalid, mat.GetInstanceID(), mat.name, true);
                 }
             }
 
