@@ -161,6 +161,7 @@ namespace Unity.HLODSystem.Streaming
                 }
 
 
+                if ( infos[ii].WorkingObjects.Count > 0 )
                 {
                     GameObject prefab = rootData.GetRootObject(infos[ii].Name);
                     if (prefab == null)
