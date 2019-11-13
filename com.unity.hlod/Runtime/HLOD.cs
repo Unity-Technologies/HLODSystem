@@ -20,7 +20,7 @@ namespace Unity.HLODSystem
         [SerializeField]
         private float m_CullDistance = 0.01f;
         [SerializeField]
-        private float m_MinObjectSize = 5.0f;
+        private float m_MinObjectSize = 0.0f;
 
         private Type m_BatcherType;
         
