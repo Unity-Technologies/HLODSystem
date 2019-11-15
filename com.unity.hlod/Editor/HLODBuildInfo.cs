@@ -28,7 +28,7 @@ namespace Unity.HLODSystem
 
             public float this[int z, int x]
             {
-                get { return m_heights[z, x]; }
+                get { return m_heights[z + 1, x + 1]; }
             }
 
             private Heightmap()
@@ -39,7 +39,31 @@ namespace Unity.HLODSystem
             {
                 m_width = width;
                 m_height = height;
-                m_heights = heights;
+                m_heights = new float[height + 2, width + 2];
+
+                for (int x = 0; x < width; ++x)
+                {
+                    for (int z = 0; z < height; ++z)
+                    {
+                        m_heights[z+1, x+1] = heights[z, x];
+                    }
+                }
+
+                for (int x = 1; x < width + 2; ++x)
+                {
+                    m_heights[0, x] = m_heights[1, x];
+                    m_heights[height + 1, x] = m_heights[height, x];
+                }
+                for (int z = 1; z < height + 2; ++z)
+                {
+                    m_heights[z, 0] = m_heights[z, 1];
+                    m_heights[z, width + 1] = m_heights[z, width];
+                }
+
+                m_heights[0, 0] = (m_heights[1, 0] + m_heights[0, 1]) * 0.5f;
+                m_heights[0, width+1] = (m_heights[1, width+1] + m_heights[0, width]) * 0.5f;
+                m_heights[height+1, 0] = (m_heights[height, 0] + m_heights[height+1, 1]) * 0.5f;
+                m_heights[height+1, width+1] = (m_heights[height, width+1] + m_heights[height+1, width]) * 0.5f;
 
                 m_size = size;
                 m_scale = new Vector3(size.x / (width - 1), size.y, size.z / (height - 1));
@@ -55,11 +79,11 @@ namespace Unity.HLODSystem
                 heightmap.m_size = new Vector3(m_scale.x * (width-1), m_size.y, m_scale.z * (height-1));
                 heightmap.m_scale = m_scale;
 
-                heightmap.m_heights = new float[height, width];
+                heightmap.m_heights = new float[height+2, width+2];
 
-                for (int x = 0; x < width; ++x)
+                for (int x = 0; x < width+2; ++x)
                 {
-                    for (int z = 0; z < height; ++z)
+                    for (int z = 0; z < height+2; ++z)
                     {
                         heightmap.m_heights[z, x] = m_heights[z + beginZ, x + beginX];
                     }
@@ -70,8 +94,8 @@ namespace Unity.HLODSystem
 
             public Vector3 GetInterpolatedNormal(float x, float y)
             {
-                float fx = x * (m_width - 1);
-                float fy = y * (m_height - 1);
+                float fx = x * (m_width - 1) + 1;
+                float fy = y * (m_height - 1) + 1;
                 int lx = (int) fx;
                 int ly = (int) fy;
 
@@ -83,9 +107,9 @@ namespace Unity.HLODSystem
                 float u = fx - lx;
                 float v = fy - ly;
 
-                Vector3 s = Vector3.Lerp(n00, n10, u);
-                Vector3 t = Vector3.Lerp(n01, n11, u);
-                Vector3 value = Vector3.Lerp(s, t, v);
+                Vector3 s = Vector3.Slerp(n00, n10, u);
+                Vector3 t = Vector3.Slerp(n01, n11, u);
+                Vector3 value = Vector3.Slerp(s, t, v);
 
                 value = Vector3.Normalize(value);
                 return value;
@@ -99,8 +123,8 @@ namespace Unity.HLODSystem
 
             float CalculateHeight(int x, int y, float scale)
             {
-                x = Mathf.Clamp(x, 0, m_width - 1);
-                y = Mathf.Clamp(y, 0, m_height - 1);
+                x = Mathf.Clamp(x, 0, m_width + 1);
+                y = Mathf.Clamp(y, 0, m_height + 1);
                 return m_heights[y, x] * scale;
             }
 
