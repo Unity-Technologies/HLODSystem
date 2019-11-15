@@ -23,6 +23,11 @@
       "displayName": "Combine material",
       "description": "A sample showing how to combine materials of mesh.",
       "path": "Samples~/Assets/CombineMaterial"
+    },
+	{
+      "displayName": "Terrain HLOD",
+      "description": "Simple sample setting up TerrainHLOD.",
+      "path": "Samples~/Assets/TerrainHLOD"
     }
   ]
 }
