@@ -89,7 +89,7 @@ namespace Unity.HLODSystem
                     parentQueue.Enqueue(currentNodeIndex);
                     nameQueue.Enqueue(name + "_" + (i + 1));
                 }
-                
+
 
                 results.Add(info);
 
@@ -142,21 +142,25 @@ namespace Unity.HLODSystem
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);
                 });
 
+                if (hlodTargets.Count == 0)
+                {
+                    EditorUtility.DisplayDialog("Empty HLOD sources.",
+                        "There are no objects to be included in the HLOD.",
+                        "Ok");
+                    yield break;
+                }
+                
 
                 using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.MinObjectSize))
                 {
-                    if (buildInfos.Count == 0)
-                        yield break;
-
-                    if (buildInfos[0].WorkingObjects.Count == 0)
+                    if (buildInfos.Count == 0 | buildInfos[0].WorkingObjects.Count == 0)
                     {
-                        if (EditorUtility.DisplayDialog("Empty HLOD sources.",
-                                "There are no objects to be included in the HLOD.\nDo you want to continue anyway?",
-                                "Continue", "Cancel") == false)
-                        {
-                            yield break;
-                        }
+                        EditorUtility.DisplayDialog("Empty HLOD sources.",
+                            "There are no objects to be included in the HLOD.",
+                            "Ok");
+                        yield break;
                     }
+                  
                     
                     Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
                     sw.Reset();
