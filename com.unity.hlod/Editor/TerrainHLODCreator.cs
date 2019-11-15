@@ -173,6 +173,7 @@ namespace Unity.HLODSystem
 
         private Material m_terrainMaterial;
         private int m_terrainMaterialInstanceId;
+        private string m_terrainMaterialName;
 
         
         private TerrainHLODCreator(TerrainHLOD hlod)
@@ -290,7 +291,7 @@ namespace Unity.HLODSystem
 
         private WorkingMaterial CreateBakedMaterial(string name, Bounds bounds)
         {
-            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, m_terrainMaterialInstanceId, true);
+            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, m_terrainMaterialInstanceId, m_terrainMaterialName, true);
             material.Name = name + "_Material";
 
             m_queue.EnqueueJob(() =>
@@ -856,6 +857,7 @@ namespace Unity.HLODSystem
                     m_terrainMaterial = new Material(Shader.Find("Standard"));
 
                 m_terrainMaterialInstanceId = m_terrainMaterial.GetInstanceID();
+                m_terrainMaterialName = m_terrainMaterial.name;
 
                 using (m_alphamaps = new DisposableList<WorkingTexture>()) 
                 using ( m_layers = new DisposableList<Layer>())

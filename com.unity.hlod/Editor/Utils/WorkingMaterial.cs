@@ -61,11 +61,9 @@ namespace Unity.HLODSystem.Utils
                 m_textures.Add(names[i], texture.ToWorkingTexture(m_allocator));
             }
         }
-        public  WorkingMaterial(Allocator allocator, int materialId, bool copy) : this(allocator)
+        public  WorkingMaterial(Allocator allocator, int materialId, string name,  bool copy) : this(allocator)
         {
-            Material mat = EditorUtility.InstanceIDToObject(materialId) as Material;
-
-            Name = mat.name;
+            Name = name;
             m_instanceID = materialId;
             m_copy = copy;
             m_guid = System.Guid.NewGuid().ToString("N");
