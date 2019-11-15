@@ -399,7 +399,7 @@ namespace Unity.HLODSystem.Streaming
                     Object prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
                     if (AssetDatabase.IsMainAsset(prefab) == false)
                     {
-                        address = address + "." + prefab.name;
+                        address = address + "[" + prefab.name + "]";
                     }
                 }
 
