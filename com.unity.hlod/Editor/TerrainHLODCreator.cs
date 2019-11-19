@@ -82,14 +82,20 @@ namespace Unity.HLODSystem
                 m_diffuseTexstures = new DisposableList<WorkingTexture>();
                 m_diffuseTexstures.Add(texture);
 
+                m_offset = layer.tileOffset;
+                m_size = layer.tileSize;
+                var diffuseRemapMin = layer.diffuseRemapMin;
+                var diffuseRemapMax = layer.diffuseRemapMax;
+
+                RemapTexture(texture, diffuseRemapMin, diffuseRemapMax);
+                
                 while (texture.Width > 2 || texture.Height > 2)
                 {
                     texture = GenerateMipmap(texture);
                     m_diffuseTexstures.Add(texture);
                 }
                 
-                m_offset = layer.tileOffset;
-                m_size = layer.tileSize;
+                
             }
             
             public void Dispose()
@@ -153,11 +159,22 @@ namespace Unity.HLODSystem
                 return mipmap;
             }
 
+            private void RemapTexture(WorkingTexture source, Color min, Color max)
+            {
+                for (int y = 0; y < source.Height; ++y)
+                {
+                    for (int x = 0; x < source.Width; ++x)
+                    {
+                        var color = source.GetPixel(x, y);
+                        color = color * max + min;
+                        source.SetPixel(x, y, color);
+                    }
+                }
+            }
+
             private DisposableList<WorkingTexture> m_diffuseTexstures;
             private Vector2 m_offset;
             private Vector2 m_size;
-
-
         }
 
       
