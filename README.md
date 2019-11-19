@@ -48,25 +48,8 @@ $ git submodule update --init --recursive
 ```
 
 ## How to use
-You can see this in the [Sample branch][sampleBranch].
-1. Batch objects
-	- I batched objects by 3 categories.
-	 1. BigObjects
-		 -  It must show from a far distance.
-	 2. Objects
-		 - It must cull when moving away from the camera.
-	 3. Rocks
-		 - It is kind of the BigObjects. But has different materials. 
-	- ![](Documentation~/Images/hlod_batch.jpg)
-2. Make a prefab
-3. Enter prefab mode
-3. Edit HLOD Settings
-	- First, you should add HLOD component in the root. And edit it.
-	- ![](Documentation~/Images/hlod_addcomponent.jpg)
-4. Generating
-	- push the generate button.
-	- After then, you can see the separated object between High and Low.
-	- ![](Documentation~/Images/hlod_afterbake.jpg)
+Please refer to this document:
+https://docs.google.com/document/d/18HgBIr8oJweKaXtsIHZlh0s5HuXvQVmVfVcMPHAYS1A/edit#
 
 ### License
 Copyright (c) 2019 Unity Technologies ApS
