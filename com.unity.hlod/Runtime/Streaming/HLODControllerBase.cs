@@ -70,6 +70,11 @@ namespace Unity.HLODSystem.Streaming
             
          
         }
+
+        public bool IsLoadDone()
+        {
+            return Root.IsLoadDone();
+        }
         #endregion
  
         #region variables
