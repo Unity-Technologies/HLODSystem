@@ -2,7 +2,9 @@
     "name": "com.unity.hlod.EditorTests",
     "references": [
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "HLOD",
+        "HLODEditor"
     ],
     "includePlatforms": [
         "Editor"

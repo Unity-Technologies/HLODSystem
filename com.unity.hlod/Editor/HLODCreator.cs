@@ -16,7 +16,7 @@ using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
-    static class HLODCreator
+    public static class HLODCreator
     {
         private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects, float minObjectSize)
         {

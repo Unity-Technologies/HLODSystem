@@ -1,6 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using NUnit.Framework;
+using Unity.HLODSystem.Streaming;
+using Unity.HLODSystem.Utils;
 using UnityEngine;
 using UnityEngine.TestTools;
 
@@ -8,29 +11,66 @@ namespace Unity.HLODSystem.EditorTests
 {
     public class EditorTests
     {
-        // A Test behaves as an ordinary method
-        [Test]
-        public void Test_01SimplePasses()
+        private string mHlodArtifactName = "Assets/TestRunner/HLOD.hlod";
+        private HLOD hlod;
+        private GameObject hlodGameObject;
+        private int childrenCount;
+        
+        [SetUp]
+        public void Setup()
         {
-            // Use the Assert class to test conditions
-        }
-
-        // A UnityTest behaves like a coroutine in Play Mode. In Edit Mode you can use
-        // `yield return null;` to skip a frame.
-        [UnityTest]
-        public IEnumerator CreatedHlodInstance()
-        {
-            // Use the Assert class to test conditions.
-            // Use yield to skip a frame.
-            yield return null;
+            hlodGameObject = GameObject.Find("HLOD");
+            hlod = hlodGameObject.GetComponent<HLOD>() as HLOD;
         }
         
-        [UnityTest]
-        public IEnumerator DestroysHlodInstabce()
+        [Test, Order(1)]
+        public void HlodGameObjectIsNotNull()
         {
-            // Use the Assert class to test conditions.
-            // Use yield to skip a frame.
-            yield return null;
+            Assert.NotNull(hlodGameObject);
+        }
+        
+        [Test, Order(2)]
+        public void HlodIsNotNull()
+        {
+            Assert.NotNull(hlod);
+        }
+
+        [UnityTest, Order(3)]
+        public IEnumerator CreateHlodComponent()
+        {
+            childrenCount = hlodGameObject.transform.childCount;
+            yield return CoroutineRunner.RunCoroutine(HLODCreator.Create(hlod));
+        }
+        
+        [Test, Order(4)]
+        public void HlodRootIsAddedToHlodGroup()
+        {
+            Assert.True(hlodGameObject.transform.childCount == childrenCount + 1);
+        }
+        
+        [Test, Order(5)]
+        public void HlodControllerIsNotNull()
+        {
+            Assert.NotNull(hlod.GetComponent<HLODControllerBase>());
+        }
+        
+        [Test, Order(6)]
+        public void ArtifactIsCreated()
+        {
+            Assert.IsTrue(File.Exists(mHlodArtifactName));
+        }
+        
+        [UnityTest, Order(7)]
+        public IEnumerator DestroyHlodComponent()
+        {
+            yield return CoroutineRunner.RunCoroutine(HLODCreator.Destroy(hlod));
+        }
+        
+        [Test, Order(8)]
+        public void DeleteArtifacts()
+        {
+            File.Delete(mHlodArtifactName);
+            Assert.False(File.Exists(mHlodArtifactName));
         }
     }
 }
