@@ -60,6 +60,9 @@ namespace Unity.HLODSystem
         public void ChangeState(T state)
         {
             m_lastState = state;
+            if (Compare(m_currentState, m_lastState))
+                return;
+            
             //it means, completed the last transaction. we should do it immediately. 
             if (Compare(m_currentState, m_transactionTargetState))
             {

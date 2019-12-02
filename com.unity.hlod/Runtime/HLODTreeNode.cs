@@ -111,6 +111,32 @@ namespace Unity.HLODSystem
             m_boundsLength = m_bounds.extents.x * m_bounds.extents.x + m_bounds.extents.z * m_bounds.extents.z;
         }
 
+        public bool IsLoadDone()
+        {
+            if (m_parent == null && m_fsm.CurrentState == State.Release)
+                return false;
+            
+            if (m_fsm.LastState != m_fsm.CurrentState)
+                return false;
+
+            if (m_fsm.CurrentState == State.High)
+            {
+                for (int i = 0; i < m_childTreeNodes.Count; ++i)
+                {
+                    if (m_childTreeNodes[i].IsLoadDone() == false)
+                        return false;
+                }
+
+                return m_highObjectIds.Count == m_highObjects.Count;
+            }
+            else if ( m_fsm.CurrentState == State.Low)
+            {
+                return m_lowObjectIds.Count == m_lowObjects.Count;
+            }
+
+            return true;
+        }
+
         public void Cull(bool isCull)
         {
             if (isCull)
@@ -270,29 +296,36 @@ namespace Unity.HLODSystem
 
         public void Update(float lodDistance)
         {
-            if (m_fsm.LastState!= State.Release)
-            {
-                if (m_spaceManager.IsHigh(lodDistance, m_bounds))
-                {
-                    //if isVisible is false, it loaded from parent but not showing. 
-                    //We have to wait for showing after then, change state to high.
-                    if (m_fsm.CurrentState == State.Low &&
-                        m_isVisible == true)
-                    {
-                        m_fsm.ChangeState(State.High);
-                    }
-                }
-                else
-                {
-                    m_fsm.ChangeState(State.Low);
-                }
-            }
-
             m_distance = m_spaceManager.GetDistanceSqure(m_bounds) - m_boundsLength;
 
-            m_fsm.Update();
+            //Change state if a change to another state is needed immediately after changing the state.
+            var beforeState = m_fsm.CurrentState;
+            do
+            {
+                beforeState = m_fsm.CurrentState;
+                if (m_fsm.LastState != State.Release)
+                {
+                    if (m_spaceManager.IsHigh(lodDistance, m_bounds))
+                    {
+                        //if isVisible is false, it loaded from parent but not showing. 
+                        //We have to wait for showing after then, change state to high.
+                        if (m_fsm.CurrentState == State.Low &&
+                            m_isVisible == true)
+                        {
+                            m_fsm.ChangeState(State.High);
+                        }
+                    }
+                    else
+                    {
+                        m_fsm.ChangeState(State.Low);
+                    }
+                }
+
+                m_fsm.Update();
+            } while (beforeState != m_fsm.CurrentState);
+
             UpdateVisible();
-            
+
             for (int i = 0; i < m_childTreeNodes.Count; ++i)
             {
                 m_childTreeNodes[i].Update(lodDistance);
