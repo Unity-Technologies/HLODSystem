@@ -13,10 +13,10 @@ namespace Unity.HLODSystem
     {
         public static class Styles
         {
-            public static GUIContent GenerateButtonEnable = new GUIContent("Generate", "Generate a HLOD mesh.");
+            public static GUIContent GenerateButtonEnable = new GUIContent("Generate", "Generate HLOD mesh.");
             public static GUIContent GenerateButtonExists = new GUIContent("Generate", "HLOD already generated.");
-            public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destory a HLOD mesh.");
-            public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "You need to generate HLOD before the destroy.");
+            public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destroy HLOD mesh.");
+            public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "HLOD must be created before the destroying.");
         }        
         private SerializedProperty m_ChunkSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
@@ -114,7 +114,7 @@ namespace Unity.HLODSystem
                 }
                 else
                 {
-                    EditorGUILayout.LabelField("Can not find Simplifiers.");
+                    EditorGUILayout.LabelField("Cannot find Simplifiers.");
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
@@ -139,7 +139,7 @@ namespace Unity.HLODSystem
                 }
                 else
                 {
-                    EditorGUILayout.LabelField("Can not find Batchers.");
+                    EditorGUILayout.LabelField("Cannot find Batchers.");
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
@@ -166,7 +166,7 @@ namespace Unity.HLODSystem
                 }
                 else
                 {
-                    EditorGUILayout.LabelField("Can not find StreamingSetters.");
+                    EditorGUILayout.LabelField("Cannot find StreamingSetters.");
                 }
             }
             EditorGUILayout.EndFoldoutHeaderGroup();

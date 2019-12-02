@@ -18,7 +18,7 @@ namespace Unity.HLODSystem
             public static GUIContent SourceText = new GUIContent("Source");
             public static GUIContent GenerateButtonEnable = new GUIContent("Generate", "Generate a HLOD mesh.");
             public static GUIContent GenerateButtonExists = new GUIContent("Generate", "HLOD already generated.");
-            public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destory a HLOD mesh.");
+            public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destroy a HLOD mesh.");
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "You need to generate HLOD before the destroy.");
             
             public static int[] TextureSizes = new int[]
