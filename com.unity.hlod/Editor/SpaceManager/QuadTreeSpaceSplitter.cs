@@ -19,16 +19,26 @@ namespace Unity.HLODSystem.SpaceManager
     public class QuadTreeSpaceSplitter : ISpaceSplitter
     {
         private float m_looseSize;
-        private float m_chunkSize;
-        private Vector3 m_rootPosition;
 
-        public QuadTreeSpaceSplitter(Vector3 rootPosition, float looseSize, float chunkSize)
+        public QuadTreeSpaceSplitter(float looseSize)
         {
-            m_rootPosition = rootPosition;
             m_looseSize = looseSize;
-            m_chunkSize = chunkSize;
         }
-        public SpaceNode CreateSpaceTree(Bounds initBounds, List<GameObject> targetObjects, Action<float> onProgress)
+
+        public int CalculateTreeDepth(Bounds bounds, float chunkSize)
+        {
+            float maxLength = Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z);
+            int depth = 1;
+
+            while (maxLength > chunkSize)
+            {
+                depth += 1;
+                maxLength *= 0.5f;
+            }
+
+            return depth;
+        }
+        public SpaceNode CreateSpaceTree(Bounds initBounds, float chunkSize, Vector3 rootPosition, List<GameObject> targetObjects, Action<float> onProgress)
         {
             SpaceNode rootNode = new SpaceNode();
             rootNode.Bounds = initBounds;
@@ -43,7 +53,7 @@ namespace Unity.HLODSystem.SpaceManager
 			while(nodeStack.Count > 0 )
 			{
 				SpaceNode node = nodeStack.Pop();
-				if ( node.Bounds.size.x > m_chunkSize )
+				if ( node.Bounds.size.x > chunkSize )
 				{
                     List<SpaceNode> childNodes = CreateChildSpaceNodes(node);
 					
@@ -61,7 +71,7 @@ namespace Unity.HLODSystem.SpaceManager
 
             for (int oi = 0; oi < targetObjects.Count; ++oi)
             {
-                Bounds? objectBounds = CalculateBounds(targetObjects[oi]);
+                Bounds? objectBounds = CalculateBounds(targetObjects[oi], rootPosition);
                 if (objectBounds == null)
                     continue;
 
@@ -111,23 +121,23 @@ namespace Unity.HLODSystem.SpaceManager
         }
 
 
-        private Bounds CalcBounds(Renderer renderer)
+        private Bounds CalcBounds(Renderer renderer, Vector3 rootPosition)
         {
             Bounds bounds = renderer.bounds;
-            bounds.center -= m_rootPosition;
+            bounds.center -= rootPosition;
 
             return bounds;
         }
-        private Bounds? CalculateBounds(GameObject obj)
+        private Bounds? CalculateBounds(GameObject obj, Vector3 rootPosition)
         {
             MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer>();
             if (renderers.Length == 0)
                 return null;
 
-            Bounds result = CalcBounds(renderers[0]);
+            Bounds result = CalcBounds(renderers[0], rootPosition);
             for (int i = 1; i < renderers.Length; ++i)
             {
-                result.Encapsulate(CalcBounds(renderers[i]));
+                result.Encapsulate(CalcBounds(renderers[i], rootPosition));
             }
 
             return result;

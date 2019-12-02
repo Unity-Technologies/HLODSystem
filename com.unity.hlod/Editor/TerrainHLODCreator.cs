@@ -197,10 +197,6 @@ namespace Unity.HLODSystem
         {
             m_hlod = hlod;
         }
-        private static Bounds GetBounds(TerrainData data)
-        {
-            return new Bounds(data.size * 0.5f, data.size);
-        }
 
         private WorkingObject CreateBakedTerrain(string name, Bounds bounds, out Heightmap heightmap)
         {
@@ -890,10 +886,10 @@ namespace Unity.HLODSystem
                     }
 
 
-                    QuadTreeSpaceSplitter splitter =
-                        new QuadTreeSpaceSplitter(m_hlod.transform.position, 0.0f, m_hlod.ChunkSize * 2.0f);
+                    QuadTreeSpaceSplitter splitter = new QuadTreeSpaceSplitter(0.0f);
 
-                    SpaceNode rootNode = splitter.CreateSpaceTree(GetBounds(data), null, progress => { });
+                    SpaceNode rootNode = splitter.CreateSpaceTree(m_hlod.GetBounds(), m_hlod.ChunkSize * 2.0f,
+                        m_hlod.transform.position, null, progress => { });
 
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Create mesh", 0.0f);
                     

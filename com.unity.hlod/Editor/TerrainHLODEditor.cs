@@ -4,6 +4,7 @@ using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.HLODSystem.SpaceManager;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -34,6 +35,8 @@ namespace Unity.HLODSystem
                 {
                     TextureSizeStrings[i] = TextureSizes[i].ToString();
                 }
+                
+                RedTextColor.normal.textColor = Color.red;
             }
         }        
         
@@ -57,7 +60,11 @@ namespace Unity.HLODSystem
         private bool isShowStreaming = true;
 
         private bool isShowTexturePropertices = true;
-
+        
+        private ISpaceSplitter m_spliter = new QuadTreeSpaceSplitter(0.0f);
+        
+        
+        
         void OnEnable()
         {
             m_TerrainDataProperty = serializedObject.FindProperty("m_TerrainData");
@@ -94,6 +101,11 @@ namespace Unity.HLODSystem
             {
                 EditorGUILayout.PropertyField(m_TerrainDataProperty, Styles.SourceText);
                 EditorGUILayout.PropertyField(m_ChunkSizeProperty);
+                if (m_ChunkSizeProperty.floatValue < 0.05f)
+                    m_ChunkSizeProperty.floatValue = 0.05f;
+                var bounds = hlod.GetBounds();
+                int depth = m_spliter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
+                EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
                 EditorGUILayout.PropertyField(m_BorderVertexCountProperty);
                 m_LODSlider.Draw();
                 

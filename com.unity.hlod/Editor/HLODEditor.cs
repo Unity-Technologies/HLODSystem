@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
@@ -38,6 +39,8 @@ namespace Unity.HLODSystem
         private bool isShowBatcher = true;
         private bool isShowSimplifier = true;
         private bool isShowStreaming = true;
+        
+        private ISpaceSplitter m_spliter = new QuadTreeSpaceSplitter(5.0f);
 
         [InitializeOnLoadMethod]
         static void InitTagTagUtils()
@@ -85,8 +88,16 @@ namespace Unity.HLODSystem
             isShowCommon = EditorGUILayout.BeginFoldoutHeaderGroup(isShowCommon, "Common");
             if (isShowCommon == true)
             {
-
                 EditorGUILayout.PropertyField(m_ChunkSizeProperty);
+                if (m_ChunkSizeProperty.floatValue < 0.05f)
+                {
+                    m_ChunkSizeProperty.floatValue = 0.05f;
+                }
+
+                var bounds = hlod.GetBounds();
+                int depth = m_spliter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
+                
+                EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
 
                 m_LODSlider.Draw();
                 EditorGUILayout.PropertyField(m_MinObjectSizeProperty);
