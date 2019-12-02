@@ -27,6 +27,8 @@ namespace Unity.HLODSystem
                 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096
             };
             public static string[] TextureSizeStrings;
+            
+            public static GUIStyle RedTextColor = new GUIStyle();
 
             static Styles()
             {
@@ -106,6 +108,14 @@ namespace Unity.HLODSystem
                 var bounds = hlod.GetBounds();
                 int depth = m_spliter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
                 EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
+                if (depth > 5)
+                {
+                    EditorGUILayout.LabelField($"Too many node levels can be appeared to be hanging.", Styles.RedTextColor);
+                    EditorGUILayout.LabelField($"I recommend keeping the level under 5.", Styles.RedTextColor);
+                    
+                }
+
+                
                 EditorGUILayout.PropertyField(m_BorderVertexCountProperty);
                 m_LODSlider.Draw();
                 

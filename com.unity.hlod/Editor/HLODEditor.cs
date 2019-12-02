@@ -18,6 +18,13 @@ namespace Unity.HLODSystem
             public static GUIContent GenerateButtonExists = new GUIContent("Generate", "HLOD already generated.");
             public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destory a HLOD mesh.");
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "You need to generate HLOD before the destroy.");
+            
+            public static GUIStyle RedTextColor = new GUIStyle();
+
+            static Styles()
+            {
+                RedTextColor.normal.textColor = Color.red;
+            }
         }        
         private SerializedProperty m_ChunkSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
@@ -98,6 +105,13 @@ namespace Unity.HLODSystem
                 int depth = m_spliter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
                 
                 EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
+                if (depth > 5)
+                {
+                    EditorGUILayout.LabelField($"Too many node levels can be appeared to be hanging.", Styles.RedTextColor);
+                    EditorGUILayout.LabelField($"I recommend keeping the level under 5.", Styles.RedTextColor);
+                    
+                }
+
 
                 m_LODSlider.Draw();
                 EditorGUILayout.PropertyField(m_MinObjectSizeProperty);
