@@ -108,7 +108,6 @@ namespace Unity.HLODSystem
 
 
         private bool m_isLoading = false;
-        private Handle m_currentHandle = null;
         private LinkedList<Handle> m_loadQueue = new LinkedList<Handle>();
 
         private void OnDestroy()
@@ -150,10 +149,7 @@ namespace Unity.HLODSystem
         {
             m_loadQueue.Remove(handle);
             handle.Stop();
-            if (m_currentHandle == handle)
-                m_currentHandle = null;
         }
-
 
         private void InsertHandle(Handle handle)
         {
