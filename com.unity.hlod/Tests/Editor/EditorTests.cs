@@ -11,7 +11,7 @@ namespace Unity.HLODSystem.EditorTests
 {
     public class EditorTests
     {
-        private string mHlodArtifactName = "Assets/TestAssets/HLOD.hlod";
+        private string mHlodArtifactName = "Assets/TestAssets/Artifacts/HLOD.hlod";
         private HLOD hlod;
         private GameObject hlodGameObject;
         private int childrenCount;
