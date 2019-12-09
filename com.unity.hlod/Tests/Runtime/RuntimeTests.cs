@@ -1,11 +1,14 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using NUnit.Framework;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.VersionControl;
 using UnityEngine;
 using UnityEngine.TestTools;
+using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.RuntimeTests
 {
@@ -20,7 +23,10 @@ namespace Unity.HLODSystem.RuntimeTests
         {
             mGameObject =
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/HLODTestPrefabBaked.prefab");
-            mGameObject = GameObject.Instantiate(mGameObject, new Vector3(0, 0, 10), new Quaternion(0, 180, 0, 0));
+            mGameObject = GameObject.Instantiate(mGameObject, Vector3.zero, Quaternion.identity);
+
+            //mGameObject = MonoBehaviour.Instantiate(Resources.Load<GameObject>("HLODTestPrefabBaked"));
+
             new WaitForSeconds(0.1f);
 
             Assert.NotNull(mGameObject);
@@ -31,7 +37,7 @@ namespace Unity.HLODSystem.RuntimeTests
             mHlodCameraObject = mGameObject.transform.Find("HLOD Camera").gameObject;
             Assert.NotNull(mHlodCameraObject);
         }
-        
+
         [TearDown]
         public void Teardown()
         {
@@ -54,45 +60,77 @@ namespace Unity.HLODSystem.RuntimeTests
             Assert.NotNull(hlodCameraRecognizer);
         }
 
-        [Test]
-        public void MainCameraDoesNotSeeAnyHlodObjects()
+        [UnityTest]
+        public IEnumerator Test_1()
         {
-            Camera mainCamera = mGameObject.transform.Find("Main Camera").gameObject.GetComponent<Camera>();
-            Assert.NotNull(mainCamera);
+            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_1.json");
 
-            foreach (Transform child in mHlodGameObject.transform)
-            {
-                Debug.Log(child.name + ": " + IsTargetVisible(mainCamera, child.gameObject));
-                //Assert.False(IsTargetVisible(mainCamera, child.gameObject));
-            }
-        }
-
-        [Test]
-        public void HlodCameraSeesHlodObjects()
-        {
             Camera hlodCamera = mHlodCameraObject.GetComponent<Camera>();
 
-            foreach (Transform child in mHlodGameObject.transform)
+            hlodCamera.transform.position = new Vector3(-2.5f, 30, -70);
+            hlodCamera.transform.rotation = Quaternion.Euler(35, 0, 0);
+            /*hlodCamera.transform.position = new Vector3(
+                testData.cameraSettings.location.x,
+                testData.cameraSettings.location.y,
+                testData.cameraSettings.location.z);
+
+            hlodCamera.transform.eulerAngles = new Vector3(
+                testData.cameraSettings.rotation.x,
+                testData.cameraSettings.rotation.y + 180,
+                testData.cameraSettings.rotation.z);*/
+            
+            HLODManager.Instance.OnPreCull(hlodCamera);
+
+            yield return new WaitForSeconds(0.1f);
+
+            foreach (TestGameObject testGameObject in testData.listOfGameObjects)
             {
-                Debug.Log(child.name + ": " + IsTargetVisible(hlodCamera, child.gameObject));
-                Assert.True(IsTargetVisible(hlodCamera, child.gameObject));
+                Transform rimNumbers = mHlodGameObject.transform.Find(testGameObject.groupName);
+
+                foreach (Transform child in rimNumbers)
+                {
+                    Debug.Log(child.gameObject.name + ": " + child.gameObject.activeSelf);
+                }
             }
         }
+    }
 
-        bool IsTargetVisible(Camera c, GameObject go)
+    [Serializable]
+    public class TestData
+    {
+        public CameraSettings cameraSettings;
+        public List<TestGameObject> listOfGameObjects;
+
+        public static TestData CreateFromJson(string jsonFilePath)
         {
-            var planes = GeometryUtility.CalculateFrustumPlanes(c);
-            var point = go.transform.position;
+            if (!File.Exists(jsonFilePath))
+                throw new FileNotFoundException();
 
-            foreach (var plane in planes)
-            {
-                float distance = plane.GetDistanceToPoint(point);
+            string dataAsJson = File.ReadAllText(jsonFilePath);
 
-                if (distance < 0.0f)
-                    return false;
-            }
-
-            return true;
+            return JsonUtility.FromJson<TestData>(dataAsJson);
         }
+    }
+
+    [Serializable]
+    public class CustomVector3
+    {
+        public float x;
+        public float y;
+        public float z;
+    }
+
+    [Serializable]
+    public class TestGameObject
+    {
+        public string groupName;
+        public bool[] enabled;
+    }
+
+    [Serializable]
+    public class CameraSettings
+    {
+        public CustomVector3 location;
+        public CustomVector3 rotation;
     }
 }
