@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
+using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.VersionControl;
@@ -34,6 +35,8 @@ namespace Unity.HLODSystem.RuntimeTests
             mHlodGameObject = mGameObject.transform.Find("HLOD").gameObject;
             Assert.NotNull(mHlodGameObject);
 
+            mHlodGameObject.GetComponentInChildren<HLODControllerBase>().Install();
+
             mHlodCameraObject = mGameObject.transform.Find("HLOD Camera").gameObject;
             Assert.NotNull(mHlodCameraObject);
         }
@@ -61,35 +64,44 @@ namespace Unity.HLODSystem.RuntimeTests
         }
 
         [UnityTest]
-        public IEnumerator Test_1()
+        public IEnumerator CheckGameObjectActiveState_1()
         {
             TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_1.json");
-
             Camera hlodCamera = mHlodCameraObject.GetComponent<Camera>();
-
-            hlodCamera.transform.position = new Vector3(-2.5f, 30, -70);
-            hlodCamera.transform.rotation = Quaternion.Euler(35, 0, 0);
-            /*hlodCamera.transform.position = new Vector3(
-                testData.cameraSettings.location.x,
-                testData.cameraSettings.location.y,
-                testData.cameraSettings.location.z);
-
-            hlodCamera.transform.eulerAngles = new Vector3(
-                testData.cameraSettings.rotation.x,
-                testData.cameraSettings.rotation.y + 180,
-                testData.cameraSettings.rotation.z);*/
             
-            HLODManager.Instance.OnPreCull(hlodCamera);
+            SetUpCamera(hlodCamera, testData.cameraSettings);
 
             yield return new WaitForSeconds(0.1f);
 
-            foreach (TestGameObject testGameObject in testData.listOfGameObjects)
-            {
-                Transform rimNumbers = mHlodGameObject.transform.Find(testGameObject.groupName);
+            CheckGameObjectActiveState(testData.listOfGameObjects);
 
-                foreach (Transform child in rimNumbers)
+            yield return null;
+        }
+
+        private void SetUpCamera(Camera camera, CameraSettings cameraSettings)
+        {
+            camera.transform.position = new Vector3(
+                cameraSettings.location.x,
+                cameraSettings.location.y,
+                cameraSettings.location.z);
+
+            camera.transform.eulerAngles = new Vector3(
+                cameraSettings.rotation.x,
+                cameraSettings.rotation.y + 180,
+                cameraSettings.rotation.z);
+
+            HLODManager.Instance.OnPreCull(camera);
+        }
+
+        private void CheckGameObjectActiveState(List<PlayModeTestGameObject> listOfGameObjects)
+        {
+            foreach (PlayModeTestGameObject playModeTestGameObject in listOfGameObjects)
+            {
+                Transform rinNumbers = mHlodGameObject.transform.Find(playModeTestGameObject.groupName);
+
+                for (int i = 0; i < rinNumbers.childCount; i++)
                 {
-                    Debug.Log(child.gameObject.name + ": " + child.gameObject.activeSelf);
+                    Assert.AreEqual(rinNumbers.GetChild(i).gameObject.activeSelf, playModeTestGameObject.enabled[i]);
                 }
             }
         }
@@ -99,7 +111,7 @@ namespace Unity.HLODSystem.RuntimeTests
     public class TestData
     {
         public CameraSettings cameraSettings;
-        public List<TestGameObject> listOfGameObjects;
+        public List<PlayModeTestGameObject> listOfGameObjects;
 
         public static TestData CreateFromJson(string jsonFilePath)
         {
@@ -121,7 +133,7 @@ namespace Unity.HLODSystem.RuntimeTests
     }
 
     [Serializable]
-    public class TestGameObject
+    public class PlayModeTestGameObject
     {
         public string groupName;
         public bool[] enabled;
