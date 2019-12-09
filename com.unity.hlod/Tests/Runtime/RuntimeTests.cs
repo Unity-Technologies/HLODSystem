@@ -68,12 +68,13 @@ namespace Unity.HLODSystem.RuntimeTests
         {
             TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_1.json");
             Camera hlodCamera = mHlodCameraObject.GetComponent<Camera>();
-            
+
             SetUpCamera(hlodCamera, testData.cameraSettings);
 
             yield return new WaitForSeconds(0.1f);
 
             CheckGameObjectActiveState(testData.listOfGameObjects);
+            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
 
             yield return null;
         }
@@ -100,10 +101,18 @@ namespace Unity.HLODSystem.RuntimeTests
                 Transform rinNumbers = mHlodGameObject.transform.Find(playModeTestGameObject.groupName);
 
                 for (int i = 0; i < rinNumbers.childCount; i++)
-                {
                     Assert.AreEqual(rinNumbers.GetChild(i).gameObject.activeSelf, playModeTestGameObject.enabled[i]);
-                }
             }
+        }
+
+        private void CheckHlodObjectsActiveState(List<string> listOfActiveHlods)
+        {
+            HashSet<string> hashSet = new HashSet<string>(listOfActiveHlods);
+
+            Transform hlods = mHlodGameObject.transform.Find("HLODRoot");
+
+            foreach (Transform child in hlods.transform)
+                Assert.AreEqual(child.gameObject.activeSelf, hashSet.Contains(child.gameObject.name));
         }
     }
 
@@ -112,6 +121,7 @@ namespace Unity.HLODSystem.RuntimeTests
     {
         public CameraSettings cameraSettings;
         public List<PlayModeTestGameObject> listOfGameObjects;
+        public List<string> listOfActiveHlods;
 
         public static TestData CreateFromJson(string jsonFilePath)
         {
