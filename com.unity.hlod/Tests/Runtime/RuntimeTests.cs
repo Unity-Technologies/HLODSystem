@@ -64,12 +64,11 @@ namespace Unity.HLODSystem.RuntimeTests
         }
 
         [UnityTest]
-        public IEnumerator CheckGameObjectActiveState_1()
+        public IEnumerator HlodKicksInForFurtherObjects()
         {
             TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_1.json");
-            Camera hlodCamera = mHlodCameraObject.GetComponent<Camera>();
 
-            SetUpCamera(hlodCamera, testData.cameraSettings);
+            SetUpCamera(testData.cameraSettings);
 
             yield return new WaitForSeconds(0.1f);
 
@@ -79,19 +78,81 @@ namespace Unity.HLODSystem.RuntimeTests
             yield return null;
         }
 
-        private void SetUpCamera(Camera camera, CameraSettings cameraSettings)
+        [UnityTest]
+        public IEnumerator HlodNotKickedInAtAllForCloseObjects()
         {
-            camera.transform.position = new Vector3(
+            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_2.json");
+
+            SetUpCamera(testData.cameraSettings);
+
+            yield return new WaitForSeconds(0.1f);
+
+            CheckGameObjectActiveState(testData.listOfGameObjects);
+            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator HlodKicksInForFurtherObjects_2()
+        {
+            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_3.json");
+
+            SetUpCamera(testData.cameraSettings);
+
+            yield return new WaitForSeconds(0.1f);
+
+            CheckGameObjectActiveState(testData.listOfGameObjects);
+            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
+
+            yield return null;
+        }
+        
+        [UnityTest]
+        public IEnumerator HlodFullyKicksIn()
+        {
+            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_4.json");
+
+            SetUpCamera(testData.cameraSettings);
+
+            yield return new WaitForSeconds(0.1f);
+
+            CheckGameObjectActiveState(testData.listOfGameObjects);
+            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
+
+            yield return null;
+        }
+        
+        [UnityTest]
+        public IEnumerator HlodNotKickedInAtAll()
+        {
+            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_5.json");
+
+            SetUpCamera(testData.cameraSettings);
+
+            yield return new WaitForSeconds(0.1f);
+
+            CheckGameObjectActiveState(testData.listOfGameObjects);
+            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
+
+            yield return null;
+        }
+
+        private void SetUpCamera(CameraSettings cameraSettings)
+        {
+            Camera hlodCamera = mHlodCameraObject.GetComponent<Camera>();
+
+            hlodCamera.transform.position = new Vector3(
                 cameraSettings.location.x,
                 cameraSettings.location.y,
                 cameraSettings.location.z);
 
-            camera.transform.eulerAngles = new Vector3(
+            hlodCamera.transform.eulerAngles = new Vector3(
                 cameraSettings.rotation.x,
                 cameraSettings.rotation.y + 180,
                 cameraSettings.rotation.z);
 
-            HLODManager.Instance.OnPreCull(camera);
+            HLODManager.Instance.OnPreCull(hlodCamera);
         }
 
         private void CheckGameObjectActiveState(List<PlayModeTestGameObject> listOfGameObjects)
@@ -110,6 +171,14 @@ namespace Unity.HLODSystem.RuntimeTests
             HashSet<string> hashSet = new HashSet<string>(listOfActiveHlods);
 
             Transform hlods = mHlodGameObject.transform.Find("HLODRoot");
+
+            string fig = "";
+
+            foreach (Transform child in hlods.transform)
+            {
+                if (child.gameObject.activeSelf)
+                    fig += "\"" + child.gameObject.name + "\", ";
+            }
 
             foreach (Transform child in hlods.transform)
                 Assert.AreEqual(child.gameObject.activeSelf, hashSet.Contains(child.gameObject.name));
