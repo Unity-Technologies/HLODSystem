@@ -13,20 +13,19 @@ using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.RuntimeTests
 {
+    [TestFixture]
     public class RuntimeTests
     {
         private GameObject mGameObject;
         private GameObject mHlodGameObject;
         private GameObject mHlodCameraObject;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             mGameObject =
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/HLODTestPrefabBaked.prefab");
             mGameObject = GameObject.Instantiate(mGameObject, Vector3.zero, Quaternion.identity);
-
-            //mGameObject = MonoBehaviour.Instantiate(Resources.Load<GameObject>("HLODTestPrefabBaked"));
 
             new WaitForSeconds(0.1f);
 
@@ -41,7 +40,7 @@ namespace Unity.HLODSystem.RuntimeTests
             Assert.NotNull(mHlodCameraObject);
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void Teardown()
         {
             Object.Destroy(mHlodCameraObject);

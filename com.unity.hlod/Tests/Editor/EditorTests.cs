@@ -9,6 +9,7 @@ using UnityEngine.TestTools;
 
 namespace Unity.HLODSystem.EditorTests
 {
+    [TestFixture]
     public class EditorTests
     {
         private string mHlodArtifactName = "Assets/TestAssets/Artifacts/HLOD.hlod";
@@ -16,7 +17,7 @@ namespace Unity.HLODSystem.EditorTests
         private GameObject hlodGameObject;
         private int childrenCount;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             hlodGameObject = GameObject.Find("HLOD");
@@ -73,7 +74,7 @@ namespace Unity.HLODSystem.EditorTests
             Assert.False(File.Exists(mHlodArtifactName));
         }
 
-        [Test]
+        [Test, Order(8)]
         public void HlodAssetIsImported()
         {
             string assetPath = "Assets/TestAssets/BakedTerrainPatch.hlod";
