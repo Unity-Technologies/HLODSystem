@@ -14,14 +14,14 @@ using Object = UnityEngine.Object;
 namespace Unity.HLODSystem.RuntimeTests
 {
     [TestFixture]
-    public class RuntimeTests
+    public class RuntimeTests : IPrebuildSetup, IPostBuildCleanup
     {
         private GameObject mGameObject;
         private GameObject mHlodGameObject;
         private GameObject mHlodCameraObject;
 
-        [OneTimeSetUp]
-        public void SetUp()
+        [SetUp]
+        public void Setup()
         {
             mGameObject =
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/HLODTestPrefabBaked.prefab");
@@ -40,8 +40,7 @@ namespace Unity.HLODSystem.RuntimeTests
             Assert.NotNull(mHlodCameraObject);
         }
 
-        [OneTimeTearDown]
-        public void Teardown()
+        public void Cleanup()
         {
             Object.Destroy(mHlodCameraObject);
             Object.Destroy(mHlodGameObject);
@@ -106,7 +105,7 @@ namespace Unity.HLODSystem.RuntimeTests
 
             yield return null;
         }
-        
+
         [UnityTest]
         public IEnumerator HlodFullyKicksIn()
         {
@@ -121,7 +120,7 @@ namespace Unity.HLODSystem.RuntimeTests
 
             yield return null;
         }
-        
+
         [UnityTest]
         public IEnumerator HlodNotKickedInAtAll()
         {
@@ -183,7 +182,7 @@ namespace Unity.HLODSystem.RuntimeTests
                 Assert.AreEqual(child.gameObject.activeSelf, hashSet.Contains(child.gameObject.name));
         }
     }
-
+    
     [Serializable]
     public class TestData
     {

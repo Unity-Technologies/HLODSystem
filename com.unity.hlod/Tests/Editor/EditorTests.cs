@@ -4,30 +4,35 @@ using NUnit.Framework;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace Unity.HLODSystem.EditorTests
 {
     [TestFixture]
-    public class EditorTests
+    public class EditorTests : IPrebuildSetup
     {
         private string mHlodArtifactName = "Assets/TestAssets/Artifacts/HLOD.hlod";
         private HLOD hlod;
-        private GameObject hlodGameObject;
+        private GameObject mHlodGameObject;
         private int childrenCount;
 
-        [OneTimeSetUp]
+        [SetUp]
         public void Setup()
         {
-            hlodGameObject = GameObject.Find("HLOD");
-            hlod = hlodGameObject.GetComponent<HLOD>() as HLOD;
+            Scene scene = EditorSceneManager.OpenScene("Assets/TestAssets/EditModeTestScene.unity");
+            GameObject[] gameObjects = scene.GetRootGameObjects();
+            mHlodGameObject = gameObjects[0].transform.Find("HLOD").gameObject;
+            //mHlodGameObject = GameObject.Find("HLOD");
+            hlod = mHlodGameObject.GetComponent<HLOD>() as HLOD;
         }
 
         [Test, Order(1)]
         public void HlodGameObjectIsNotNull()
         {
-            Assert.NotNull(hlodGameObject);
+            Assert.NotNull(mHlodGameObject);
         }
 
         [Test, Order(2)]
@@ -39,14 +44,15 @@ namespace Unity.HLODSystem.EditorTests
         [UnityTest, Order(3)]
         public IEnumerator HlodComponentIsCreated()
         {
-            childrenCount = hlodGameObject.transform.childCount;
+            childrenCount = mHlodGameObject.transform.childCount;
             yield return CoroutineRunner.RunCoroutine(HLODCreator.Create(hlod));
         }
 
         [Test, Order(4)]
         public void HlodRootIsAddedToHlodGroup()
         {
-            Assert.True(hlodGameObject.transform.childCount == childrenCount + 1);
+            //mHlodGameObject.GetComponentInChildren<HLODControllerBase>().Install();
+            Assert.True(mHlodGameObject.transform.childCount == childrenCount + 1);
         }
 
         [Test, Order(5)]
@@ -74,15 +80,15 @@ namespace Unity.HLODSystem.EditorTests
             Assert.False(File.Exists(mHlodArtifactName));
         }
 
-        [Test, Order(8)]
-        public void HlodAssetIsImported()
+        [UnityTest, Order(8)]
+        public IEnumerator HlodAssetIsImported()
         {
             string assetPath = "Assets/TestAssets/BakedTerrainPatch.hlod";
             AssetDatabase.ImportAsset(assetPath);
 
             Object[] data = AssetDatabase.LoadAllAssetsAtPath(assetPath);
             Assert.Greater(data.Length, 0);
-            
+
             foreach (Object obj in data)
             {
                 if (obj is GameObject)
@@ -91,6 +97,8 @@ namespace Unity.HLODSystem.EditorTests
                     break;
                 }
             }
+
+            yield return null;
         }
     }
 }
