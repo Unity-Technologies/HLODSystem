@@ -14,18 +14,18 @@ namespace Unity.HLODSystem.EditorTests
     [TestFixture]
     public class EditorTests : IPrebuildSetup
     {
-        private string mHlodArtifactName = "Assets/TestAssets/Artifacts/HLOD.hlod";
-        private HLOD hlod;
-        private GameObject mHlodGameObject;
-        private int childrenCount;
+        private static string mHlodArtifactName = "Assets/TestAssets/Artifacts/HLOD.hlod";
+        private static HLOD hlod;
+        private static GameObject mHlodGameObject;
+        private static int childrenCount;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
+            Debug.Log("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSetup");
             Scene scene = EditorSceneManager.OpenScene("Assets/TestAssets/EditModeTestScene.unity");
             GameObject[] gameObjects = scene.GetRootGameObjects();
             mHlodGameObject = gameObjects[0].transform.Find("HLOD").gameObject;
-            //mHlodGameObject = GameObject.Find("HLOD");
             hlod = mHlodGameObject.GetComponent<HLOD>() as HLOD;
         }
 
