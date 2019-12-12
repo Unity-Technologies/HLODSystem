@@ -10,9 +10,9 @@ commands:
     - powershell .\scripts\run-unity-tests.ps1 -testPlatform PlayMode -testResults PlayModeTestResults.xml
 
 artifacts:
-  Logs:
+  togs:
     paths:
-    - Logs/**
-  TestResults:
+    - logs/**
+  testResults:
     paths:
-    - TestResults/**
+    - testResults/**
