@@ -27,6 +27,7 @@ function Get-Current-Username {
 }
 
 function Get-Project-Root-Path {
-    Write-Output "Current Location: $(Get-Location)"
+    Write-Output "Location"
+    Write-Output Get-Location
     return  Get-Location | Split-Path -Parent
 }
