@@ -6,8 +6,8 @@ function Get-Configuration {
     $editorExecutablePath = "C:/Users/$username/m2/M2/development/Unity/WinEditor/Unity.exe"
     $editorLogPath = "C:/Users/$username/AppData/Local/Unity/Editor/Editor.log"
     $editorCrashLogPath = "C:/Users/$username/AppData/Local/Temp/Unity/Editor/Crashes"    
-    $testResultsOutputFolder = "$projectRootPath/TestResults"
-    $logOutputFolder = "$projectRootPath/Logs"
+    $testResultsOutputFolder = "$projectRootPath/scripts/TestResults"
+    $logOutputFolder = "$projectRootPath/scripts/Logs"
     
     $result = @{
         "EditorExecutablePath"    = $editorExecutablePath;
