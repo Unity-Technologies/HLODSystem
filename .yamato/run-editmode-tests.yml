@@ -1,4 +1,5 @@
 name: EditMode Tests
+
 agent:
   type: Unity::VM
   image: spotlight/m2yamatoci:latest
@@ -6,4 +7,12 @@ agent:
 
 commands:
     - git submodule update --init --recursive
-    - echo "EditMode Test Run"
+    - powershell .\scripts\run-unity-tests.ps1 -testPlatform EditMode -testResults EditModeTestResults.xml
+
+artifacts:
+  Logs:
+    paths:
+    - Logs/**
+  TestResults:
+    paths:
+    - TestResults/**
