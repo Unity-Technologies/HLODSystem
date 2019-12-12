@@ -22,7 +22,6 @@ namespace Unity.HLODSystem.EditorTests
         [OneTimeSetUp]
         public void Setup()
         {
-            Debug.Log("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSetup");
             Scene scene = EditorSceneManager.OpenScene("Assets/TestAssets/EditModeTestScene.unity");
             GameObject[] gameObjects = scene.GetRootGameObjects();
             mHlodGameObject = gameObjects[0].transform.Find("HLOD").gameObject;
@@ -51,7 +50,6 @@ namespace Unity.HLODSystem.EditorTests
         [Test, Order(4)]
         public void HlodRootIsAddedToHlodGroup()
         {
-            //mHlodGameObject.GetComponentInChildren<HLODControllerBase>().Install();
             Assert.True(mHlodGameObject.transform.childCount == childrenCount + 1);
         }
 

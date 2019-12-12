@@ -1,0 +1,8 @@
+name: EditMode Tests
+agent:
+  type: Unity::VM
+  image: spotlight/m2yamatoci:latest
+  flavor: b1.medium
+
+commands:
+    - echo "EditMode Test Run"

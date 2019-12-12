@@ -1,0 +1,14 @@
+name: HLOD System Push
+agent:
+  type: Unity::VM
+  image: spotlight/m2yamatoci:latest
+  flavor: b1.medium
+
+dependencies:
+- .yamato/run-editmode-tests.yml
+- .yamato/run-playmode-tests.yml
+
+triggers:
+    branches:
+        only:
+        - "TestsRequiredForPackagePublishing"
