@@ -6,6 +6,7 @@ Write-Output "Running $testPlatform Tests"
 Import-Module ProjectTools
 $cfg = Get-Configuration
 
+Write-Output "Project Root: $($cfg['ProjectRootPath'])"
 Write-Output "Create Artifact Directories"
 New-Item -ItemType Directory -Force -Path $cfg["LogOutputFolder"]
 New-Item -ItemType Directory -Force -Path $cfg["TestResultsOutputFolder"]
