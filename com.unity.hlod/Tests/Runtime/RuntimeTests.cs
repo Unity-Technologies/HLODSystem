@@ -20,7 +20,7 @@ namespace Unity.HLODSystem.RuntimeTests
         private GameObject mHlodGameObject;
         private GameObject mHlodCameraObject;
 
-        [OneTimeSetUp]
+//        [OneTimeSetUp]
         public void Setup()
         {
             mGameObject =
@@ -62,9 +62,14 @@ namespace Unity.HLODSystem.RuntimeTests
         }
 
         [UnityTest]
-        public IEnumerator HlodKicksInForFurtherObjects()
+        [TestCase("Assets/TestAssets/RawTestData/TestData_1.json", ExpectedResult = null)]
+        [TestCase("Assets/TestAssets/RawTestData/TestData_2.json", ExpectedResult = null)]
+        [TestCase("Assets/TestAssets/RawTestData/TestData_3.json", ExpectedResult = null)]
+        [TestCase("Assets/TestAssets/RawTestData/TestData_4.json", ExpectedResult = null)]
+        [TestCase("Assets/TestAssets/RawTestData/TestData_5.json", ExpectedResult = null)]
+        public IEnumerator HlodKickedForSpecificObjects(string testDataPath)
         {
-            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_1.json");
+            TestData testData = TestData.CreateFromJson(testDataPath);
 
             SetUpCamera(testData.cameraSettings);
 
@@ -75,67 +80,7 @@ namespace Unity.HLODSystem.RuntimeTests
 
             yield return null;
         }
-
-        [UnityTest]
-        public IEnumerator HlodNotKickedInAtAllForCloseObjects()
-        {
-            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_2.json");
-
-            SetUpCamera(testData.cameraSettings);
-
-            yield return new WaitForSeconds(0.1f);
-
-            CheckGameObjectActiveState(testData.listOfGameObjects);
-            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
-
-            yield return null;
-        }
-
-        [UnityTest]
-        public IEnumerator HlodKicksInForFurtherObjects_2()
-        {
-            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_3.json");
-
-            SetUpCamera(testData.cameraSettings);
-
-            yield return new WaitForSeconds(0.1f);
-
-            CheckGameObjectActiveState(testData.listOfGameObjects);
-            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
-
-            yield return null;
-        }
-
-        [UnityTest]
-        public IEnumerator HlodFullyKicksIn()
-        {
-            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_4.json");
-
-            SetUpCamera(testData.cameraSettings);
-
-            yield return new WaitForSeconds(0.1f);
-
-            CheckGameObjectActiveState(testData.listOfGameObjects);
-            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
-
-            yield return null;
-        }
-
-        [UnityTest]
-        public IEnumerator HlodNotKickedInAtAll()
-        {
-            TestData testData = TestData.CreateFromJson("Assets/TestAssets/RawTestData/TestData_5.json");
-
-            SetUpCamera(testData.cameraSettings);
-
-            yield return new WaitForSeconds(0.1f);
-
-            CheckGameObjectActiveState(testData.listOfGameObjects);
-            CheckHlodObjectsActiveState(testData.listOfActiveHlods);
-
-            yield return null;
-        }
-
+       
         private void SetUpCamera(CameraSettings cameraSettings)
         {
             Camera hlodCamera = mHlodCameraObject.GetComponent<Camera>();
@@ -182,7 +127,7 @@ namespace Unity.HLODSystem.RuntimeTests
                 Assert.AreEqual(child.gameObject.activeSelf, hashSet.Contains(child.gameObject.name));
         }
     }
-    
+
     [Serializable]
     public class TestData
     {

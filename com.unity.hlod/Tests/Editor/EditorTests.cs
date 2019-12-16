@@ -12,76 +12,73 @@ using UnityEngine.TestTools;
 namespace Unity.HLODSystem.EditorTests
 {
     [TestFixture]
-    public class EditorTests : IPrebuildSetup
+    public class EditorTests : IPrebuildSetup, IPostBuildCleanup
     {
         private static string mHlodArtifactName = "Assets/TestAssets/Artifacts/HLOD.hlod";
         private static HLOD hlod;
         private static GameObject mHlodGameObject;
         private static int childrenCount;
 
-        [OneTimeSetUp]
         public void Setup()
         {
             Scene scene = EditorSceneManager.OpenScene("Assets/TestAssets/EditModeTestScene.unity");
             GameObject[] gameObjects = scene.GetRootGameObjects();
             mHlodGameObject = gameObjects[0].transform.Find("HLOD").gameObject;
             hlod = mHlodGameObject.GetComponent<HLOD>() as HLOD;
+            var coroutine = CoroutineRunner.RunCoroutine(HLODCreator.Create(hlod));
+
+            while (coroutine.MoveNext())
+            {
+                //Wait until coroutine is finished
+            }
         }
 
-        [Test, Order(1)]
+        public void Cleanup()
+        {
+            var coroutine = CoroutineRunner.RunCoroutine(HLODCreator.Destroy(hlod));
+            while (coroutine.MoveNext())
+            {
+                //Wait until coroutine is finished
+            }
+
+            File.Delete(mHlodArtifactName);
+            Assert.False(File.Exists(mHlodArtifactName));
+        }
+
+        [Test]
         public void HlodGameObjectIsNotNull()
         {
             Assert.NotNull(mHlodGameObject);
         }
 
-        [Test, Order(2)]
+        [Test]
         public void HlodIsNotNull()
         {
             Assert.NotNull(hlod);
         }
 
-        [UnityTest, Order(3)]
-        public IEnumerator HlodComponentIsCreated()
+        [TestCase(11)]
+        public void HlodRootIsAddedToHlodGroup(int childCount)
         {
-            childrenCount = mHlodGameObject.transform.childCount;
-            yield return CoroutineRunner.RunCoroutine(HLODCreator.Create(hlod));
+            Assert.True(mHlodGameObject.transform.childCount == childCount);
         }
 
-        [Test, Order(4)]
-        public void HlodRootIsAddedToHlodGroup()
-        {
-            Assert.True(mHlodGameObject.transform.childCount == childrenCount + 1);
-        }
-
-        [Test, Order(5)]
+        [Test]
         public void HlodControllerIsNotNull()
         {
             Assert.NotNull(hlod.GetComponent<HLODControllerBase>());
         }
 
-        [Test, Order(6)]
+        [Test]
         public void ArtifactIsCreated()
         {
             Assert.IsTrue(File.Exists(mHlodArtifactName));
         }
 
-        [UnityTest, Order(7)]
-        public IEnumerator HlodComponentIsDestroyed()
+        [UnityTest]
+        [TestCase("Assets/TestAssets/BakedTerrainPatch.hlod", ExpectedResult = null)]
+        public IEnumerator HlodAssetIsImported(string assetPath)
         {
-            yield return CoroutineRunner.RunCoroutine(HLODCreator.Destroy(hlod));
-        }
-
-        [Test, Order(8)]
-        public void ArtifactsIsDeleted()
-        {
-            File.Delete(mHlodArtifactName);
-            Assert.False(File.Exists(mHlodArtifactName));
-        }
-
-        [UnityTest, Order(8)]
-        public IEnumerator HlodAssetIsImported()
-        {
-            string assetPath = "Assets/TestAssets/BakedTerrainPatch.hlod";
             AssetDatabase.ImportAsset(assetPath);
 
             Object[] data = AssetDatabase.LoadAllAssetsAtPath(assetPath);
