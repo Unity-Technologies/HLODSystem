@@ -20,7 +20,7 @@ namespace Unity.HLODSystem.RuntimeTests
         private GameObject mHlodGameObject;
         private GameObject mHlodCameraObject;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             mGameObject =

@@ -1,9 +1,17 @@
+$global:isDebug = $FALSE;
+
 function Get-Configuration {
     $username = Get-Current-Username
     $projectRootPath = Get-Project-Root-Path
     $projectPath = "$projectRootPath/com.unity.hlod/Samples~"
-    #$editorExecutablePath = "C:/Program Files\Unity\Hub\Editor\2019.2.14f1\Editor\Unity.exe"
-    $editorExecutablePath = "C:/Users/$username/m2/M2/master/Unity/WinEditor/Unity.exe"
+    
+    if ($global:isDebug) {
+        $editorExecutablePath = "C:/Program Files\Unity\Hub\Editor\2019.2.14f1\Editor\Unity.exe"
+    }
+    else {
+        $editorExecutablePath = "C:/Users/$username/m2/M2/master/Unity/WinEditor/Unity.exe"
+    }
+
     $editorLogPath = "C:/Users/$username/AppData/Local/Unity/Editor/Editor.log"
     $editorCrashLogPath = "C:/Users/$username/AppData/Local/Temp/Unity/Editor/Crashes"    
     $testResultsOutputFolder = "$projectRootPath/testResults"
@@ -27,6 +35,10 @@ function Get-Current-Username {
 }
 
 function Get-Project-Root-Path {
-    #return  Get-Location | Split-Path -Parent
-    return  Get-Location
+    if ($global:isDebug) {
+        return  Get-Location | Split-Path -Parent
+    }
+    else {
+        return  Get-Location
+    }
 }
