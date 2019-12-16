@@ -14,7 +14,6 @@ New-Item -ItemType Directory -Force -Path $cfg["TestResultsOutputFolder"]
 $testResultsFilePath = "$($cfg['TestResultsOutputFolder'])/$testResults"
 
 $unityParams = @(
-    "-batchmode",
     "-projectpath", $cfg["ProjectPath"],
     "-runTests",
     "-testPlatform", $testPlatform,
