@@ -26,7 +26,7 @@ namespace Unity.HLODSystem.EditorTests
             mHlodGameObject = gameObjects[0].transform.Find("HLOD").gameObject;
             hlod = mHlodGameObject.GetComponent<HLOD>() as HLOD;
             var coroutine = CoroutineRunner.RunCoroutine(HLODCreator.Create(hlod));
-
+            
             while (coroutine.MoveNext())
             {
                 //Wait until coroutine is finished
