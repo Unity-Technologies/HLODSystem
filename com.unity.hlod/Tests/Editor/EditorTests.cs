@@ -69,11 +69,11 @@ namespace Unity.HLODSystem.EditorTests
             Assert.NotNull(hlod.GetComponent<HLODControllerBase>());
         }
 
-        [Test]
+        /*[Test]
         public void ArtifactIsCreated()
         {
             Assert.IsTrue(File.Exists(mHlodArtifactName));
-        }
+        }*/
 
         [UnityTest]
         [TestCase("Assets/TestAssets/BakedTerrainPatch.hlod", ExpectedResult = null)]
