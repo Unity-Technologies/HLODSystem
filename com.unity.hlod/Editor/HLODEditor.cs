@@ -107,7 +107,7 @@ namespace Unity.HLODSystem
                 EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
                 if (depth > 5)
                 {
-                    EditorGUILayout.LabelField($"Node Level Count greater than 5 causes the Editor can be frozen.", Styles.RedTextColor);
+                    EditorGUILayout.LabelField($"Node Level Count greater than 5 may cause a frozen Editor.", Styles.RedTextColor);
                     EditorGUILayout.LabelField($"Use a value less than 5.", Styles.RedTextColor);
                     
                 }
