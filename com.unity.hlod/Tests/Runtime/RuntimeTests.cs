@@ -20,7 +20,7 @@ namespace Unity.HLODSystem.RuntimeTests
         private GameObject mHlodGameObject;
         private GameObject mHlodCameraObject;
 
-//        [OneTimeSetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
             mGameObject =
@@ -38,6 +38,7 @@ namespace Unity.HLODSystem.RuntimeTests
 
             mHlodCameraObject = mGameObject.transform.Find("HLOD Camera").gameObject;
             Assert.NotNull(mHlodCameraObject);
+            Debug.Log("SSSSSSSSSSSSSSSSSSSSSSSSSSSSetup");
         }
 
         public void Cleanup()
