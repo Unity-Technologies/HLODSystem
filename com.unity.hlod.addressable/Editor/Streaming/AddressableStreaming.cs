@@ -87,6 +87,12 @@ namespace Unity.HLODSystem.Streaming
 
 
             string filenamePrefix = $"{path}{root.name}";
+            
+            if (Directory.Exists(path) == false)
+            {
+                Directory.CreateDirectory(path);
+            }
+            
             Dictionary<int, HLODData> hlodDatas = new Dictionary<int, HLODData>();
 
             for (int i = 0; i < infos.Count; ++i)
