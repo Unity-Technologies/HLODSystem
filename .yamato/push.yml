@@ -12,3 +12,4 @@ triggers:
     branches:
         only:
         - "TestsRequiredForPackagePublishing"
+        - "master"
