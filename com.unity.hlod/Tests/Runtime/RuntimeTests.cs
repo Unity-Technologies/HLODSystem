@@ -26,9 +26,6 @@ namespace Unity.HLODSystem.RuntimeTests
             mGameObject =
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/HLODTestPrefabBaked.prefab");
             mGameObject = GameObject.Instantiate(mGameObject, Vector3.zero, Quaternion.identity);
-
-            new WaitForSeconds(0.1f);
-
             Assert.NotNull(mGameObject);
 
             mHlodGameObject = mGameObject.transform.Find("HLOD").gameObject;
@@ -38,7 +35,6 @@ namespace Unity.HLODSystem.RuntimeTests
 
             mHlodCameraObject = mGameObject.transform.Find("HLOD Camera").gameObject;
             Assert.NotNull(mHlodCameraObject);
-            Debug.Log("SSSSSSSSSSSSSSSSSSSSSSSSSSSSetup");
         }
 
         public void Cleanup()
@@ -81,7 +77,7 @@ namespace Unity.HLODSystem.RuntimeTests
 
             yield return null;
         }
-       
+
         private void SetUpCamera(CameraSettings cameraSettings)
         {
             Camera hlodCamera = mHlodCameraObject.GetComponent<Camera>();
@@ -112,17 +108,10 @@ namespace Unity.HLODSystem.RuntimeTests
 
         private void CheckHlodObjectsActiveState(List<string> listOfActiveHlods)
         {
+            //Just in case when this list gets too big in future TestCases
             HashSet<string> hashSet = new HashSet<string>(listOfActiveHlods);
 
             Transform hlods = mHlodGameObject.transform.Find("HLODRoot");
-
-            string fig = "";
-
-            foreach (Transform child in hlods.transform)
-            {
-                if (child.gameObject.activeSelf)
-                    fig += "\"" + child.gameObject.name + "\", ";
-            }
 
             foreach (Transform child in hlods.transform)
                 Assert.AreEqual(child.gameObject.activeSelf, hashSet.Contains(child.gameObject.name));
