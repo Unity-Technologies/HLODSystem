@@ -83,6 +83,11 @@ namespace Unity.HLODSystem.Streaming
             compressionData.tvOSTextureFormat = options.tvOSCompression;
             
             string filename = $"{path}{root.name}.hlod";
+
+            if (Directory.Exists(path) == false)
+            {
+                Directory.CreateDirectory(path);
+            }
             
             using (Stream stream = new FileStream(filename, FileMode.Create))
             {

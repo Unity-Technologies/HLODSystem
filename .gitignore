@@ -1,1 +1,5 @@
 com.unity.hlod/Package.meta
+.idea/
+.vscode/
+TestResults/
+Logs/
