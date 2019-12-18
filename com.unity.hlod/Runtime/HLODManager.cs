@@ -48,7 +48,7 @@ namespace Unity.HLODSystem
             OnPreCull(cam);
         }
 
-        private void OnPreCull(Camera cam)
+        public void OnPreCull(Camera cam)
         {
 #if UNITY_EDITOR
             if (EditorApplication.isPlaying == false)

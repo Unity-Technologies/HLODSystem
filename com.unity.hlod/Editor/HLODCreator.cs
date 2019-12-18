@@ -16,7 +16,7 @@ using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem
 {
-    static class HLODCreator
+    public static class HLODCreator
     {
         private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects, float minObjectSize)
         {
@@ -229,7 +229,7 @@ namespace Unity.HLODSystem
 
             try
             {
-                EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", 0.0f);
+                EditorUtility.DisplayProgressBar("Destroy HLOD", "Destrying HLOD files", 0.0f);
                 var convertedPrefabObjects = hlod.ConvertedPrefabObjects;
                 for (int i = 0; i < convertedPrefabObjects.Count; ++i)
                 {
@@ -254,7 +254,7 @@ namespace Unity.HLODSystem
                         Object.DestroyImmediate(generatedObjects[i]);
                     }
 
-                    EditorUtility.DisplayProgressBar("Destory HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
+                    EditorUtility.DisplayProgressBar("Destroy HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
                 }
                 generatedObjects.Clear();
 
