@@ -12,4 +12,5 @@ triggers:
     branches:
         only:
         - "TestsRequiredForPackagePublishing"
+        - "devs/HLODMinimumChunkSize"
         - "master"
