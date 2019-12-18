@@ -4,7 +4,6 @@ using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace Unity.HLODSystem
@@ -14,6 +13,7 @@ namespace Unity.HLODSystem
     {
         public static class Styles
         {
+            public static GUIContent GenerateButtonEnable = new GUIContent("Generate", "Generate a HLOD mesh.");
             public static GUIContent GenerateButtonExists = new GUIContent("Generate", "HLOD already generated.");
             public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destroy HLOD mesh.");
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "HLOD must be created before the destroying.");
