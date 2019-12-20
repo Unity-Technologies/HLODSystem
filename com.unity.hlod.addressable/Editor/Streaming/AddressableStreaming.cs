@@ -72,8 +72,10 @@ namespace Unity.HLODSystem.Streaming
         {
             dynamic options = m_streamingOptions;
             string path = options.OutputDirectory;
+            
+            HLODTreeNodeContainer container = new HLODTreeNodeContainer();
 
-            HLODTreeNode convertedRootNode = ConvertNode(rootNode);
+            HLODTreeNode convertedRootNode = ConvertNode(container, rootNode);
 
             if (onProgress != null)
                 onProgress(0.0f);
@@ -217,7 +219,8 @@ namespace Unity.HLODSystem.Streaming
 
                 }
             }
-            
+
+            addressableController.Container = container;
             addressableController.Root = convertedRootNode;
             addressableController.CullDistance = cullDistance;
             addressableController.LODDistance = lodDistance;
@@ -226,9 +229,10 @@ namespace Unity.HLODSystem.Streaming
       
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
 
-        private HLODTreeNode ConvertNode(SpaceNode rootNode)
+        private HLODTreeNode ConvertNode(HLODTreeNodeContainer container, SpaceNode rootNode)
         {
             HLODTreeNode root = new HLODTreeNode();
+            root.SetContainer(container);
 
             Queue<HLODTreeNode> hlodTreeNodes = new Queue<HLODTreeNode>();
             Queue<SpaceNode> spaceNodes = new Queue<SpaceNode>();
@@ -254,6 +258,7 @@ namespace Unity.HLODSystem.Streaming
                     for (int i = 0; i < spaceNode.GetChildCount(); ++i)
                     {
                         var treeNode = new HLODTreeNode();
+                        treeNode.SetContainer(container);
                         childTreeNodes.Add(treeNode);
 
                         hlodTreeNodes.Enqueue(treeNode);
@@ -261,7 +266,7 @@ namespace Unity.HLODSystem.Streaming
                         levels.Enqueue(level + 1);
                     }
 
-                    hlodTreeNode.ChildNodes = childTreeNodes;
+                    hlodTreeNode.SetChildTreeNode(childTreeNodes);
 
                 }
             }
