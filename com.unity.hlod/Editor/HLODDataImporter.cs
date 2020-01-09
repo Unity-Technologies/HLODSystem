@@ -183,8 +183,7 @@ namespace Unity.HLODSystem
             if (group == BuildTargetGroup.Android)
                 return data.CompressionData.AndroidTextureFormat;
             if (group == BuildTargetGroup.iOS)
-                return TextureFormat.ASTC_6x6;
-            //return data.CompressionData.iOSTextureFormat;
+                return data.CompressionData.iOSTextureFormat;
             if (group == BuildTargetGroup.tvOS)
                 return data.CompressionData.tvOSTextureFormat;
             if (group == BuildTargetGroup.Facebook || group == BuildTargetGroup.WebGL)
