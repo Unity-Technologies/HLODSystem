@@ -154,7 +154,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
                 byte[] buildTargetBuffer = BitConverter.GetBytes((int) buildTarget);
                 byte[] textureFormatBuffer = BitConverter.GetBytes((int) textureFormat);
                 byte[] projectNameBuffer = Encoding.ASCII.GetBytes(projectName);
-                m_fileStream = File.Open(assetPath, FileMode.Open, FileAccess.Read);
+                m_fileStream = new FileStream(assetPath, FileMode.Open, FileAccess.Read);
 
                 m_addedBytes =
                     new byte[buildTargetBuffer.Length + textureFormatBuffer.Length + projectNameBuffer.Length];
@@ -241,6 +241,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         /// </summary>
         /// <param name="assetPath">Path of target asset</param>
         /// <param name="buildTarget">Active build target</param>
+        /// <param name="textureFormat">Texture Format used for compression</param>
         /// <returns>Platform-dependent Hash String of an asset</returns>
         public static string GetHashForBuildTarget(string assetPath, BuildTarget buildTarget,
             TextureFormat textureFormat)
