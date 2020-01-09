@@ -29,12 +29,12 @@ namespace Unity.HLODSystem
             {
                 //Succeed to remove, that means the child also activated.
                 //so, we should remove child own.
-                if (node.ChildNodes != null)
+                if (node.GetChildTreeNodeCount() == 0)
+                    return;
+                
+                for (int i = 0; i < node.GetChildTreeNodeCount(); ++i)
                 {
-                    for (int i = 0; i < node.ChildNodes.Count; ++i)
-                    {
-                        Deactivate(node.ChildNodes[i]);
-                    }
+                    Deactivate(node.GetChildTreeNode(i));
                 }
             }
         }

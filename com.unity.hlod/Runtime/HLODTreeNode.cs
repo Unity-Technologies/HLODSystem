@@ -16,8 +16,11 @@ namespace Unity.HLODSystem
         private int m_level;
         [SerializeField]
         private Bounds m_bounds;
+        
+        [NonSerialized]
+        private HLODTreeNodeContainer m_container;
         [SerializeField]
-        private List<HLODTreeNode> m_childTreeNodes;
+        private List<int> m_childTreeNodeIds = new List<int>();
 
         [SerializeField]
         private List<int> m_highObjectIds = new List<int>();
@@ -39,12 +42,6 @@ namespace Unity.HLODSystem
         {
             set { m_bounds = value; }
             get { return m_bounds; }
-        }
-
-        public List<HLODTreeNode> ChildNodes
-        {
-            set { m_childTreeNodes = value;}
-            get { return m_childTreeNodes; }
         }
 
         public List<int> HighObjectIds
@@ -77,14 +74,82 @@ namespace Unity.HLODSystem
         private bool m_isVisible;
         private bool m_isVisibleHierarchy;
 
+        public HLODTreeNode()
+        {
+        }
+
+        public void SetContainer(HLODTreeNodeContainer container)
+        {
+            m_container = container;
+            ForEachChildTreeNode(node =>
+            {
+                node.SetContainer(container);
+            });
+        }
+        public void SetChildTreeNode(List<HLODTreeNode> childNodes)
+        {
+            ClearChildTreeNode();
+            m_childTreeNodeIds.Capacity = childNodes.Count;
+
+            for (int i = 0; i < childNodes.Count; ++i)
+            {
+                int id = m_container.Add(childNodes[i]);
+                m_childTreeNodeIds.Add(id);
+                childNodes[i].SetContainer(m_container);
+            }
+        }
+
+        public int GetChildTreeNodeCount()
+        {
+            return m_childTreeNodeIds.Count;
+        }
+
+        public HLODTreeNode GetChildTreeNode(int index)
+        {
+            int id = m_childTreeNodeIds[index];
+            return m_container.Get(id);
+        }
+
+        public void ClearChildTreeNode()
+        {
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
+            {
+                m_container.Remove(m_childTreeNodeIds[i]);
+            }
+            m_childTreeNodeIds.Clear();
+        }
+
+        private void ForEachChildTreeNode(Action<HLODTreeNode> action)
+        {
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
+            {
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                action(childTreeNode);
+            }
+        }
+
+        private bool ForEachChildTreeNodeAllTrue(Func<HLODTreeNode, bool> func)
+        {
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
+            {
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                if (func(childTreeNode) == false)
+                    return false;
+            }
+
+            return true;
+        }
+
+
 
         public void Initialize(HLODControllerBase controller, ISpaceManager spaceManager, HLODTreeNode parent)
         {
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
-            {
-                m_childTreeNodes[i].Initialize(controller, spaceManager, this);
-            }
 
+            ForEachChildTreeNode(node =>
+            {
+                node.Initialize(controller, spaceManager, this);
+            });
+            
             //set to initialize state
             m_fsm.ChangeState(State.Release);
 
@@ -121,12 +186,9 @@ namespace Unity.HLODSystem
 
             if (m_fsm.CurrentState == State.High)
             {
-                for (int i = 0; i < m_childTreeNodes.Count; ++i)
-                {
-                    if (m_childTreeNodes[i].IsLoadDone() == false)
-                        return false;
-                }
-
+                if (ForEachChildTreeNodeAllTrue(node => node.IsLoadDone()) == false)
+                    return false;
+                
                 return m_highObjectIds.Count == m_highObjects.Count;
             }
             else if ( m_fsm.CurrentState == State.Low)
@@ -164,11 +226,11 @@ namespace Unity.HLODSystem
         
         void OnEnteredRelease()
         {
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
+            ForEachChildTreeNode(node =>
             {
-                m_childTreeNodes[i].m_isVisible = false;
-                m_childTreeNodes[i].Release();
-            }
+                node.m_isVisible = false;
+                node.Release();
+            });
         }
 
         void OnEnteringLow()
@@ -201,11 +263,11 @@ namespace Unity.HLODSystem
             m_lowObjects = m_loadedLowObjects;
             m_loadedLowObjects = null;
 
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
+            ForEachChildTreeNode(node =>
             {
-                m_childTreeNodes[i].Release();
-            }
-         
+                node.Release();
+            });
+
         }
 
         void OnExitedLow()
@@ -221,11 +283,11 @@ namespace Unity.HLODSystem
         void OnEnteringHigh()
         {
             //child low mesh should be load before change to high.
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
-            {                
-                m_childTreeNodes[i].m_isVisible = false;
-                m_childTreeNodes[i].m_fsm.ChangeState(State.Low);
-            }
+            ForEachChildTreeNode(node =>
+            {
+                node.m_isVisible = false;
+                node.m_fsm.ChangeState(State.Low);
+            });
 
             if ( m_loadedHighObjects == null )
                 m_loadedHighObjects = new Dictionary<int, GameObject>();
@@ -250,22 +312,17 @@ namespace Unity.HLODSystem
         {
             if ( m_loadedHighObjects.Count != m_highObjectIds.Count )
                 return false;
-            
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
-            {
-                if (m_childTreeNodes[i].m_fsm.CurrentState == State.Release)
-                    return false;
-            }
 
-            return true;
+            return ForEachChildTreeNodeAllTrue(node => node.m_fsm.CurrentState != State.Release);
         }
         void OnEnteredHigh()
         {
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
+            ForEachChildTreeNode(node =>
             {
-                m_childTreeNodes[i].m_isVisible = true;
-            }
-
+                node.m_isVisible = true;
+                
+            });
+            
             m_highObjects = m_loadedHighObjects;
             m_loadedHighObjects = null;
         }
@@ -279,11 +336,11 @@ namespace Unity.HLODSystem
             }
             m_highObjects.Clear();
             
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
+            ForEachChildTreeNode(node =>
             {
-                m_childTreeNodes[i].Release();
-                m_childTreeNodes[i].m_isVisible = false;
-            }
+                node.Release();
+                node.m_isVisible = false;
+            });
         }
 
 
@@ -326,10 +383,10 @@ namespace Unity.HLODSystem
 
             UpdateVisible();
 
-            for (int i = 0; i < m_childTreeNodes.Count; ++i)
+            ForEachChildTreeNode(node =>
             {
-                m_childTreeNodes[i].Update(lodDistance);
-            }
+                node.Update(lodDistance);
+            });
         }
 
         private void UpdateVisible()

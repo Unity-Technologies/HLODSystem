@@ -8,7 +8,7 @@ using UnityEngine;
 namespace Unity.HLODSystem.Streaming
 {
     using ControllerID = Int32;
-    public abstract class HLODControllerBase : MonoBehaviour
+    public abstract class HLODControllerBase : MonoBehaviour, ISerializationCallbackReceiver
     {
         #region Interface
         public abstract void Install();
@@ -67,8 +67,6 @@ namespace Unity.HLODSystem.Streaming
 
             m_root.Cull(m_spaceManager.IsCull(m_cullDistance, m_root.Bounds));
             m_root.Update(m_lodDistance);
-            
-         
         }
 
         public bool IsLoadDone()
@@ -79,16 +77,31 @@ namespace Unity.HLODSystem.Streaming
  
         #region variables
         private ISpaceManager m_spaceManager;
-        
+
+        [SerializeField] 
+        private HLODTreeNodeContainer m_treeNodeContainer;
         [SerializeField]
         private HLODTreeNode m_root;
 
         [SerializeField] private float m_cullDistance;
         [SerializeField] private float m_lodDistance;
-        
+
+        public HLODTreeNodeContainer Container
+        {
+            set
+            {
+                m_treeNodeContainer = value; 
+                UpdateContainer();
+            }
+            get { return m_treeNodeContainer; }
+        }
         public HLODTreeNode Root
         {
-            set { m_root = value; }
+            set
+            {
+                m_root = value; 
+                UpdateContainer();
+            }
             get { return m_root; }
         }
 
@@ -104,6 +117,24 @@ namespace Unity.HLODSystem.Streaming
             get { return m_lodDistance; }
         }
         #endregion
+
+        public void OnBeforeSerialize()
+        {
+            
+        }
+
+        public void OnAfterDeserialize()
+        {
+            UpdateContainer();
+        }
+
+        private void UpdateContainer()
+        {
+            if (m_root == null)
+                return;
+            
+            m_root.SetContainer(m_treeNodeContainer);
+        }
     }
 
 }
