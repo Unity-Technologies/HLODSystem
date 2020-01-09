@@ -17,12 +17,8 @@ namespace Unity.HLODSystem
         {
             List<byte[]> compressedTextures = new List<byte[]>();
             int textureIndex = 0;
-
-            //Check if the Asset exists in the Cache Server.
-            bool isTextureCached = CustomCacheClient.GetInstance().GetCachedTextures(
-                                       ctx.assetPath,
-                                       ctx.selectedBuildTarget,
-                                       out compressedTextures) == DownloadResult.Success;
+            TextureFormat compressFormat;
+            bool isTextureCached = false;
 
             var buildTargetGroup = BuildPipeline.GetBuildTargetGroup(ctx.selectedBuildTarget);
             try
@@ -32,7 +28,14 @@ namespace Unity.HLODSystem
                 {
                     HLODData data = HLODDataSerializer.Read(stream);
                     RootData rootData = RootData.CreateInstance<RootData>();
-                    TextureFormat compressFormat = GetCompressFormat(data, buildTargetGroup);
+                    compressFormat = GetCompressFormat(data, buildTargetGroup);
+
+                    //Check if the Asset exists in the Cache Server.
+                    isTextureCached = CustomCacheClient.GetInstance().GetCachedTextures(
+                                          ctx.assetPath,
+                                          ctx.selectedBuildTarget,
+                                          compressFormat,
+                                          out compressedTextures) == DownloadResult.Success;
 
                     int currentProgress = 0;
                     int maxProgress = data.GetMaterials().Count + data.GetObjects().Count;
@@ -168,6 +171,7 @@ namespace Unity.HLODSystem
                 //Upload the Compressed Textures to the Cache Server
                 if (CustomCacheClient.GetInstance().PutCachedTextures(
                         ctx.assetPath,
+                        compressFormat,
                         compressedTextures,
                         ctx.selectedBuildTarget) == UploadResult.Failure)
                     Debug.LogError("Caching Failed for " + ctx.assetPath);
@@ -179,7 +183,8 @@ namespace Unity.HLODSystem
             if (group == BuildTargetGroup.Android)
                 return data.CompressionData.AndroidTextureFormat;
             if (group == BuildTargetGroup.iOS)
-                return data.CompressionData.iOSTextureFormat;
+                return TextureFormat.ASTC_6x6;
+            //return data.CompressionData.iOSTextureFormat;
             if (group == BuildTargetGroup.tvOS)
                 return data.CompressionData.tvOSTextureFormat;
             if (group == BuildTargetGroup.Facebook || group == BuildTargetGroup.WebGL)

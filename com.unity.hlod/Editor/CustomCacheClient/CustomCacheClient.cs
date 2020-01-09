@@ -266,10 +266,11 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         /// Upload from the given stream for the given AssetFileType. Will throw an exception if not preceeded by BeginTransaction.
         /// </summary>
         /// <param name="assetPath">HLOD Asset Path</param>
+        /// <param name="textureFormat">Texture Format used for compression</param>
         /// <param name="compressedTextures">Compressed Textures</param>
         /// <param name="buildTarget">Active Build Target</param>
         /// <exception cref="ArgumentException"></exception>
-        public UploadResult PutCachedTextures(string assetPath, List<byte[]> compressedTextures,
+        public UploadResult PutCachedTextures(string assetPath, TextureFormat textureFormat, List<byte[]> compressedTextures,
             BuildTarget buildTarget)
         {
             if (!CacheEnabled)
@@ -282,7 +283,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
                 return UploadResult.NotSupportedFileType;
 
             string guidStr = AssetDatabase.AssetPathToGUID(assetPath);
-            string hashStr = Util.GetHashForBuildTarget(assetPath, buildTarget);
+            string hashStr = Util.GetHashForBuildTarget(assetPath, buildTarget, textureFormat);
 
             if (null == hashStr)
                 return UploadResult.FileNotFound;
@@ -357,9 +358,10 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         /// </summary>
         /// <param name="assetPath">HLOD Asset Path</param>
         /// <param name="buildTarget">Active Build Target</param>
+        /// <param name="textureFormat">Texture Format used for compression</param>
         /// <param name="compressedTextures">Compressed Textures</param>
         /// <exception cref="ArgumentException"></exception>
-        public DownloadResult GetCachedTextures(string assetPath, BuildTarget buildTarget,
+        public DownloadResult GetCachedTextures(string assetPath, BuildTarget buildTarget, TextureFormat textureFormat,
             out List<byte[]> compressedTextures)
         {
             compressedTextures = new List<byte[]>();
@@ -374,7 +376,7 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
                 return DownloadResult.NotSupportedFileType;
 
             string guidStr = AssetDatabase.AssetPathToGUID(assetPath);
-            string hashStr = Util.GetHashForBuildTarget(assetPath, buildTarget);
+            string hashStr = Util.GetHashForBuildTarget(assetPath, buildTarget, textureFormat);
 
             if (null == hashStr)
                 return DownloadResult.FileNotFound;
@@ -385,13 +387,12 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
 
                 using (MemoryStream memoryStream = Download(AssetFileType.Resource, fileId))
                 {
-
                     if (null == memoryStream)
                         return DownloadResult.FileNotFound;
 
                     BinaryFormatter bin = new BinaryFormatter();
                     memoryStream.Position = 0;
-                    compressedTextures = (List<byte[]>)bin.Deserialize(memoryStream);
+                    compressedTextures = (List<byte[]>) bin.Deserialize(memoryStream);
                     memoryStream.Dispose();
                 }
 
@@ -548,10 +549,10 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
 
                 if (m_Instance.CacheEnabled && !m_Instance.IsConnected)
                 {
-                    Debug.Log("HLOD Asset Cache Client is disconnected. Reconnecting...");
+                    //Debug.Log("HLOD Asset Cache Client is disconnected. Reconnecting...");
                     m_Instance.Connect(5000);
 
-                    Debug.Log(m_Instance.IsConnected ? "\tSuccess" : "\tFailed");
+                    //Debug.Log(m_Instance.IsConnected ? "\tSuccess" : "\tFailed");
                 }
 
                 Thread.Sleep(60000);
