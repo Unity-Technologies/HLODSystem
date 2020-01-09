@@ -148,15 +148,19 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             private Stream m_fileStream;
             private long m_position;
 
-            public StreamForMD5(BuildTarget buildTarget, string projectName, string assetPath)
+            public StreamForMD5(BuildTarget buildTarget, TextureFormat textureFormat, string projectName,
+                string assetPath)
             {
                 byte[] buildTargetBuffer = BitConverter.GetBytes((int) buildTarget);
+                byte[] textureFormatBuffer = BitConverter.GetBytes((int) textureFormat);
                 byte[] projectNameBuffer = Encoding.ASCII.GetBytes(projectName);
                 m_fileStream = File.Open(assetPath, FileMode.Open, FileAccess.Read);
 
-                m_addedBytes = new byte[buildTargetBuffer.Length + projectNameBuffer.Length];
+                m_addedBytes =
+                    new byte[buildTargetBuffer.Length + textureFormatBuffer.Length + projectNameBuffer.Length];
                 projectNameBuffer.CopyTo(m_addedBytes, 0);
                 buildTargetBuffer.CopyTo(m_addedBytes, projectNameBuffer.Length);
+                textureFormatBuffer.CopyTo(m_addedBytes, projectNameBuffer.Length + buildTargetBuffer.Length);
 
                 m_position = 0;
             }
@@ -191,8 +195,8 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
 
                     if (readCount == 0)
                         return 0;
-                    
-                    Array.Copy(m_addedBytes, startPos, buffer, offset, readCount );
+
+                    Array.Copy(m_addedBytes, startPos, buffer, offset, readCount);
                     m_position += readCount;
                     return readCount;
                 }
@@ -224,9 +228,10 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
             public override bool CanSeek => true;
             public override bool CanWrite => false;
             public override long Length => m_fileStream.Length + m_addedBytes.Length;
+
             public override long Position
             {
-                get { return m_position;}
+                get { return m_position; }
                 set { m_position = value; }
             }
         }
@@ -237,19 +242,19 @@ namespace Unity.HLODSystem.CustomUnityCacheClient
         /// <param name="assetPath">Path of target asset</param>
         /// <param name="buildTarget">Active build target</param>
         /// <returns>Platform-dependent Hash String of an asset</returns>
-        public static string GetHashForBuildTarget(string assetPath, BuildTarget buildTarget)
+        public static string GetHashForBuildTarget(string assetPath, BuildTarget buildTarget,
+            TextureFormat textureFormat)
         {
             if (!File.Exists(assetPath))
                 return null;
 
 
             using (var md5 = MD5.Create())
-            using (var stream = new StreamForMD5(buildTarget, GetProjectRootFolderName(), assetPath))
+            using (var stream = new StreamForMD5(buildTarget, textureFormat, GetProjectRootFolderName(), assetPath))
             {
                 var hash = md5.ComputeHash(stream);
                 return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             }
-            
         }
 
         /// <summary>
