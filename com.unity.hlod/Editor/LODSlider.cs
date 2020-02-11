@@ -20,7 +20,8 @@ namespace Unity.HLODSystem
         };
 
         public static readonly Color kDefaultLODColor = new Color(.4f, 0f, 0f, 1f);
-
+        public const int k_SliderBarHeight = 30;
+        
         class GUIStyles
         {
             public readonly GUIStyle LODSliderBG = "LODSliderBG";
@@ -34,14 +35,14 @@ namespace Unity.HLODSystem
 
         private static GUIStyles s_Styles;
 
-        private  const int k_SliderBarHeight = 30;
+        
         private int m_SliderID = typeof(LODSlider).GetHashCode();
 
         private int m_SelectedIndex = -1;
         private LODSliderRange m_DefaultRange = null;
 
         private List<LODSliderRange> m_RangeList = new List<LODSliderRange>();
-
+        
         private static GUIStyles Styles
         {
             get
@@ -91,6 +92,11 @@ namespace Unity.HLODSystem
         {
             var sliderBarPosition = GUILayoutUtility.GetRect(0, k_SliderBarHeight, GUILayout.ExpandWidth(true));
             sliderBarPosition.width -= 5;   //< for margin
+            Draw(sliderBarPosition);
+        }
+        public void Draw(Rect sliderBarPosition)
+        {
+            
 
             Event evt = Event.current;
             int sliderId = GUIUtility.GetControlID(m_SliderID, FocusType.Passive);

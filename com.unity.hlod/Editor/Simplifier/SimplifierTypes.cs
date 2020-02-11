@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Unity.HLODSystem.Simplifier
 {
-    class SimplifierTypes
+    public class SimplifierTypes
     {
         struct OrderType
         {

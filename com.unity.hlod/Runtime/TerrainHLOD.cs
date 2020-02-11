@@ -57,21 +57,25 @@ namespace Unity.HLODSystem
         public float ChunkSize
         {
             get { return m_ChunkSize; }
+            set { m_ChunkSize = value; }
         }
 
         public int BorderVertexCount
         {
             get { return m_BorderVertexCount; }
+            set { m_BorderVertexCount = value; }
         }
 
         public float LODDistance
         {
             get { return m_LODDistance; }
+            set { m_LODDistance = value; }
         }
 
         public float CullDistance
         {
             get { return m_CullDistance; }
+            set { m_CullDistance = value; }
         }
         
         public SerializableDynamicObject SimplifierOptions
