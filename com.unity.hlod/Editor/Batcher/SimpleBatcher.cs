@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using Unity.HLODSystem.Utils;
-using UnityEditor.Build;
+using UnityEngine.Rendering;
 
 namespace Unity.HLODSystem
 {
@@ -360,6 +360,11 @@ namespace Unity.HLODSystem
                 });
             }
 
+            if (batcherOptions.EnableTintColor == null)
+                batcherOptions.EnableTintColor = false;
+            if (batcherOptions.TintColorName == null)
+                batcherOptions.TintColorName = "";
+
             batcherOptions.PackTextureSize = EditorGUILayout.IntPopup("Pack texture size", batcherOptions.PackTextureSize, Styles.PackTextureSizeNames, Styles.PackTextureSizes);
             batcherOptions.LimitTextureSize = EditorGUILayout.IntPopup("Limit texture size", batcherOptions.LimitTextureSize, Styles.LimitTextureSizeNames, Styles.LimitTextureSizes);
 
@@ -380,9 +385,6 @@ namespace Unity.HLODSystem
                 batcherOptions.MaterialGUID = matGUID;
                 outputTexturePropertyNames = mat.GetTexturePropertyNames();
             }
-
-
-
             if (inputTexturePropertyNames == null)
             {
                 inputTexturePropertyNames = GetAllMaterialTextureProperties(hlod.gameObject);
@@ -393,6 +395,38 @@ namespace Unity.HLODSystem
                     mat = new Material(Shader.Find("Standard"));
 
                 outputTexturePropertyNames = mat.GetTexturePropertyNames();
+            }
+            
+            //apply tint color
+            batcherOptions.EnableTintColor =
+                EditorGUILayout.Toggle("Enable tint color", batcherOptions.EnableTintColor);
+            if (batcherOptions.EnableTintColor == true)
+            {
+                EditorGUI.indentLevel += 1;
+                
+                var shader = mat.shader;
+                List<string> colorPropertyNames = new List<string>();
+                for (int i = 0; i < shader.GetPropertyCount(); ++i)
+                {
+                    string name = shader.GetPropertyName(i);
+                    if (shader.GetPropertyType(i) == ShaderPropertyType.Color)
+                    {
+                        colorPropertyNames.Add(name);
+                    }
+                }
+
+                int index = colorPropertyNames.IndexOf(batcherOptions.TintColorName);
+                index = EditorGUILayout.Popup("Tint color property", index, colorPropertyNames.ToArray());
+                if (index >= 0)
+                {
+                    batcherOptions.TintColorName = colorPropertyNames[index];
+                }
+                else
+                {
+                    batcherOptions.TintColorName = "";
+                }
+                
+                EditorGUI.indentLevel -= 1;
             }
 
             //ext textures
