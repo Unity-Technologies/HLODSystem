@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Simplifier
 {
-    class UnityMeshSimplifier : SimplifierBase
+    public class UnityMeshSimplifier : SimplifierBase
     {
 
         [InitializeOnLoadMethod]
