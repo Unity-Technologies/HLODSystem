@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Unity.HLODSystem.Utils
 {
@@ -22,7 +24,8 @@ namespace Unity.HLODSystem.Utils
         private int m_instanceID;
         private bool m_copy;
         private DisposableDictionary<string, WorkingTexture> m_textures;
-        
+        private Dictionary<string, Color> m_colors;
+
         public string Name { set; get; }
 
         public string Guid
@@ -39,6 +42,7 @@ namespace Unity.HLODSystem.Utils
             m_allocator = allocator;
             m_instanceID = 0;
             m_textures = new DisposableDictionary<string, WorkingTexture>();
+            m_colors = new Dictionary<string, Color>();
             m_guid = System.Guid.NewGuid().ToString("N");
         }
 
@@ -49,7 +53,9 @@ namespace Unity.HLODSystem.Utils
             m_copy = false;
             m_textures.Dispose();
             m_textures = new DisposableDictionary<string, WorkingTexture>();
-            m_guid = System.Guid.NewGuid().ToString("N");
+            m_colors = new Dictionary<string, Color>();
+            string path = AssetDatabase.GetAssetPath(mat.GetInstanceID());
+            m_guid = AssetDatabase.AssetPathToGUID(path);
                 
             string[] names = mat.GetTexturePropertyNames();
             for (int i = 0; i < names.Length; ++i)
@@ -59,6 +65,19 @@ namespace Unity.HLODSystem.Utils
                     continue;
                     
                 m_textures.Add(names[i], texture.ToWorkingTexture(m_allocator));
+            }
+
+            var shader = mat.shader;
+            if (shader != null)
+            {
+                for (int i = 0; i < shader.GetPropertyCount(); ++i)
+                {
+                    if (shader.GetPropertyType(i) == ShaderPropertyType.Color)
+                    {
+                        string name = shader.GetPropertyName(i);
+                        m_colors.Add(name, mat.GetColor(name));
+                    }
+                }
             }
         }
         public  WorkingMaterial(Allocator allocator, int materialId, string name,  bool copy) : this(allocator)
@@ -92,6 +111,14 @@ namespace Unity.HLODSystem.Utils
                 return m_textures.Keys.ToArray();
             }
         }
+
+        public void SetTexture(string name, WorkingTexture texture)
+        {
+            lock (m_textures)
+            {
+                m_textures[name] = texture;
+            }
+        }
         public WorkingTexture GetTexture(string name)
         {
             lock (m_textures)
@@ -101,6 +128,18 @@ namespace Unity.HLODSystem.Utils
                     return ret;
 
                 return null;
+            }
+        }
+
+        public Color GetColor(string name)
+        {
+            lock (m_colors)
+            {
+                Color color;
+                if (m_colors.ContainsKey(name) == false)
+                    return Color.white;
+
+                return m_colors[name];
             }
         }
 
