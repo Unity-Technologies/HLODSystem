@@ -2,12 +2,14 @@ name: EditMode Tests
 
 agent:
   type: Unity::VM
-  image: spotlight/m2yamatoci:latest
-  flavor: b1.medium
+  image: package-ci/win10:stable
+  flavor: b1.large
 
 commands:
     - git submodule update --init --recursive
-    - powershell .\scripts\run-unity-tests.ps1 -testPlatform EditMode -testResults EditModeTestResults.xml
+    - pip install unity-downloader-cli --extra-index-url https://artifactory.eu-cph-1.unityops.net/api/pypi/common-python/simple
+    - unity-downloader-cli --unity-project com.unity.hlod/Samples~ -c editor --wait    
+    - powershell .\.scripts\run-unity-tests.ps1 -testPlatform EditMode -testResults EditModeTestResults.xml
 
 artifacts:
   logs:
