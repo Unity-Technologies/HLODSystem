@@ -4,22 +4,18 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Experimental.AssetImporters;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using TextureCompressionQuality = UnityEditor.TextureCompressionQuality;
-using Unity.HLODSystem.CustomUnityCacheClient;
+using UnityEditor.Experimental;
 
 namespace Unity.HLODSystem
 {
-    [ScriptedImporter(1, "hlod")]
+    [ScriptedImporter(version: 1, ext: "hlod", AllowCaching = true)]
     public class HLODDataImporter : ScriptedImporter
     {
         public override void OnImportAsset(AssetImportContext ctx)
         {
-            List<byte[]> compressedTextures = new List<byte[]>();
-            int textureIndex = 0;
-            TextureFormat compressFormat;
-            bool isTextureCached = false;
-
+            ctx.DependsOnCustomDependency("HLODSystemPlatform");
+            
             var buildTargetGroup = BuildPipeline.GetBuildTargetGroup(ctx.selectedBuildTarget);
             try
             {
@@ -28,14 +24,7 @@ namespace Unity.HLODSystem
                 {
                     HLODData data = HLODDataSerializer.Read(stream);
                     RootData rootData = RootData.CreateInstance<RootData>();
-                    compressFormat = GetCompressFormat(data, buildTargetGroup);
-
-                    //Check if the Asset exists in the Cache Server.
-                    isTextureCached = CustomCacheClient.GetInstance().GetCachedTextures(
-                                          ctx.assetPath,
-                                          ctx.selectedBuildTarget,
-                                          compressFormat,
-                                          out compressedTextures) == DownloadResult.Success;
+                    TextureFormat compressFormat = GetCompressFormat(data, buildTargetGroup);
 
                     int currentProgress = 0;
                     int maxProgress = data.GetMaterials().Count + data.GetObjects().Count;
@@ -63,32 +52,9 @@ namespace Unity.HLODSystem
                         for (int ti = 0; ti < sm.GetTextureCount(); ++ti)
                         {
                             HLODData.SerializableTexture st = sm.GetTexture(ti);
-                            Texture2D texture;
-
-                            if (isTextureCached && textureIndex < compressedTextures.Count)
-                            {
-                                //Compressed Texture is cached. Load it into the texture
-                                var srgb = GraphicsFormatUtility.IsSRGBFormat(st.GraphicsFormat);
-                                texture = new Texture2D(st.Width, st.Height, compressFormat, true, !srgb)
-                                {
-                                    name = st.Name, wrapMode = st.WrapMode
-                                };
-
-                                byte[] image = compressedTextures[textureIndex++];
-                                texture.LoadRawTextureData(image);
-                                texture.Apply();
-                            }
-                            else
-                            {
-                                //Compressed Texture is not cached. Compress it and put it to the
-                                //list of Compressed Textures to be put into the Cache Server
-                                texture = st.To();
-                                EditorUtility.CompressTexture(texture, compressFormat,
-                                    TextureCompressionQuality.Normal);
-
-                                byte[] compTexture = texture.GetRawTextureData();
-                                compressedTextures.Add(compTexture);
-                            }
+                            Texture2D texture = st.To();
+                            EditorUtility.CompressTexture(texture, compressFormat,
+                                TextureCompressionQuality.Normal);
 
                             mat.SetTexture(st.Name, texture);
                             ctx.AddObjectToAsset(texture.name, texture);
@@ -165,17 +131,6 @@ namespace Unity.HLODSystem
             {
                 EditorUtility.ClearProgressBar();
             }
-
-            if (!isTextureCached && compressedTextures.Count > 0)
-            {
-                //Upload the Compressed Textures to the Cache Server
-                if (CustomCacheClient.GetInstance().PutCachedTextures(
-                        ctx.assetPath,
-                        compressFormat,
-                        compressedTextures,
-                        ctx.selectedBuildTarget) == UploadResult.Failure)
-                    Debug.LogError("Caching Failed for " + ctx.assetPath);
-            }
         }
 
         private TextureFormat GetCompressFormat(HLODData data, BuildTargetGroup group)
@@ -198,18 +153,22 @@ namespace Unity.HLODSystem
         }
     }
 
-    public class HLODDataRemimporter : IActiveBuildTargetChanged
+    [InitializeOnLoad]
+    public class HLODSystemStartUp : IActiveBuildTargetChanged
     {
         public int callbackOrder { get; }
-
+        static HLODSystemStartUp()
+        {
+            UpdateBuildTaget(EditorUserBuildSettings.activeBuildTarget);
+        }
+        static void UpdateBuildTaget(BuildTarget target)
+        {
+            var hash = Hash128.Compute(target.ToString());
+            AssetDatabaseExperimental.RegisterCustomDependency("HLODSystemPlatform", hash);
+        }
         public void OnActiveBuildTargetChanged(BuildTarget previousTarget, BuildTarget newTarget)
         {
-            string[] guids = AssetDatabase.FindAssets("t:RootData");
-            for (int i = 0; i < guids.Length; ++i)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
-                AssetDatabase.ImportAsset(path);
-            }
+            UpdateBuildTaget(newTarget);
         }
     }
 }
