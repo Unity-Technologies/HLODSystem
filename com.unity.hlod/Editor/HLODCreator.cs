@@ -58,7 +58,8 @@ namespace Unity.HLODSystem
 
         private static DisposableList<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float minObjectSize)
         {
-            DisposableList<HLODBuildInfo> results = new DisposableList<HLODBuildInfo>();
+
+            List<HLODBuildInfo> resultsCandidates = new List<HLODBuildInfo>();
             Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
             Queue<int> parentQueue = new Queue<int>();
             Queue<string> nameQueue = new Queue<string>();
@@ -72,7 +73,7 @@ namespace Unity.HLODSystem
 
             while (trevelQueue.Count > 0)
             {
-                int currentNodeIndex = results.Count;
+                int currentNodeIndex = resultsCandidates.Count;
                 string name = nameQueue.Dequeue();
                 SpaceNode node = trevelQueue.Dequeue();
                 HLODBuildInfo info = new HLODBuildInfo
@@ -91,7 +92,7 @@ namespace Unity.HLODSystem
                 }
 
 
-                results.Add(info);
+                resultsCandidates.Add(info);
 
                 //it should add to every parent.
                 List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects, minObjectSize);
@@ -99,7 +100,7 @@ namespace Unity.HLODSystem
 
                 while (currentNodeIndex >= 0)
                 {
-                    var curInfo = results[currentNodeIndex];
+                    var curInfo = resultsCandidates[currentNodeIndex];
 
                     for (int i = 0; i < meshRenderers.Count; ++i) 
                     {
@@ -110,9 +111,23 @@ namespace Unity.HLODSystem
                     currentNodeIndex = curInfo.ParentIndex;
                     distance += 1;
                 }
-
             }
 
+            
+            DisposableList<HLODBuildInfo> results = new DisposableList<HLODBuildInfo>();
+            
+            for (int i = 0; i < resultsCandidates.Count; ++i)
+            {
+                if (resultsCandidates[i].WorkingObjects.Count > 0)
+                {
+                    results.Add(resultsCandidates[i]);
+                }
+                else
+                {
+                    resultsCandidates[i].Dispose();
+                }
+            }
+            
             return results;
         }
 

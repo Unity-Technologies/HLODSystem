@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using Unity.HLODSystem.Utils;
-using UnityEditor.Build;
 
 namespace Unity.HLODSystem
 {
@@ -24,7 +23,7 @@ namespace Unity.HLODSystem
             BatcherTypes.RegisterBatcherType(typeof(SimpleBatcher));
         }
 
-        private Dictionary<TexturePacker.TextureAtlas, WorkingMaterial> m_createdMaterials = new Dictionary<TexturePacker.TextureAtlas, WorkingMaterial>();
+        private DisposableDictionary<TexturePacker.TextureAtlas, WorkingMaterial> m_createdMaterials = new DisposableDictionary<TexturePacker.TextureAtlas, WorkingMaterial>();
         private SerializableDynamicObject m_batcherOptions;
         
         
@@ -44,76 +43,177 @@ namespace Unity.HLODSystem
         
         public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
         {
-            dynamic options = m_batcherOptions;
-            if (onProgress != null)
-                onProgress(0.0f);
-
-            using (TexturePacker packer = new TexturePacker())
+            try
             {
-                PackingTexture(packer, targets, options, onProgress);
+                dynamic options = m_batcherOptions;
+                if (onProgress != null)
+                    onProgress(0.0f);
 
-                for (int i = 0; i < targets.Count; ++i)
+                using (TexturePacker packer = new TexturePacker())
                 {
-                    Combine(rootPosition, packer, targets[i], options);
-                    if (onProgress != null)
-                        onProgress(0.5f + ((float) i / (float) targets.Count) * 0.5f);
+                    PackingTexture(packer, targets, options, onProgress);
+
+                    for (int i = 0; i < targets.Count; ++i)
+                    {
+                        Combine(rootPosition, packer, targets[i], options);
+                        if (onProgress != null)
+                            onProgress(0.5f + ((float) i / (float) targets.Count) * 0.5f);
+                    }
                 }
             }
+            finally
+            {
+                m_createdMaterials.Dispose(); 
+            }
+        }
+
+        
+        class MaterialTextureCache : IDisposable
+        {
+            private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
             
+            private List<TextureInfo> m_textureInfoList;
+            private DisposableDictionary<string, TexturePacker.MaterialTexture> m_textureCache;
+            private DisposableDictionary<PackingType, WorkingTexture> m_defaultTextures;
+                
+            private bool m_enableTintColor;
+            private string m_tintColorName;
             
+            public MaterialTextureCache(dynamic options)
+            {
+                m_defaultTextures = CreateDefaultTextures();
+                m_enableTintColor = options.EnableTintColor;
+                m_tintColorName = options.TintColorName;
+                m_textureInfoList = options.TextureInfoList;
+                m_textureCache = new DisposableDictionary<string, TexturePacker.MaterialTexture>();
+            }
+            public TexturePacker.MaterialTexture GetMaterialTextures(WorkingMaterial material)
+            {
+                if (m_textureCache.ContainsKey(material.Guid) == false)
+                {
+                    AddToCache(material);
+                }
+
+                var textures = m_textureCache[material.Guid];
+                if (textures != null)
+                {
+                    string inputName = m_textureInfoList[0].InputName;
+                    material.SetTexture(inputName, textures[0].Clone());
+                }
+
+                return textures;
+            }
+
+            public void Dispose()
+            {
+                m_textureCache.Dispose();
+                m_defaultTextures.Dispose();
+                m_detector.Dispose();
+                
+            }
+
+            private void AddToCache(WorkingMaterial material)
+            {
+                string inputName = m_textureInfoList[0].InputName;
+                WorkingTexture texture = material.GetTexture(inputName);
+                TexturePacker.MaterialTexture materialTexture = new TexturePacker.MaterialTexture();
+
+                if (texture == null)
+                    return;
+
+                
+                if (m_enableTintColor)
+                {
+                    Color tintColor = material.GetColor(m_tintColorName);
+
+                    texture = texture.Clone();
+                    ApplyTintColor(texture, tintColor);
+                    materialTexture.Add(texture);
+                    texture.Dispose();
+                }
+                else
+                {
+                    materialTexture.Add(texture);
+                }
+                
+
+                for (int ti = 1; ti < m_textureInfoList.Count; ++ti)
+                {
+                    string input = m_textureInfoList[ti].InputName;
+                    WorkingTexture tex = material.GetTexture(input);
+
+                    if (tex == null)
+                    {
+                        tex = m_defaultTextures[m_textureInfoList[ti].Type];
+                    }
+
+                    materialTexture.Add(tex);
+                }
+
+                m_textureCache.Add(material.Guid, materialTexture);
+            }
+            private void ApplyTintColor(WorkingTexture texture, Color tintColor)
+            {
+                for (int ty = 0; ty < texture.Height; ++ty)
+                {
+                    for (int tx = 0; tx < texture.Width; ++tx)
+                    {
+                        Color c = texture.GetPixel(tx, ty);
+                    
+                        c.r = c.r * tintColor.r;
+                        c.g = c.g * tintColor.g;
+                        c.b = c.b * tintColor.b;
+                        c.a = c.a * tintColor.a;
+                    
+                        texture.SetPixel(tx, ty, c);
+                    }
+                }
+            }
+
+            private static DisposableDictionary<PackingType, WorkingTexture> CreateDefaultTextures()
+            {
+                DisposableDictionary<PackingType, WorkingTexture> textures = new DisposableDictionary<PackingType, WorkingTexture>();
+
+                textures.Add(PackingType.White, CreateEmptyTexture(4, 4, Color.white, false));
+                textures.Add(PackingType.Black, CreateEmptyTexture(4, 4, Color.black, false));
+                textures.Add(PackingType.Normal, CreateEmptyTexture(4, 4, new Color(0.5f, 0.5f, 1.0f), true));
+
+                return textures;
+            }
+
         }
 
         private void PackingTexture(TexturePacker packer, DisposableList<HLODBuildInfo> targets, dynamic options, Action<float> onProgress)
         { 
             List<TextureInfo> textureInfoList = options.TextureInfoList;
-
-            using (var defaultTextures = CreateDefaultTextures())
+            using (MaterialTextureCache cache = new MaterialTextureCache(options))
             {
-
                 for (int i = 0; i < targets.Count; ++i)
                 {
                     var workingObjects = targets[i].WorkingObjects;
-                    using (var textures = new DisposableDictionary<Guid, TexturePacker.MaterialTexture>())
+                    Dictionary<Guid, TexturePacker.MaterialTexture> textures =
+                        new Dictionary<Guid, TexturePacker.MaterialTexture>();
+
+                    for (int oi = 0; oi < workingObjects.Count; ++oi)
                     {
-                        for (int oi = 0; oi < workingObjects.Count; ++oi)
+                        var materials = workingObjects[oi].Materials;
+
+                        for (int m = 0; m < materials.Count; ++m)
                         {
-                            var materials = workingObjects[oi].Materials;
+                            var materialTextures = cache.GetMaterialTextures(materials[m]);
+                            if (materialTextures == null)
+                                continue;
 
-                            for (int m = 0; m < materials.Count; ++m)
-                            {
-                                string inputName = textureInfoList[0].InputName;
-                                WorkingTexture texture = materials[m].GetTexture(inputName);
-                                TexturePacker.MaterialTexture materialTexture = new TexturePacker.MaterialTexture();
+                            if (textures.ContainsKey(materialTextures[0].GetGUID()) == true)
+                                continue;
 
-                                if (texture == null)
-                                    continue;
-
-                                if (textures.ContainsKey(texture.GetGUID()) == true)
-                                    continue;
-
-                                materialTexture.Add(texture);
-
-                                for (int ti = 1; ti < textureInfoList.Count; ++ti)
-                                {
-                                    string input = textureInfoList[ti].InputName;
-                                    WorkingTexture tex = materials[m].GetTexture(input);
-
-                                    if (tex == null)
-                                    {
-                                        tex = defaultTextures[textureInfoList[ti].Type];
-                                    }
-
-                                    materialTexture.Add(tex);
-                                }
-
-                                textures.Add(texture.GetGUID(), materialTexture);
-
-                            }
+                            textures.Add(materialTextures[0].GetGUID(), materialTextures);
                         }
-
-
-                        packer.AddTextureGroup(targets[i], textures.Values.ToList());
                     }
+
+
+                    packer.AddTextureGroup(targets[i], textures.Values.ToList());
+
 
                     if (onProgress != null)
                         onProgress(((float) i / targets.Count) * 0.1f);
@@ -206,7 +306,7 @@ namespace Unity.HLODSystem
             WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, combineInfos);
 
             WorkingObject newObj = new WorkingObject(Allocator.Persistent);
-            WorkingMaterial newMat = m_createdMaterials[atlas];
+            WorkingMaterial newMat = m_createdMaterials[atlas].Clone();
 
             combinedMesh.name = info.Name + "_Mesh";
             newObj.Name = info.Name;
@@ -275,34 +375,6 @@ namespace Unity.HLODSystem
 
             return texture;
         }
-        static private DisposableDictionary<PackingType, WorkingTexture> CreateDefaultTextures()
-        {
-            DisposableDictionary<PackingType, WorkingTexture> textures = new DisposableDictionary<PackingType, WorkingTexture>();
-
-            textures.Add(PackingType.White, CreateEmptyTexture(4, 4, Color.white, false));
-            textures.Add(PackingType.Black, CreateEmptyTexture(4, 4, Color.black, false));
-            textures.Add(PackingType.Normal, CreateEmptyTexture(4, 4, new Color(0.5f, 0.5f, 1.0f), true));
-
-            return textures;
-        }
-
-/*
-        private Texture2D GetDefaultTexture(PackingType type)
-        {
-            switch (type)
-            {
-                case PackingType.White:
-                    return Texture2D.whiteTexture;
-                case PackingType.Black:
-                    return Texture2D.blackTexture;
-                case PackingType.Normal:
-                    return Texture2D.normalTexture;
-            }
-            
-            return Texture2D.whiteTexture;
-        }*/
-
-
         
         static class Styles
         {
@@ -360,6 +432,11 @@ namespace Unity.HLODSystem
                 });
             }
 
+            if (batcherOptions.EnableTintColor == null)
+                batcherOptions.EnableTintColor = false;
+            if (batcherOptions.TintColorName == null)
+                batcherOptions.TintColorName = "";
+
             batcherOptions.PackTextureSize = EditorGUILayout.IntPopup("Pack texture size", batcherOptions.PackTextureSize, Styles.PackTextureSizeNames, Styles.PackTextureSizes);
             batcherOptions.LimitTextureSize = EditorGUILayout.IntPopup("Limit texture size", batcherOptions.LimitTextureSize, Styles.LimitTextureSizeNames, Styles.LimitTextureSizes);
 
@@ -380,9 +457,6 @@ namespace Unity.HLODSystem
                 batcherOptions.MaterialGUID = matGUID;
                 outputTexturePropertyNames = mat.GetTexturePropertyNames();
             }
-
-
-
             if (inputTexturePropertyNames == null)
             {
                 inputTexturePropertyNames = GetAllMaterialTextureProperties(hlod.gameObject);
@@ -393,6 +467,39 @@ namespace Unity.HLODSystem
                     mat = new Material(Shader.Find("Standard"));
 
                 outputTexturePropertyNames = mat.GetTexturePropertyNames();
+            }
+            
+            //apply tint color
+            batcherOptions.EnableTintColor =
+                EditorGUILayout.Toggle("Enable tint color", batcherOptions.EnableTintColor);
+            if (batcherOptions.EnableTintColor == true)
+            {
+                EditorGUI.indentLevel += 1;
+                
+                var shader = mat.shader;
+                List<string> colorPropertyNames = new List<string>();
+                int propertyCount = ShaderUtil.GetPropertyCount(shader);
+                for (int i = 0; i < propertyCount; ++i)
+                {
+                    string name = ShaderUtil.GetPropertyName(shader, i);
+                    if (ShaderUtil.GetPropertyType(shader, i) == ShaderUtil.ShaderPropertyType.Color)
+                    {
+                        colorPropertyNames.Add(name);
+                    }
+                }
+
+                int index = colorPropertyNames.IndexOf(batcherOptions.TintColorName);
+                index = EditorGUILayout.Popup("Tint color property", index, colorPropertyNames.ToArray());
+                if (index >= 0)
+                {
+                    batcherOptions.TintColorName = colorPropertyNames[index];
+                }
+                else
+                {
+                    batcherOptions.TintColorName = "";
+                }
+                
+                EditorGUI.indentLevel -= 1;
             }
 
             //ext textures

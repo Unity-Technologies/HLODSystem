@@ -22,6 +22,8 @@ namespace Unity.HLODSystem.Utils
     }
     public class WorkingTexture : IDisposable
     {
+        private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+        
         private WorkingTextureBuffer m_buffer;
 
         public string Name
@@ -64,6 +66,9 @@ namespace Unity.HLODSystem.Utils
         public void Dispose()
         {
             m_buffer.Release();
+            m_buffer = null;
+
+            m_detector.Dispose();
         }
 
         public WorkingTexture Clone()
