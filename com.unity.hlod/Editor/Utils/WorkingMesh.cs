@@ -56,6 +56,8 @@ namespace Unity.HLODSystem.Utils
 
     public class WorkingMesh : IDisposable
     {
+        private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+        
         enum Channel
         {
             Vertices,
@@ -529,6 +531,8 @@ namespace Unity.HLODSystem.Utils
 
             if (m_Triangles.IsCreated)
                 m_Triangles.Dispose();
+
+            m_detector.Dispose();
         }
 
         public Mesh ToMesh()

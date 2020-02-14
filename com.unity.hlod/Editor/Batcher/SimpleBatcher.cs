@@ -24,7 +24,7 @@ namespace Unity.HLODSystem
             BatcherTypes.RegisterBatcherType(typeof(SimpleBatcher));
         }
 
-        private Dictionary<TexturePacker.TextureAtlas, WorkingMaterial> m_createdMaterials = new Dictionary<TexturePacker.TextureAtlas, WorkingMaterial>();
+        private DisposableDictionary<TexturePacker.TextureAtlas, WorkingMaterial> m_createdMaterials = new DisposableDictionary<TexturePacker.TextureAtlas, WorkingMaterial>();
         private SerializableDynamicObject m_batcherOptions;
         
         
@@ -44,26 +44,35 @@ namespace Unity.HLODSystem
         
         public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
         {
-            dynamic options = m_batcherOptions;
-            if (onProgress != null)
-                onProgress(0.0f);
-
-            using (TexturePacker packer = new TexturePacker())
+            try
             {
-                PackingTexture(packer, targets, options, onProgress);
+                dynamic options = m_batcherOptions;
+                if (onProgress != null)
+                    onProgress(0.0f);
 
-                for (int i = 0; i < targets.Count; ++i)
+                using (TexturePacker packer = new TexturePacker())
                 {
-                    Combine(rootPosition, packer, targets[i], options);
-                    if (onProgress != null)
-                        onProgress(0.5f + ((float) i / (float) targets.Count) * 0.5f);
+                    PackingTexture(packer, targets, options, onProgress);
+
+                    for (int i = 0; i < targets.Count; ++i)
+                    {
+                        Combine(rootPosition, packer, targets[i], options);
+                        if (onProgress != null)
+                            onProgress(0.5f + ((float) i / (float) targets.Count) * 0.5f);
+                    }
                 }
+            }
+            finally
+            {
+                m_createdMaterials.Dispose(); 
             }
         }
 
         
         class MaterialTextureCache : IDisposable
         {
+            private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+            
             private List<TextureInfo> m_textureInfoList;
             private DisposableDictionary<string, TexturePacker.MaterialTexture> m_textureCache;
             private DisposableDictionary<PackingType, WorkingTexture> m_defaultTextures;
@@ -90,7 +99,7 @@ namespace Unity.HLODSystem
                 if (textures != null)
                 {
                     string inputName = m_textureInfoList[0].InputName;
-                    material.SetTexture(inputName, textures[0]);
+                    material.SetTexture(inputName, textures[0].Clone());
                 }
 
                 return textures;
@@ -100,6 +109,8 @@ namespace Unity.HLODSystem
             {
                 m_textureCache.Dispose();
                 m_defaultTextures.Dispose();
+                m_detector.Dispose();
+                
             }
 
             private void AddToCache(WorkingMaterial material)
@@ -116,12 +127,16 @@ namespace Unity.HLODSystem
                 {
                     Color tintColor = material.GetColor(m_tintColorName);
 
-                    var oldGuid = texture.GetGUID();
                     texture = texture.Clone();
                     ApplyTintColor(texture, tintColor);
+                    materialTexture.Add(texture);
+                    texture.Dispose();
                 }
-
-                materialTexture.Add(texture);
+                else
+                {
+                    materialTexture.Add(texture);
+                }
+                
 
                 for (int ti = 1; ti < m_textureInfoList.Count; ++ti)
                 {
@@ -292,7 +307,7 @@ namespace Unity.HLODSystem
             WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, combineInfos);
 
             WorkingObject newObj = new WorkingObject(Allocator.Persistent);
-            WorkingMaterial newMat = m_createdMaterials[atlas];
+            WorkingMaterial newMat = m_createdMaterials[atlas].Clone();
 
             combinedMesh.name = info.Name + "_Mesh";
             newObj.Name = info.Name;

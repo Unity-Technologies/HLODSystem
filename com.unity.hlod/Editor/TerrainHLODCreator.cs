@@ -75,6 +75,8 @@ namespace Unity.HLODSystem
 
         class Layer : IDisposable
         {
+            private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+            
             public Layer(TerrainLayer layer)
             {
                 WorkingTexture texture = layer.diffuseTexture.ToWorkingTexture(Allocator.Persistent);
@@ -101,6 +103,7 @@ namespace Unity.HLODSystem
             public void Dispose()
             {
                 m_diffuseTexstures?.Dispose();
+                m_detector.Dispose();
             }
 
             public Color GetColor(float u, float v, int mipLevel = 0)

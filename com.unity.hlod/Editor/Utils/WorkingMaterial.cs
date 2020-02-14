@@ -19,25 +19,171 @@ namespace Unity.HLODSystem.Utils
     }
     public class WorkingMaterial : IDisposable
     {
+        private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+        private WorkingMaterialBuffer m_buffer;
+
+
+        public string Name
+        {
+            set { m_buffer.Name = value; }
+            get { return m_buffer.Name; }
+        }
+
+        public string Guid
+        {
+            get { return m_buffer.Guid; }
+        }
+        public int InstanceID
+        {
+            get { return m_buffer.InstanceID; }
+        }
+
+
+
+        private WorkingMaterial()
+        {
+            
+        }
+        public WorkingMaterial(Allocator allocator, Material mat)
+        {
+            m_buffer = WorkingMaterialBufferManager.Instance.Get(allocator, mat);
+        }
+        public WorkingMaterial(Allocator allocator, int materialId, string name,  bool copy) 
+        {
+            m_buffer = WorkingMaterialBufferManager.Instance.Create(allocator, materialId, name, copy);
+        }
+
+
+        public WorkingMaterial Clone()
+        {
+             WorkingMaterial nwm = new WorkingMaterial();
+             nwm.m_buffer = m_buffer;
+             nwm.m_buffer.AddRef();
+
+             return nwm;
+
+        }
+
+        public bool NeedWrite()
+        {
+            return m_buffer.NeedWrite();
+        }
+
+        public void AddTexture(string name, WorkingTexture texture)
+        {
+            m_buffer.AddTexture(name, texture);
+        }
+
+        public string[] GetTextureNames()
+        {
+            return m_buffer.GetTextureNames();
+        }
+
+        public void SetTexture(string name, WorkingTexture texture)
+        {
+            m_buffer.SetTexture(name, texture);
+        }
+        public WorkingTexture GetTexture(string name)
+        {
+            return m_buffer.GetTexture(name);
+        }
+
+        public Color GetColor(string name)
+        {
+            return m_buffer.GetColor(name);
+        }
+
+        public Material ToMaterial()
+        {
+           return m_buffer.ToMaterial();
+        }
+
+        public void Dispose()
+        {
+            m_buffer.Release();
+            m_buffer = null;
+            
+            m_detector.Dispose();
+        }
+    }    
+    
+    
+    public class WorkingMaterialBufferManager
+    {
+        private static WorkingMaterialBufferManager s_instance;
+        public static WorkingMaterialBufferManager Instance
+        {
+            get
+            {
+                if ( s_instance == null )
+                    s_instance = new WorkingMaterialBufferManager();
+
+                return s_instance;
+            }
+        }
+
+
+        private Dictionary<string, WorkingMaterialBuffer> m_cache = new Dictionary<string, WorkingMaterialBuffer>();
+        public WorkingMaterialBuffer Get(Allocator allocator, Material material)
+        {
+            WorkingMaterialBuffer buffer = null;
+            string guid = "";
+            long localId = 0;
+            if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(material, out guid, out localId) == false)
+            {
+                //issue guid for just create
+                guid = System.Guid.NewGuid().ToString("N");
+            }
+
+            
+            if (m_cache.ContainsKey(guid) == false)
+            {
+                buffer = new WorkingMaterialBuffer(allocator, material);
+                m_cache[guid] = buffer;
+            }
+
+            buffer = m_cache[guid];
+            buffer.AddRef();
+            return buffer;
+        }
+
+        public WorkingMaterialBuffer Create(Allocator allocator, int materialId, string name, bool copy)
+        {
+            WorkingMaterialBuffer buffer = new WorkingMaterialBuffer(allocator, materialId, name, copy);
+            buffer.AddRef();
+            m_cache[buffer.Guid] = buffer;
+            return buffer;
+        }
+
+        public void Destroy(WorkingMaterialBuffer buffer)
+        {
+            m_cache.Remove(buffer.Guid);
+        }
+    }
+
+    public class WorkingMaterialBuffer : IDisposable
+    {
+        private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+        
+        private int m_refCount;
+        
         private Allocator m_allocator;
-        public string m_guid;
+        private string m_name;
+        private string m_guid;
         private int m_instanceID;
         private bool m_copy;
         private DisposableDictionary<string, WorkingTexture> m_textures;
         private Dictionary<string, Color> m_colors;
 
-        public string Name { set; get; }
-
-        public string Guid
+        public string Name
         {
-            get { return m_guid; }
+            get => m_name;
+            set => m_name = value;
         }
-        public int InstanceID
-        {
-            get { return m_instanceID; }
-        }
-
-        private WorkingMaterial(Allocator allocator)
+        public string Guid => m_guid;
+        public int InstanceID => m_instanceID;
+        
+        private WorkingMaterialBuffer(Allocator allocator)
         {
             m_allocator = allocator;
             m_instanceID = 0;
@@ -45,10 +191,9 @@ namespace Unity.HLODSystem.Utils
             m_colors = new Dictionary<string, Color>();
             m_guid = System.Guid.NewGuid().ToString("N");
         }
-
-        public WorkingMaterial(Allocator allocator, Material mat) : this(allocator)
+        public WorkingMaterialBuffer(Allocator allocator, Material mat) : this(allocator)
         {
-            Name = mat.name;
+            m_name = mat.name;
             m_instanceID = mat.GetInstanceID();
             m_copy = false;
             m_textures.Dispose();
@@ -80,22 +225,48 @@ namespace Unity.HLODSystem.Utils
                 }
             }
         }
-        public  WorkingMaterial(Allocator allocator, int materialId, string name,  bool copy) : this(allocator)
+        public WorkingMaterialBuffer(Allocator allocator, int materialId, string name,  bool copy) : this(allocator)
         {
-            Name = name;
+            m_name = name;
             m_instanceID = materialId;
             m_copy = copy;
             m_guid = System.Guid.NewGuid().ToString("N");
+        }
+
+        
+        public void AddRef()
+        {
+            m_refCount += 1;
+        }
+
+        public void Release()
+        {
+            m_refCount -= 1;
+
+            if (m_refCount == 0)
+            {
+                WorkingMaterialBufferManager.Instance.Destroy(this);
+                Dispose();
+            }
+        }
+
+        
+        public void Dispose()
+        {
+            m_textures.Dispose();
+            m_detector.Dispose();
         }
 
         public bool NeedWrite()
         {
             if (m_copy == true)
                 return true;
+            
             string path = AssetDatabase.GetAssetPath(m_instanceID);
             return string.IsNullOrEmpty(path);
         }
-
+        
+        
         public void AddTexture(string name, WorkingTexture texture)
         {
             lock (m_textures)
@@ -116,6 +287,9 @@ namespace Unity.HLODSystem.Utils
         {
             lock (m_textures)
             {
+                if ( m_textures[name] != null )
+                    m_textures[name].Dispose();
+                        
                 m_textures[name] = texture;
             }
         }
@@ -143,6 +317,7 @@ namespace Unity.HLODSystem.Utils
             }
         }
 
+        
         public Material ToMaterial()
         {
             Material mat = EditorUtility.InstanceIDToObject(m_instanceID) as Material;
@@ -153,11 +328,6 @@ namespace Unity.HLODSystem.Utils
             }
 
             return mat;
-        }
-
-        public void Dispose()
-        {
-            m_textures.Dispose();
         }
     }
 }
