@@ -2,7 +2,7 @@ name: HLOD System Push
 
 dependencies:
 - .yamato/run-editmode-tests.yml
-#- .yamato/run-playmode-tests.yml
+- .yamato/run-playmode-tests.yml
 
 triggers:
     branches:
