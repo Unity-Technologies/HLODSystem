@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using Unity.HLODSystem.Utils;
-using UnityEngine.Rendering;
 
 namespace Unity.HLODSystem
 {
@@ -479,10 +478,11 @@ namespace Unity.HLODSystem
                 
                 var shader = mat.shader;
                 List<string> colorPropertyNames = new List<string>();
-                for (int i = 0; i < shader.GetPropertyCount(); ++i)
+                int propertyCount = ShaderUtil.GetPropertyCount(shader);
+                for (int i = 0; i < propertyCount; ++i)
                 {
-                    string name = shader.GetPropertyName(i);
-                    if (shader.GetPropertyType(i) == ShaderPropertyType.Color)
+                    string name = ShaderUtil.GetPropertyName(shader, i);
+                    if (ShaderUtil.GetPropertyType(shader, i) == ShaderUtil.ShaderPropertyType.Color)
                     {
                         colorPropertyNames.Add(name);
                     }
