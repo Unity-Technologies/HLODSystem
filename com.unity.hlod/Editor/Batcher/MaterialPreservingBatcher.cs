@@ -83,7 +83,6 @@ namespace Unity.HLODSystem
                 combinedObject.Name = info.Name;
                 combinedObject.SetMesh(combinedMesh);
                 combinedObject.Materials.Add(material);
-                material.Dispose();
                 
                 combinedObjects.Add(combinedObject);
             }
