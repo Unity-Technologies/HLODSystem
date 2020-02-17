@@ -81,10 +81,12 @@ namespace Unity.HLODSystem
         public void SetContainer(HLODTreeNodeContainer container)
         {
             m_container = container;
-            ForEachChildTreeNode(node =>
+            
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
-                node.SetContainer(container);
-            });
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                childTreeNode.SetContainer(container);
+            }
         }
         public void SetChildTreeNode(List<HLODTreeNode> childNodes)
         {
@@ -118,37 +120,16 @@ namespace Unity.HLODSystem
             }
             m_childTreeNodeIds.Clear();
         }
-
-        private void ForEachChildTreeNode(Action<HLODTreeNode> action)
-        {
-            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
-            {
-                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
-                action(childTreeNode);
-            }
-        }
-
-        private bool ForEachChildTreeNodeAllTrue(Func<HLODTreeNode, bool> func)
-        {
-            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
-            {
-                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
-                if (func(childTreeNode) == false)
-                    return false;
-            }
-
-            return true;
-        }
-
-
+        
 
         public void Initialize(HLODControllerBase controller, ISpaceManager spaceManager, HLODTreeNode parent)
         {
 
-            ForEachChildTreeNode(node =>
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
-                node.Initialize(controller, spaceManager, this);
-            });
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                childTreeNode.Initialize(controller, spaceManager, this);
+            }
             
             //set to initialize state
             m_fsm.ChangeState(State.Release);
@@ -186,8 +167,12 @@ namespace Unity.HLODSystem
 
             if (m_fsm.CurrentState == State.High)
             {
-                if (ForEachChildTreeNodeAllTrue(node => node.IsLoadDone()) == false)
-                    return false;
+                for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
+                {
+                    var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                    if ( childTreeNode.IsLoadDone() == false )
+                        return false;
+                }
                 
                 return m_highObjectIds.Count == m_highObjects.Count;
             }
@@ -226,11 +211,12 @@ namespace Unity.HLODSystem
         
         void OnEnteredRelease()
         {
-            ForEachChildTreeNode(node =>
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
-                node.m_isVisible = false;
-                node.Release();
-            });
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                childTreeNode.m_isVisible = false;
+                childTreeNode.Release();
+            }
         }
 
         void OnEnteringLow()
@@ -263,11 +249,12 @@ namespace Unity.HLODSystem
             m_lowObjects = m_loadedLowObjects;
             m_loadedLowObjects = null;
 
-            ForEachChildTreeNode(node =>
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
-                node.Release();
-            });
-
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                childTreeNode.Release();
+            }
+            
         }
 
         void OnExitedLow()
@@ -283,11 +270,12 @@ namespace Unity.HLODSystem
         void OnEnteringHigh()
         {
             //child low mesh should be load before change to high.
-            ForEachChildTreeNode(node =>
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
-                node.m_isVisible = false;
-                node.m_fsm.ChangeState(State.Low);
-            });
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                childTreeNode.m_isVisible = false;
+                childTreeNode.m_fsm.ChangeState(State.Low);
+            }
 
             if ( m_loadedHighObjects == null )
                 m_loadedHighObjects = new Dictionary<int, GameObject>();
@@ -312,16 +300,23 @@ namespace Unity.HLODSystem
         {
             if ( m_loadedHighObjects.Count != m_highObjectIds.Count )
                 return false;
+            
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
+            {
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                if (childTreeNode.m_fsm.CurrentState == State.Release)
+                    return false;
+            }
 
-            return ForEachChildTreeNodeAllTrue(node => node.m_fsm.CurrentState != State.Release);
+            return true;
         }
         void OnEnteredHigh()
         {
-            ForEachChildTreeNode(node =>
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
-                node.m_isVisible = true;
-                
-            });
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                childTreeNode.m_isVisible = true;
+            }
             
             m_highObjects = m_loadedHighObjects;
             m_loadedHighObjects = null;
@@ -336,11 +331,12 @@ namespace Unity.HLODSystem
             }
             m_highObjects.Clear();
             
-            ForEachChildTreeNode(node =>
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
-                node.Release();
-                node.m_isVisible = false;
-            });
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                childTreeNode.Release();
+                childTreeNode.m_isVisible = false;
+            }
         }
 
 
@@ -382,11 +378,12 @@ namespace Unity.HLODSystem
             } while (beforeState != m_fsm.CurrentState);
 
             UpdateVisible();
-
-            ForEachChildTreeNode(node =>
+            
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
-                node.Update(lodDistance);
-            });
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                childTreeNode.Update(lodDistance);
+            }
         }
 
         private void UpdateVisible()
