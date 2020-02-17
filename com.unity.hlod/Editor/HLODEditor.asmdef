@@ -2,10 +2,8 @@
     "name": "HLODEditor",
     "references": [
         "HLOD",
-        "CCU",
-        "UnityMeshSimplifier"
+        "Whinarn.UnityMeshSimplifier.Runtime"
     ],
-    "optionalUnityReferences": [],
     "includePlatforms": [
         "Editor"
     ],
@@ -14,5 +12,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": []
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
