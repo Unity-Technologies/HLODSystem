@@ -1,3 +1,9 @@
+[![](https://badge-proxy.cds.internal.unity3d.com/173c1410-1a34-4160-bc9a-155b95ed31ec)](https://badges.cds.internal.unity3d.com/packages/com.unity.hlod/build-info?branch=PackageTests&testWorkflow=package-isolation)
+[![](https://badge-proxy.cds.internal.unity3d.com/fcfb2f8b-2e56-4701-a7bd-69e433651c3f)](https://badges.cds.internal.unity3d.com/packages/com.unity.hlod/warnings-info?branch=PackageTests)
+[![](https://badge-proxy.cds.internal.unity3d.com/2cb1cc7c-4d7c-4910-b2f7-26b09c938532)](https://badges.cds.internal.unity3d.com/packages/com.unity.hlod/dependants-info)
+![ReleaseBadge](https://badge-proxy.cds.internal.unity3d.com/052d13be-36b5-431e-adab-2a8f492293ab)
+![ReleaseBadge](https://badge-proxy.cds.internal.unity3d.com/4024b351-1f1c-4a34-a76d-83d4248b9f8b)
+
 # HLOD system
 It can replace multiple Static Mesh Actors with single, combined Static Mesh Actor at long view distances. This helps reduce the number of Actors that need to be rendered for the scene, increasing performance by lowering the number of draw calls per frame. 
 
@@ -63,3 +69,4 @@ Document: https://docs.google.com/document/d/1OPYDNpwGFpkBorZ3GCpL9Z4ck-6qRRD1tz
 [gitHome]:<https://git-scm.com/downloads>
 [gitSSHSetup]: <https://help.github.com/articles/connecting-to-github-with-ssh/>
 [sampleBranch]: <https://github.com/Unity-Technologies/HLODSystem/tree/samples>
+[badgesLink]: <https://badges.cds.internal.unity3d.com/badge-gallery/com.unity.hlod?branch=PackageTests&proxied=true>
