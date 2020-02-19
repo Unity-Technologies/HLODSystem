@@ -1,5 +1,5 @@
 pack:
-  name: Pack
+  name: Pack com.unity.hlod
   agent:
     type: Unity::VM
     image: package-ci/ubuntu:stable

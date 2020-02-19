@@ -105,7 +105,7 @@ badges_test_trigger:
 {% endfor -%}
 
 all_tests_trigger:
-  name: Project Tests Trigger
+  name: Project Tests Trigger (All)
   triggers:
     branches:
       only:

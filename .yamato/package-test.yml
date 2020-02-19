@@ -10,7 +10,7 @@ test_platforms:
 {% for editor in test_editors %}
 {% for platform in test_platforms %}
 test_{{ platform.name }}_{{ editor.version }}:
-  name : Test {{ editor.version }} on {{ platform.name }}
+  name : Test com.unity.hlod on {{ platform.name }} against {{ editor.version }}
   agent:
     type: {{ platform.type }}
     image: {{ platform.image }}
@@ -29,7 +29,7 @@ test_{{ platform.name }}_{{ editor.version }}:
 {% endfor %}
 
 test_trigger:
-  name: Package Tests Trigger
+  name: Package Tests Trigger (All)
   triggers:
     branches:
       only:
