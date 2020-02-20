@@ -1,0 +1,14 @@
+pack:
+  name: Pack com.unity.hlod
+  agent:
+    type: Unity::VM
+    image: package-ci/ubuntu:stable
+    flavor: b1.large
+  commands:
+    - git submodule update --init --recursive
+    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - upm-ci package pack --package-path com.unity.hlod 
+  artifacts:
+    packages:
+      paths:
+        - "upm-ci~/packages/**/*"

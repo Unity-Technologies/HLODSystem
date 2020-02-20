@@ -3,3 +3,7 @@ com.unity.hlod/Package.meta
 .vscode/
 TestResults/
 Logs/
+upm-ci~/
+.bin/
+.download/
+com.unity.hlod/.npmignore
