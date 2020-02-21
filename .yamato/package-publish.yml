@@ -1,0 +1,35 @@
+test_editors:
+  - version: 2019.3.0f5
+test_platforms:
+  - name: Windows
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+---
+
+publish:
+  name: Publish com.unity.hlod to Internal Registry
+  agent:
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+  commands:
+    - git submodule update --init --recursive
+    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+# Please remove the dry-run option once your CI pipeline is in place ant that you're ready to publish for real
+    - upm-ci package publish --package-path com.unity.hlod --dry-run
+  triggers:
+    tags:
+      only:
+        - /^(r|R)(c|C)-\d+\.\d+\.\d+(-preview(\.\d+)?)?$/
+  artifacts:
+    artifacts:
+      paths:
+        - "upm-ci~/packages/*.tgz"
+  dependencies:
+    - .yamato/package-pack.yml#pack
+    {% for editor in test_editors %}
+    {% for platform in test_platforms %}
+    - .yamato/package-test.yml#test_{{ platform.name }}_{{ editor.version }}
+    {% endfor %}
+    {% endfor %}
