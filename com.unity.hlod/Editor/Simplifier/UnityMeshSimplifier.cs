@@ -5,9 +5,6 @@ using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEngine;
 
-[assembly:Unity.HLODSystem.OptionalDependency("UnityMeshSimplifier.MeshSimplifier", "ENABLE_UNITYMESHSIMPLIFIER")]
-#if ENABLE_UNITYMESHSIMPLIFIER
-
 namespace Unity.HLODSystem.Simplifier
 {
     public class UnityMeshSimplifier : SimplifierBase
@@ -82,4 +79,3 @@ namespace Unity.HLODSystem.Simplifier
         }
     }
 }
-#endif
