@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Xml;
 using Unity.Collections;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
@@ -296,6 +297,206 @@ namespace Unity.HLODSystem
             }
         }
 
+        [Serializable]
+        public struct SerializableVector3
+        {
+            [SerializeField]
+            public float X;
+            [SerializeField]
+            public float Y;
+            [SerializeField]
+            public float Z;
+
+            public SerializableVector3(Vector3 vector3)
+            {
+                X = vector3.x;
+                Y = vector3.y;
+                Z = vector3.z;
+            }
+
+            public Vector3 To()
+            {
+                return new Vector3(X, Y, Z);
+            }
+        }
+
+        [Serializable]
+        public struct SerializableQuaternion
+        {
+            [SerializeField]
+            public float X;
+            [SerializeField]
+            public float Y;
+            [SerializeField]
+            public float Z;
+            [SerializeField]
+            public float W;
+
+            public SerializableQuaternion(Quaternion quaternion)
+            {
+                X = quaternion.x;
+                Y = quaternion.y;
+                Z = quaternion.z;
+                W = quaternion.w;
+            }
+
+            public Quaternion To()
+            {
+                return new Quaternion(X, Y, Z, W);
+            }
+        }
+
+        [Serializable]
+        public class SerializableCollider
+        {
+            [SerializeField]
+            string m_name;
+            [SerializeField]
+            string m_type;
+            [SerializeField]
+            SerializableVector3 m_position;
+            [SerializeField]
+            SerializableQuaternion m_rotation;
+            [SerializeField]
+            SerializableVector3 m_scale;
+            
+            [SerializeField]
+            SerializableDynamicObject m_parameters;
+
+            public string Name
+            {
+                get => m_name;
+                set => m_name = value;
+            }
+
+            public void From(WorkingCollider collider)
+            {
+                m_type = collider.Type;
+                m_position = new SerializableVector3(collider.Position);
+                m_rotation = new SerializableQuaternion(collider.Rotation);
+                m_scale = new SerializableVector3(collider.Scale);
+                m_parameters = collider.Parameters;
+            }
+
+            public GameObject CreateGameObject()
+            {
+                if (m_type == typeof(BoxCollider).Name)
+                {
+                    return CreateBoxCollider();
+                }
+
+                if (m_type == typeof(MeshCollider).Name)
+                {
+                    return CreateMeshCollider();
+                }
+
+                if (m_type == typeof(SphereCollider).Name)
+                {
+                    return CreateSphereCollider();
+                }
+
+                if (m_type == typeof(CapsuleCollider).Name)
+                {
+                    return CreateCapsuleCollider();
+                }
+
+                return null;
+            }
+
+            private GameObject CreateBoxCollider()
+            {
+                dynamic param = m_parameters;
+                GameObject go = new GameObject("Collider");
+                var col = go.AddComponent<BoxCollider>();
+
+                go.transform.position = m_position.To();
+                go.transform.rotation = m_rotation.To();
+                go.transform.localScale = m_scale.To();
+
+                Vector3 size;
+                Vector3 center;
+                size.x = param.SizeX;
+                size.y = param.SizeY;
+                size.z = param.SizeZ;
+                center.x = param.CenterX;
+                center.y = param.CenterY;
+                center.z = param.CenterZ;
+
+                col.size = size;
+                col.center = center;
+
+                return go;
+            }
+
+            private GameObject CreateMeshCollider()
+            {
+                dynamic param = m_parameters;
+                string sharedMeshGuid = param.SharedMesh;
+                string path = AssetDatabase.GUIDToAssetPath(sharedMeshGuid);
+                if (string.IsNullOrEmpty(path) == true)
+                    return null;
+
+                GameObject go = new GameObject("Collider");
+                var col = go.AddComponent<MeshCollider>();
+
+                go.transform.position = m_position.To();
+                go.transform.rotation = m_rotation.To();
+                go.transform.localScale = m_scale.To();
+
+                
+                col.sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+                col.convex = param.Convex;
+
+                return go;
+            }
+
+            private GameObject CreateSphereCollider()
+            {
+                dynamic param = m_parameters;
+                GameObject go = new GameObject("Collider");
+                var col = go.AddComponent<SphereCollider>();
+
+                go.transform.position = m_position.To();
+                go.transform.rotation = m_rotation.To();
+                go.transform.localScale = m_scale.To();
+
+                Vector3 center;
+                center.x = param.CenterX;
+                center.y = param.CenterY;
+                center.z = param.CenterZ;
+
+                col.center = center;
+                col.radius = param.Radius;
+
+                return go;
+            }
+
+            private GameObject CreateCapsuleCollider()
+            {
+                dynamic param = m_parameters;
+                GameObject go = new GameObject("Collider");
+                var col = go.AddComponent<CapsuleCollider>();
+
+                go.transform.position = m_position.To();
+                go.transform.rotation = m_rotation.To();
+                go.transform.localScale = m_scale.To();
+
+                Vector3 center;
+                center.x = param.CenterX;
+                center.y = param.CenterY;
+                center.z = param.CenterZ;
+
+                col.center = center;
+                col.radius = param.Radius;
+                col.height = param.Height;
+                col.direction = param.Direction;
+
+                return go;
+            }
+            
+            
+        }
+
 
         public string Name
         {
@@ -314,6 +515,7 @@ namespace Unity.HLODSystem
 
         [SerializeField] private List<SerializableObject> m_objects = new List<SerializableObject>();
         [SerializeField] private List<SerializableMaterial> m_materials = new List<SerializableMaterial>();
+        [SerializeField] private List<SerializableCollider> m_colliders = new List<SerializableCollider>();
 
         public void AddFromWokringObjects(string name, IList<WorkingObject> woList)
         {
@@ -328,6 +530,17 @@ namespace Unity.HLODSystem
             }
         }
 
+        public void AddFromWorkingColliders(string name, IList<WorkingCollider> wcList)
+        {
+            for (int i = 0; i < wcList.Count; ++i)
+            {
+                WorkingCollider wc = wcList[i];
+                SerializableCollider sc = new SerializableCollider();
+                sc.From(wc);
+                sc.Name = name;
+                m_colliders.Add(sc);
+            }
+        }
         public void AddFromGameObject(GameObject go)
         {
             using (WorkingObject wo = new WorkingObject(Allocator.Temp))
@@ -406,6 +619,11 @@ namespace Unity.HLODSystem
         public List<SerializableObject> GetObjects()
         {
             return m_objects;
+        }
+
+        public List<SerializableCollider> GetColliders()
+        {
+            return m_colliders;
         }
 
         public int GetMaterialCount()

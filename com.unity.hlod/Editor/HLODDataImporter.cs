@@ -27,7 +27,7 @@ namespace Unity.HLODSystem
                     TextureFormat compressFormat = GetCompressFormat(data, buildTargetGroup);
 
                     int currentProgress = 0;
-                    int maxProgress = data.GetMaterials().Count + data.GetObjects().Count;
+                    int maxProgress = data.GetMaterials().Count + data.GetObjects().Count + data.GetColliders().Count;
 
                     rootData.name = "Root";
 
@@ -64,8 +64,10 @@ namespace Unity.HLODSystem
                     }
 
                     var serializableObjects = data.GetObjects();
+                    var serializableColliders = data.GetColliders();
                     Dictionary<string, List<GameObject>>
                         createdGameObjects = new Dictionary<string, List<GameObject>>();
+                    Dictionary<string, GameObject> createdColliders = new Dictionary<string, GameObject>();
 
                     for (int oi = 0; oi < serializableObjects.Count; ++oi)
                     {
@@ -101,26 +103,53 @@ namespace Unity.HLODSystem
                         createdGameObjects[go.name].Add(go);
                     }
 
+                    for (int ci = 0; ci < serializableColliders.Count; ++ci)
+                    {
+                        UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
+
+                        var sc = serializableColliders[ci];
+                        GameObject go;
+
+                        if (createdColliders.ContainsKey(sc.Name) == false)
+                        {
+                            createdColliders[sc.Name] = new GameObject("Collider");
+                        }
+                        
+                        go = createdColliders[sc.Name];
+
+                        var collider = sc.CreateGameObject();
+                        if (collider != null)
+                        {
+                            collider.name = "Collider" + ci;
+                            collider.transform.SetParent(go.transform, true);
+                        }
+                    }
+
                     foreach (var objects in createdGameObjects.Values)
                     {
+                        GameObject root;
                         if (objects.Count > 1)
                         {
-                            GameObject root = new GameObject();
+                            root = new GameObject();
                             root.name = objects[0].name;
                             for (int i = 0; i < objects.Count; ++i)
                             {
                                 objects[i].name = objects[i].name + "_" + i;
                                 objects[i].transform.SetParent(root.transform, true);
                             }
-
-                            rootData.SetRootObject(root.name, root);
-                            ctx.AddObjectToAsset(root.name, root);
                         }
                         else
                         {
-                            rootData.SetRootObject(objects[0].name, objects[0]);
-                            ctx.AddObjectToAsset(objects[0].name, objects[0]);
+                            root = objects[0];
                         }
+
+                        if (createdColliders.ContainsKey(root.name))
+                        {
+                            createdColliders[root.name].transform.SetParent(root.transform, true);
+                        }
+                        
+                        rootData.SetRootObject(root.name, root);
+                        ctx.AddObjectToAsset(root.name, root);
                     }
 
                     ctx.AddObjectToAsset("Root", rootData);
