@@ -27,40 +27,50 @@ namespace Unity.HLODSystem
                     TextureFormat compressFormat = GetCompressFormat(data, buildTargetGroup);
 
                     int currentProgress = 0;
-                    int maxProgress = data.GetMaterials().Count + data.GetObjects().Count + data.GetColliders().Count;
+                    int maxProgress = 0;
+
+                    if (data.GetMaterials() != null)
+                        maxProgress += data.GetMaterials().Count;
+                    if (data.GetObjects() != null)
+                        maxProgress += data.GetObjects().Count;
+                    if ( data.GetColliders() != null )
+                        maxProgress += data.GetColliders().Count;
 
                     rootData.name = "Root";
 
                     var serializableMaterials = data.GetMaterials();
                     var loadedMaterials = new Dictionary<string, Material>();
-                    for (int mi = 0; mi < serializableMaterials.Count; ++mi)
+                    if (serializableMaterials != null)
                     {
-                        UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
-                        var sm = serializableMaterials[mi];
-
-                        if (loadedMaterials.ContainsKey(sm.ID))
-                            continue;
-
-                        Material mat = sm.To();
-                        loadedMaterials.Add(sm.ID, mat);
-
-                        if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(mat)) == false)
-                            continue;
-
-                        ctx.AddObjectToAsset(mat.name, mat);
-
-                        for (int ti = 0; ti < sm.GetTextureCount(); ++ti)
+                        for (int mi = 0; mi < serializableMaterials.Count; ++mi)
                         {
-                            HLODData.SerializableTexture st = sm.GetTexture(ti);
-                            Texture2D texture = st.To();
-                            EditorUtility.CompressTexture(texture, compressFormat,
-                                TextureCompressionQuality.Normal);
+                            UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
+                            var sm = serializableMaterials[mi];
 
-                            mat.SetTexture(st.Name, texture);
-                            ctx.AddObjectToAsset(texture.name, texture);
+                            if (loadedMaterials.ContainsKey(sm.ID))
+                                continue;
+
+                            Material mat = sm.To();
+                            loadedMaterials.Add(sm.ID, mat);
+
+                            if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(mat)) == false)
+                                continue;
+
+                            ctx.AddObjectToAsset(mat.name, mat);
+
+                            for (int ti = 0; ti < sm.GetTextureCount(); ++ti)
+                            {
+                                HLODData.SerializableTexture st = sm.GetTexture(ti);
+                                Texture2D texture = st.To();
+                                EditorUtility.CompressTexture(texture, compressFormat,
+                                    TextureCompressionQuality.Normal);
+
+                                mat.SetTexture(st.Name, texture);
+                                ctx.AddObjectToAsset(texture.name, texture);
+                            }
+
+                            mat.EnableKeyword("_NORMALMAP");
                         }
-
-                        mat.EnableKeyword("_NORMALMAP");
                     }
 
                     var serializableObjects = data.GetObjects();
@@ -69,59 +79,65 @@ namespace Unity.HLODSystem
                         createdGameObjects = new Dictionary<string, List<GameObject>>();
                     Dictionary<string, GameObject> createdColliders = new Dictionary<string, GameObject>();
 
-                    for (int oi = 0; oi < serializableObjects.Count; ++oi)
+                    if (serializableObjects != null)
                     {
-                        UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
-
-                        var so = serializableObjects[oi];
-                        GameObject go = new GameObject();
-                        go.name = so.Name;
-
-                        MeshFilter mf = go.AddComponent<MeshFilter>();
-                        MeshRenderer mr = go.AddComponent<MeshRenderer>();
-                        List<string> materialIds = so.GetMaterialIds();
-                        List<Material> materials = new List<Material>();
-
-                        for (int mi = 0; mi < materialIds.Count; ++mi)
+                        for (int oi = 0; oi < serializableObjects.Count; ++oi)
                         {
-                            string id = materialIds[mi];
-                            if (loadedMaterials.ContainsKey(id))
+                            UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
+
+                            var so = serializableObjects[oi];
+                            GameObject go = new GameObject();
+                            go.name = so.Name;
+
+                            MeshFilter mf = go.AddComponent<MeshFilter>();
+                            MeshRenderer mr = go.AddComponent<MeshRenderer>();
+                            List<string> materialIds = so.GetMaterialIds();
+                            List<Material> materials = new List<Material>();
+
+                            for (int mi = 0; mi < materialIds.Count; ++mi)
                             {
-                                materials.Add(loadedMaterials[id]);
+                                string id = materialIds[mi];
+                                if (loadedMaterials.ContainsKey(id))
+                                {
+                                    materials.Add(loadedMaterials[id]);
+                                }
                             }
+
+                            Mesh mesh = so.GetMesh();
+                            mf.sharedMesh = mesh;
+                            mr.sharedMaterials = materials.ToArray();
+
+                            ctx.AddObjectToAsset(mesh.name, mesh);
+
+                            if (createdGameObjects.ContainsKey(go.name) == false)
+                                createdGameObjects.Add(go.name, new List<GameObject>());
+
+                            createdGameObjects[go.name].Add(go);
                         }
-
-                        Mesh mesh = so.GetMesh();
-                        mf.sharedMesh = mesh;
-                        mr.sharedMaterials = materials.ToArray();
-
-                        ctx.AddObjectToAsset(mesh.name, mesh);
-
-                        if (createdGameObjects.ContainsKey(go.name) == false)
-                            createdGameObjects.Add(go.name, new List<GameObject>());
-
-                        createdGameObjects[go.name].Add(go);
                     }
 
-                    for (int ci = 0; ci < serializableColliders.Count; ++ci)
+                    if (serializableColliders != null)
                     {
-                        UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
-
-                        var sc = serializableColliders[ci];
-                        GameObject go;
-
-                        if (createdColliders.ContainsKey(sc.Name) == false)
+                        for (int ci = 0; ci < serializableColliders.Count; ++ci)
                         {
-                            createdColliders[sc.Name] = new GameObject("Collider");
-                        }
-                        
-                        go = createdColliders[sc.Name];
+                            UpdateProgress(ctx.assetPath, currentProgress++, maxProgress);
 
-                        var collider = sc.CreateGameObject();
-                        if (collider != null)
-                        {
-                            collider.name = "Collider" + ci;
-                            collider.transform.SetParent(go.transform, true);
+                            var sc = serializableColliders[ci];
+                            GameObject go;
+
+                            if (createdColliders.ContainsKey(sc.Name) == false)
+                            {
+                                createdColliders[sc.Name] = new GameObject("Collider");
+                            }
+
+                            go = createdColliders[sc.Name];
+
+                            var collider = sc.CreateGameObject();
+                            if (collider != null)
+                            {
+                                collider.name = "Collider" + ci;
+                                collider.transform.SetParent(go.transform, true);
+                            }
                         }
                     }
 
