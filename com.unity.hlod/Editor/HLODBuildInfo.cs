@@ -168,7 +168,9 @@ namespace Unity.HLODSystem
         public SpaceNode Target;
 
         public DisposableList<WorkingObject> WorkingObjects = new DisposableList<WorkingObject>();
+        public List<WorkingCollider> Colliders = new List<WorkingCollider>();
         public List<int> Distances = new List<int>();
+        
 
         public Heightmap Heightmap;
 

@@ -57,7 +57,7 @@ namespace Unity.HLODSystem.Utils
             m_materials?.Dispose();
             
             MeshFilter filter = renderer.GetComponent<MeshFilter>();
-            if (filter != null)
+            if (filter != null && filter.sharedMesh != null)
             {
                 m_mesh = filter.sharedMesh.ToWorkingMesh(m_allocator);
             }

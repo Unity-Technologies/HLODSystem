@@ -56,6 +56,29 @@ namespace Unity.HLODSystem
             return meshRenderers;
         }
 
+        private static List<Collider> GetColliders(List<GameObject> gameObjects, float minObjectSize)
+        {
+            List<Collider> results = new List<Collider>();
+
+            for (int i = 0; i < gameObjects.Count; ++i)
+            {
+                GameObject obj = gameObjects[i];
+                Collider[] colliders = obj.GetComponentsInChildren<Collider>();
+                
+                for (int ci = 0; ci < colliders.Length; ++ci)
+                {
+                    Collider collider = colliders[ci];
+                    float max = Mathf.Max(collider.bounds.size.x, collider.bounds.size.y, collider.bounds.size.z);
+                    if (max < minObjectSize)
+                        continue;
+                    
+                    results.Add(collider);
+                }
+            }
+
+            return results;
+        }
+
         private static DisposableList<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float minObjectSize)
         {
 
@@ -64,7 +87,7 @@ namespace Unity.HLODSystem
             Queue<int> parentQueue = new Queue<int>();
             Queue<string> nameQueue = new Queue<string>();
             Queue<int> levelQueue = new Queue<int>();
-
+            
             trevelQueue.Enqueue(root);
             parentQueue.Enqueue(-1);
             levelQueue.Enqueue(0);
@@ -96,6 +119,7 @@ namespace Unity.HLODSystem
 
                 //it should add to every parent.
                 List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects, minObjectSize);
+                List<Collider> colliders = GetColliders(node.Objects, minObjectSize);
                 int distance = 0;
 
                 while (currentNodeIndex >= 0)
@@ -108,6 +132,14 @@ namespace Unity.HLODSystem
                         curInfo.Distances.Add(distance);
                     }
 
+                    for (int i = 0; i < colliders.Count; ++i)
+                    {
+                        curInfo.Colliders.Add(colliders[i].ToWorkingCollider());
+                    }
+
+                    
+                   
+  
                     currentNodeIndex = curInfo.ParentIndex;
                     distance += 1;
                 }

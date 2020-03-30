@@ -35,11 +35,6 @@ namespace Unity.HLODSystem
 
         }
 
-        
-
-
-       
-        
         private void Combine(Vector3 rootPosition, HLODBuildInfo info)
         {
             var instancesTable = new Dictionary<Material, List<CombineInstance>>();

@@ -108,6 +108,7 @@ namespace Unity.HLODSystem.Streaming
 
                 HLODData data = hlodDatas[infos[i].ParentIndex];
                 data.AddFromWokringObjects(infos[i].Name, infos[i].WorkingObjects);
+                data.AddFromWorkingColliders(infos[i].Name, infos[i].Colliders);
 
                 if (writeNoPrefab)
                 {

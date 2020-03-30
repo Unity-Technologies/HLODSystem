@@ -450,8 +450,13 @@ namespace Unity.HLODSystem
                 mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             }
             mat = EditorGUILayout.ObjectField("Material", mat, typeof(Material), false) as Material;
+            if( mat == null)
+                mat = new Material(Shader.Find("Standard"));
+            
             path = AssetDatabase.GetAssetPath(mat);
             matGUID = AssetDatabase.AssetPathToGUID(path);
+            
+
             if (matGUID != batcherOptions.MaterialGUID)
             {
                 batcherOptions.MaterialGUID = matGUID;
@@ -463,9 +468,6 @@ namespace Unity.HLODSystem
             }
             if (outputTexturePropertyNames == null)
             {
-                if( mat == null)
-                    mat = new Material(Shader.Find("Standard"));
-
                 outputTexturePropertyNames = mat.GetTexturePropertyNames();
             }
             
