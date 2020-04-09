@@ -6,6 +6,7 @@ using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -501,8 +502,19 @@ namespace Unity.HLODSystem.Streaming
                 if (settings.groups[i].Name == groupName)
                     return settings.groups[i];
             }
+            
+            List<AddressableAssetGroupSchema> schemas = new List<AddressableAssetGroupSchema>();
 
-            return settings.CreateGroup(groupName, false, false, false, settings.DefaultGroup.Schemas);
+            ContentUpdateGroupSchema contentUpdateGroupSchema = ScriptableObject.CreateInstance<ContentUpdateGroupSchema>();
+            BundledAssetGroupSchema bundledAssetGroupSchema = ScriptableObject.CreateInstance<BundledAssetGroupSchema>();
+
+            bundledAssetGroupSchema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
+            
+            schemas.Add(contentUpdateGroupSchema);
+            schemas.Add(bundledAssetGroupSchema);
+
+            AddressableAssetGroup group = settings.CreateGroup(groupName, false, false, false, schemas);
+            return group;
         }
     }
 
