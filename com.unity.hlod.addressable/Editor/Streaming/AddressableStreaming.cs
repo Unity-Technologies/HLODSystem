@@ -85,6 +85,7 @@ namespace Unity.HLODSystem.Streaming
 
             
             var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
+            var group = GetGroup(settings, options.AddressablesGroupName);
             m_shaderGuids.Clear();
             
             if (onProgress != null)
@@ -159,7 +160,7 @@ namespace Unity.HLODSystem.Streaming
                 AssetDatabase.ImportAsset(filename, ImportAssetOptions.ForceUpdate);
                 RootData rootData = AssetDatabase.LoadAssetAtPath<RootData>(filename);
                 m_manager.AddGeneratedResource(rootData);
-                AddAddress(settings, rootData);
+                AddAddress(settings, group, rootData);
                 
                 rootDatas.Add(item.Key, rootData);
             }
@@ -204,7 +205,7 @@ namespace Unity.HLODSystem.Streaming
                     var address = GetAddress(spaceNode.Objects[oi]);
                     if (string.IsNullOrEmpty(address) && PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]))
                     {
-                        AddAddress(settings, spaceNode.Objects[oi]);
+                        AddAddress(settings, group, spaceNode.Objects[oi]);
                         address = GetAddress(spaceNode.Objects[oi]);
                     }
                     
@@ -235,7 +236,7 @@ namespace Unity.HLODSystem.Streaming
             foreach (var shaderGuid in m_shaderGuids)
             {
                 if ( IsExistsInAddressables(shaderGuid) == false )
-                    shaderEntriesAdded.Add(settings.CreateOrMoveEntry(shaderGuid, settings.DefaultGroup, false, false));
+                    shaderEntriesAdded.Add(settings.CreateOrMoveEntry(shaderGuid, group, false, false));
             }
             settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, shaderEntriesAdded, true);
             m_shaderGuids.Clear();
@@ -312,6 +313,10 @@ namespace Unity.HLODSystem.Streaming
                 options.OutputDirectory = path;
             }
 
+            if (options.AddressablesGroupName == null)
+            {
+                options.AddressablesGroupName = "HLOD";
+            }
 
             if (options.PCCompression == null)
             {
@@ -362,7 +367,8 @@ namespace Unity.HLODSystem.Streaming
 
             EditorGUILayout.EndHorizontal();
 
-          
+            options.AddressablesGroupName = EditorGUILayout.TextField("Addressables Group", options.AddressablesGroupName);
+            
 
             // It stores return value from foldout and uses it as a condition.
             if (showFormat = EditorGUILayout.Foldout(showFormat, "Compress Format"))
@@ -388,7 +394,7 @@ namespace Unity.HLODSystem.Streaming
             return Styles.SupportTextureFormats[selectIndex];
         }
 
-        private void AddAddress(AddressableAssetSettings settings, Object obj)
+        private void AddAddress(AddressableAssetSettings settings, AddressableAssetGroup group, Object obj)
         {
             
             string path = GetAssetPath(obj);
@@ -414,7 +420,7 @@ namespace Unity.HLODSystem.Streaming
             }
 
             string guid = AssetDatabase.AssetPathToGUID(path);
-            entriesAdded.Add(settings.CreateOrMoveEntry(guid, settings.DefaultGroup, false, false));
+            entriesAdded.Add(settings.CreateOrMoveEntry(guid, group, false, false));
             
             
 
@@ -486,6 +492,17 @@ namespace Unity.HLODSystem.Streaming
             }
 
             return false;
+        }
+
+        private AddressableAssetGroup GetGroup(AddressableAssetSettings settings, string groupName)
+        {
+            for (int i = 0; i < settings.groups.Count; ++i)
+            {
+                if (settings.groups[i].Name == groupName)
+                    return settings.groups[i];
+            }
+
+            return settings.CreateGroup(groupName, false, false, false, settings.DefaultGroup.Schemas);
         }
     }
 
