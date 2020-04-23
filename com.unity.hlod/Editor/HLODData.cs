@@ -38,6 +38,12 @@ namespace Unity.HLODSystem
             [SerializeField] private byte[] m_colors;
             [SerializeField] private List<int[]> m_indices;
 
+            public string Name
+            {
+                set { m_name = value; }
+                get { return m_name; }
+            }
+
             private static byte[] ArrayToBytes<T>(T[] arr)
                 where T : struct
             {
@@ -117,6 +123,25 @@ namespace Unity.HLODSystem
 
                 return mesh;
             }
+
+            public int GetSpaceUsage()
+            {
+                int usage = 0;
+                usage += m_vertices.Length;
+                usage += m_normals.Length;
+                usage += m_tangents.Length;
+                usage += m_uvs.Length;
+                usage += m_uvs2.Length;
+                usage += m_uvs3.Length;
+                usage += m_uvs4.Length;
+                usage += m_colors.Length;
+                for ( int i = 0; i < m_indices.Count; ++i )
+                {
+                    usage += m_indices[i].Length * sizeof(int);
+                }
+
+                return usage;
+            }
         }
 
         [Serializable]
@@ -134,6 +159,11 @@ namespace Unity.HLODSystem
             {
                 set { m_name = value; }
                 get { return m_name; }
+            }
+
+            public string TextureName
+            {
+                get { return m_textureName; }
             }
 
             public int Height
@@ -154,6 +184,10 @@ namespace Unity.HLODSystem
             public TextureWrapMode WrapMode
             {
                 get { return m_wrapMode; }
+            }
+            public int BytesLength
+            {
+                get { return m_bytes.Length; }
             }
 
             public void From(Texture2D texture)
@@ -275,9 +309,10 @@ namespace Unity.HLODSystem
                 get { return m_name; }
             }
 
-            public Mesh GetMesh()
+            
+            public SerializableMesh GetMesh()
             {
-                return m_mesh.To();
+                return m_mesh;
             }
 
             public List<string> GetMaterialIds()
