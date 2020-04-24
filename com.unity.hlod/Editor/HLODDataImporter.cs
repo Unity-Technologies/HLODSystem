@@ -12,6 +12,7 @@ namespace Unity.HLODSystem
     [ScriptedImporter(version: 1, ext: "hlod", AllowCaching = true)]
     public class HLODDataImporter : ScriptedImporter
     {
+        
         public override void OnImportAsset(AssetImportContext ctx)
         {
             ctx.DependsOnCustomDependency("HLODSystemPlatform");
@@ -103,7 +104,7 @@ namespace Unity.HLODSystem
                                 }
                             }
 
-                            Mesh mesh = so.GetMesh();
+                            Mesh mesh = so.GetMesh().To();
                             mf.sharedMesh = mesh;
                             mr.sharedMaterials = materials.ToArray();
 
