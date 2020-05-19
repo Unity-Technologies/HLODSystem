@@ -26,4 +26,4 @@ HLODSystem provides 2 components used to build 2 types of HLOD data-structure:
 See section [HLOD](HLOD.md).
 
 ### TerrainHLOD
-
+See section [TerrainHLOD](TerrainHLOD.md).

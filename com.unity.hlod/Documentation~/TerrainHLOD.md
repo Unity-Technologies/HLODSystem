@@ -29,7 +29,7 @@ Set up the material to be used for the baked TerrainHLODMesh. Note
 that we bake the Splat System into single textures for our
 TerrainHLODMesh material.
 
-![](.//media/image19.png){width="5.40625in" height="1.34375in"}
+![](.//media/image19.png)
 
 **Material:** Specifies the Material to be used for the
 TerrainHLODMesh.
