@@ -14,9 +14,16 @@ It can replace multiple Static Mesh Actors with single, combined Static Mesh Act
 
 For information on starting with HLOD package, see section [Getting started](GettingStarted.md).
 
-## HLOD
+## Using HLOD in the Project
 
+For information on simple HLODSystem usage, see section [Using HLOD](UsingHLOD.md).
 
+## Component
 
-## TerrainHLOD
+HLODSystem provides 2 components used to build 2 types of HLOD data-structure:
+
+### HLOD
+See section [HLOD](HLOD.md).
+
+### TerrainHLOD
 
