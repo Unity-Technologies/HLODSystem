@@ -200,6 +200,10 @@ namespace Unity.HLODSystem.Utils
             m_colors = new Dictionary<string, Color>();
             string path = AssetDatabase.GetAssetPath(mat.GetInstanceID());
             m_guid = AssetDatabase.AssetPathToGUID(path);
+            if (string.IsNullOrEmpty(m_guid))
+            {
+                m_guid = System.Guid.NewGuid().ToString("N");
+            }
                 
             string[] names = mat.GetTexturePropertyNames();
             for (int i = 0; i < names.Length; ++i)
