@@ -1,0 +1,22 @@
+# Editors where tests will happen. The first entry of this array is also used
+# for validation
+test_editors:
+  - 2019.3.0f5
+
+# Platforms that will be tested. The first entry in this array will also
+# be used for validation
+test_platforms:
+  - name: Windows
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+
+# Projects within the repository that will be tested. Name will be used
+# for job ids, so it should not contain spaces/non-supported characters
+projects:
+  - name: HLOD Sample
+    path: com.unity.hlod/Samples~
+    # Packages within a project that will be tested
+    packages:
+      - name: com.unity.hlod
+        path: com.unity.hlod

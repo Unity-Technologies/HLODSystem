@@ -8,7 +8,7 @@ using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Simplifier
 {
-    abstract class SimplifierBase : ISimplifier
+    public abstract class SimplifierBase : ISimplifier
     {
         private dynamic m_options;
         public SimplifierBase(SerializableDynamicObject simplifierOptions)

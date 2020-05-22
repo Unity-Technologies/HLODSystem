@@ -1,6 +1,3 @@
 [submodule "Package/UnityMeshSimplifier"]
 	path = Package/UnityMeshSimplifier
 	url = https://github.com/Unity-Technologies/UnityMeshSimplifier.git
-[submodule "Package/ConditionalCompilationUtility"]
-	path = Package/ConditionalCompilationUtility
-	url = https://github.com/Unity-Technologies/ConditionalCompilationUtility.git

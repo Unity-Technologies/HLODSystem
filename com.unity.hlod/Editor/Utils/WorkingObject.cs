@@ -18,6 +18,8 @@ namespace Unity.HLODSystem.Utils
     
     public class WorkingObject : IDisposable
     {
+        private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+        
         private WorkingMesh m_mesh;
         private DisposableList<WorkingMaterial> m_materials;
         private Matrix4x4 m_localToWorld;
@@ -51,10 +53,11 @@ namespace Unity.HLODSystem.Utils
         public void FromRenderer(MeshRenderer renderer)
         {
             //clean old data
-            Dispose();
+            m_mesh?.Dispose();
+            m_materials?.Dispose();
             
             MeshFilter filter = renderer.GetComponent<MeshFilter>();
-            if (filter != null)
+            if (filter != null && filter.sharedMesh != null)
             {
                 m_mesh = filter.sharedMesh.ToWorkingMesh(m_allocator);
             }
@@ -85,6 +88,7 @@ namespace Unity.HLODSystem.Utils
         {
             m_mesh?.Dispose();
             m_materials?.Dispose();
+            m_detector.Dispose();
         }
     }
 

@@ -75,6 +75,8 @@ namespace Unity.HLODSystem
 
         class Layer : IDisposable
         {
+            private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+            
             public Layer(TerrainLayer layer)
             {
                 WorkingTexture texture = layer.diffuseTexture.ToWorkingTexture(Allocator.Persistent);
@@ -86,6 +88,15 @@ namespace Unity.HLODSystem
                 m_size = layer.tileSize;
                 var diffuseRemapMin = layer.diffuseRemapMin;
                 var diffuseRemapMax = layer.diffuseRemapMax;
+                
+                diffuseRemapMin.x = Mathf.Pow(diffuseRemapMin.x, 0.45f);
+                diffuseRemapMin.y = Mathf.Pow(diffuseRemapMin.y, 0.45f);
+                diffuseRemapMin.z = Mathf.Pow(diffuseRemapMin.z, 0.45f);
+                
+                diffuseRemapMax.x = Mathf.Pow(diffuseRemapMax.x, 0.45f);
+                diffuseRemapMax.y = Mathf.Pow(diffuseRemapMax.y, 0.45f);
+                diffuseRemapMax.z = Mathf.Pow(diffuseRemapMax.z, 0.45f);
+        
 
                 RemapTexture(texture, diffuseRemapMin, diffuseRemapMax);
                 
@@ -101,6 +112,7 @@ namespace Unity.HLODSystem
             public void Dispose()
             {
                 m_diffuseTexstures?.Dispose();
+                m_detector.Dispose();
             }
 
             public Color GetColor(float u, float v, int mipLevel = 0)
@@ -378,6 +390,7 @@ namespace Unity.HLODSystem
                             color.r += Mathf.Pow(c.r, 2.2f) * weight;
                             color.g += Mathf.Pow(c.g, 2.2f) * weight;
                             color.b += Mathf.Pow(c.b, 2.2f) * weight;
+                            
                         }
 
                         color.r = Mathf.Pow(color.r, 0.45f);

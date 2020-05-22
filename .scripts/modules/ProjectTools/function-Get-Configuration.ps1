@@ -6,10 +6,10 @@ function Get-Configuration {
     $projectPath = "$projectRootPath/com.unity.hlod/Samples~"
     
     if ($global:isDebug) {
-        $editorExecutablePath = "C:/Program Files\Unity\Hub\Editor\2019.2.14f1\Editor\Unity.exe"
+        $editorExecutablePath = "C:/Program Files/Unity/Hub/Editor/2019.2.14f1/Editor/Unity.exe"
     }
     else {
-        $editorExecutablePath = "C:/Users/$username/m2/M2/master/Unity/WinEditor/Unity.exe"
+        $editorExecutablePath = "$projectRootPath/.Editor/Unity.exe"
     }
 
     $editorLogPath = "C:/Users/$username/AppData/Local/Unity/Editor/Editor.log"

@@ -1,0 +1,43 @@
+test_editors:
+  - version: 2019.3.0f5
+test_platforms:
+  - name: Windows
+    type: Unity::VM
+    image: package-ci/win10:stable
+    flavor: b1.large
+---
+
+{% for editor in test_editors %}
+{% for platform in test_platforms %}
+test_{{ platform.name }}_{{ editor.version }}:
+  name : Test com.unity.hlod on {{ platform.name }} against {{ editor.version }}
+  agent:
+    type: {{ platform.type }}
+    image: {{ platform.image }}
+    flavor: {{ platform.flavor}}
+  commands:
+    - git submodule update --init --recursive
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
+    - upm-ci package test -u {{ editor.version }} --package-path com.unity.hlod --enable-code-coverage --code-coverage-options 'enableCyclomaticComplexity;generateHtmlReport;assemblyFilters:+com.unity.hlod'
+  artifacts:
+    logs:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  dependencies:
+    - .yamato/package-pack.yml#pack
+{% endfor %}
+{% endfor %}
+
+test_trigger:
+  name: Package Tests Trigger (All)
+  triggers:
+    branches:
+      only:
+        - "/.*/"
+  dependencies:
+    - .yamato/package-pack.yml#pack
+    {% for editor in test_editors %}
+    {% for platform in test_platforms %}
+    - .yamato/package-test.yml#test_{{platform.name}}_{{editor.version}}
+    {% endfor %}
+    {% endfor %}

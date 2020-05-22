@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Utils;
 using UnityEngine;
@@ -160,18 +161,23 @@ namespace Unity.HLODSystem
         
     public class HLODBuildInfo : IDisposable
     {
+        private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+        
         public string Name = "";
         public int ParentIndex = -1;
         public SpaceNode Target;
 
         public DisposableList<WorkingObject> WorkingObjects = new DisposableList<WorkingObject>();
+        public List<WorkingCollider> Colliders = new List<WorkingCollider>();
         public List<int> Distances = new List<int>();
+        
 
         public Heightmap Heightmap;
 
         public void Dispose()
         {
             WorkingObjects.Dispose();
+            m_detector.Dispose();
         }
     }   
 }

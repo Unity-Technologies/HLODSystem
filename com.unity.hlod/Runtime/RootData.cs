@@ -52,6 +52,9 @@ namespace Unity.HLODSystem
             int len = Mathf.Min(m_serializedNames.Count, m_serializedGameObjects.Count);
             for (int i = 0; i < len; ++i)
             {
+                if (m_rootObjects.ContainsKey(m_serializedNames[i]))
+                    m_rootObjects.Remove(m_serializedNames[i]);
+                
                 m_rootObjects.Add(m_serializedNames[i], m_serializedGameObjects[i]);
             }
             

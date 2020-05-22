@@ -56,14 +56,38 @@ namespace Unity.HLODSystem
             return meshRenderers;
         }
 
+        private static List<Collider> GetColliders(List<GameObject> gameObjects, float minObjectSize)
+        {
+            List<Collider> results = new List<Collider>();
+
+            for (int i = 0; i < gameObjects.Count; ++i)
+            {
+                GameObject obj = gameObjects[i];
+                Collider[] colliders = obj.GetComponentsInChildren<Collider>();
+                
+                for (int ci = 0; ci < colliders.Length; ++ci)
+                {
+                    Collider collider = colliders[ci];
+                    float max = Mathf.Max(collider.bounds.size.x, collider.bounds.size.y, collider.bounds.size.z);
+                    if (max < minObjectSize)
+                        continue;
+                    
+                    results.Add(collider);
+                }
+            }
+
+            return results;
+        }
+
         private static DisposableList<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float minObjectSize)
         {
-            DisposableList<HLODBuildInfo> results = new DisposableList<HLODBuildInfo>();
+
+            List<HLODBuildInfo> resultsCandidates = new List<HLODBuildInfo>();
             Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
             Queue<int> parentQueue = new Queue<int>();
             Queue<string> nameQueue = new Queue<string>();
             Queue<int> levelQueue = new Queue<int>();
-
+            
             trevelQueue.Enqueue(root);
             parentQueue.Enqueue(-1);
             levelQueue.Enqueue(0);
@@ -72,7 +96,7 @@ namespace Unity.HLODSystem
 
             while (trevelQueue.Count > 0)
             {
-                int currentNodeIndex = results.Count;
+                int currentNodeIndex = resultsCandidates.Count;
                 string name = nameQueue.Dequeue();
                 SpaceNode node = trevelQueue.Dequeue();
                 HLODBuildInfo info = new HLODBuildInfo
@@ -91,15 +115,16 @@ namespace Unity.HLODSystem
                 }
 
 
-                results.Add(info);
+                resultsCandidates.Add(info);
 
                 //it should add to every parent.
                 List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects, minObjectSize);
+                List<Collider> colliders = GetColliders(node.Objects, minObjectSize);
                 int distance = 0;
 
                 while (currentNodeIndex >= 0)
                 {
-                    var curInfo = results[currentNodeIndex];
+                    var curInfo = resultsCandidates[currentNodeIndex];
 
                     for (int i = 0; i < meshRenderers.Count; ++i) 
                     {
@@ -107,12 +132,34 @@ namespace Unity.HLODSystem
                         curInfo.Distances.Add(distance);
                     }
 
+                    for (int i = 0; i < colliders.Count; ++i)
+                    {
+                        curInfo.Colliders.Add(colliders[i].ToWorkingCollider());
+                    }
+
+                    
+                   
+  
                     currentNodeIndex = curInfo.ParentIndex;
                     distance += 1;
                 }
-
             }
 
+            
+            DisposableList<HLODBuildInfo> results = new DisposableList<HLODBuildInfo>();
+            
+            for (int i = 0; i < resultsCandidates.Count; ++i)
+            {
+                if (resultsCandidates[i].WorkingObjects.Count > 0)
+                {
+                    results.Add(resultsCandidates[i]);
+                }
+                else
+                {
+                    resultsCandidates[i].Dispose();
+                }
+            }
+            
             return results;
         }
 

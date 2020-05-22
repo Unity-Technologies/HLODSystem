@@ -6,8 +6,8 @@ using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
+using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
-using UnityEngine.AddressableAssets;
 using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
@@ -61,6 +61,8 @@ namespace Unity.HLODSystem.Streaming
         
         private IGeneratedResourceManager m_manager;
         private SerializableDynamicObject m_streamingOptions;
+
+        HashSet<string> m_shaderGuids = new HashSet<string>();
         
         public AddressableStreaming(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
         {
@@ -72,9 +74,21 @@ namespace Unity.HLODSystem.Streaming
         {
             dynamic options = m_streamingOptions;
             string path = options.OutputDirectory;
+            
+            HLODTreeNodeContainer container = new HLODTreeNodeContainer();
+            HLODTreeNode convertedRootNode = ConvertNode(container, rootNode);
+            
+            //create settings if there is no settings.
+            if (AddressableAssetSettingsDefaultObject.Settings == null)
+            {
+                AddressableAssetSettings.Create(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder, AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
+            }
 
-            HLODTreeNode convertedRootNode = ConvertNode(rootNode);
-
+            
+            var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
+            var group = GetGroup(settings, options.AddressablesGroupName);
+            m_shaderGuids.Clear();
+            
             if (onProgress != null)
                 onProgress(0.0f);
 
@@ -106,6 +120,7 @@ namespace Unity.HLODSystem.Streaming
 
                 HLODData data = hlodDatas[infos[i].ParentIndex];
                 data.AddFromWokringObjects(infos[i].Name, infos[i].WorkingObjects);
+                data.AddFromWorkingColliders(infos[i].Name, infos[i].Colliders);
 
                 if (writeNoPrefab)
                 {
@@ -146,7 +161,7 @@ namespace Unity.HLODSystem.Streaming
                 AssetDatabase.ImportAsset(filename, ImportAssetOptions.ForceUpdate);
                 RootData rootData = AssetDatabase.LoadAssetAtPath<RootData>(filename);
                 m_manager.AddGeneratedResource(rootData);
-                AddAddress(rootData);
+                AddAddress(settings, group, rootData);
                 
                 rootDatas.Add(item.Key, rootData);
             }
@@ -191,7 +206,7 @@ namespace Unity.HLODSystem.Streaming
                     var address = GetAddress(spaceNode.Objects[oi]);
                     if (string.IsNullOrEmpty(address) && PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]))
                     {
-                        AddAddress(spaceNode.Objects[oi]);
+                        AddAddress(settings, group, spaceNode.Objects[oi]);
                         address = GetAddress(spaceNode.Objects[oi]);
                     }
                     
@@ -217,7 +232,17 @@ namespace Unity.HLODSystem.Streaming
 
                 }
             }
-            
+
+            var shaderEntriesAdded = new List<AddressableAssetEntry>();
+            foreach (var shaderGuid in m_shaderGuids)
+            {
+                if ( IsExistsInAddressables(shaderGuid) == false )
+                    shaderEntriesAdded.Add(settings.CreateOrMoveEntry(shaderGuid, group, false, false));
+            }
+            settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, shaderEntriesAdded, true);
+            m_shaderGuids.Clear();
+
+            addressableController.Container = container;
             addressableController.Root = convertedRootNode;
             addressableController.CullDistance = cullDistance;
             addressableController.LODDistance = lodDistance;
@@ -226,9 +251,10 @@ namespace Unity.HLODSystem.Streaming
       
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
 
-        private HLODTreeNode ConvertNode(SpaceNode rootNode)
+        private HLODTreeNode ConvertNode(HLODTreeNodeContainer container, SpaceNode rootNode)
         {
             HLODTreeNode root = new HLODTreeNode();
+            root.SetContainer(container);
 
             Queue<HLODTreeNode> hlodTreeNodes = new Queue<HLODTreeNode>();
             Queue<SpaceNode> spaceNodes = new Queue<SpaceNode>();
@@ -254,6 +280,7 @@ namespace Unity.HLODSystem.Streaming
                     for (int i = 0; i < spaceNode.GetChildCount(); ++i)
                     {
                         var treeNode = new HLODTreeNode();
+                        treeNode.SetContainer(container);
                         childTreeNodes.Add(treeNode);
 
                         hlodTreeNodes.Enqueue(treeNode);
@@ -261,7 +288,7 @@ namespace Unity.HLODSystem.Streaming
                         levels.Enqueue(level + 1);
                     }
 
-                    hlodTreeNode.ChildNodes = childTreeNodes;
+                    hlodTreeNode.SetChildTreeNode(childTreeNodes);
 
                 }
             }
@@ -285,6 +312,11 @@ namespace Unity.HLODSystem.Streaming
                 if (path.EndsWith("/") == false)
                     path += "/";
                 options.OutputDirectory = path;
+            }
+
+            if (options.AddressablesGroupName == null)
+            {
+                options.AddressablesGroupName = "HLOD";
             }
 
             if (options.PCCompression == null)
@@ -336,6 +368,9 @@ namespace Unity.HLODSystem.Streaming
 
             EditorGUILayout.EndHorizontal();
 
+            options.AddressablesGroupName = EditorGUILayout.TextField("Addressables Group", options.AddressablesGroupName);
+            
+
             // It stores return value from foldout and uses it as a condition.
             if (showFormat = EditorGUILayout.Foldout(showFormat, "Compress Format"))
             {
@@ -360,24 +395,35 @@ namespace Unity.HLODSystem.Streaming
             return Styles.SupportTextureFormats[selectIndex];
         }
 
-        private void AddAddress(Object obj)
+        private void AddAddress(AddressableAssetSettings settings, AddressableAssetGroup group, Object obj)
         {
-            //create settings if there is no settings.
-            if (AddressableAssetSettingsDefaultObject.Settings == null)
-            {
-                AddressableAssetSettings.Create(AddressableAssetSettingsDefaultObject.kDefaultConfigFolder, AddressableAssetSettingsDefaultObject.kDefaultConfigAssetName, true, true);
-            }
-            var settings = AddressableAssetSettingsDefaultObject.GetSettings(true);
+            
             string path = GetAssetPath(obj);
             
             if (string.IsNullOrEmpty(path))
                 return;
 
-            string guid = AssetDatabase.AssetPathToGUID(path);
-            var entriesAdded = new List<AddressableAssetEntry>
+            var entriesAdded = new List<AddressableAssetEntry>();
+
+            Object[] objects = AssetDatabase.LoadAllAssetsAtPath(path);
+            for (int i = 0; i < objects.Length; ++i)
             {
-                settings.CreateOrMoveEntry(guid, settings.DefaultGroup, false, false)
-            };
+                Material mat = objects[i] as Material;
+
+                if (mat == null)
+                    continue;
+
+                Shader shader = mat.shader;
+                var shaderPath = AssetDatabase.GetAssetPath(shader);
+                var shaderGuid = AssetDatabase.AssetPathToGUID(shaderPath);
+
+                m_shaderGuids.Add(shaderGuid);
+            }
+
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            entriesAdded.Add(settings.CreateOrMoveEntry(guid, group, false, false));
+            
+            
 
             settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entriesAdded, true);
         }
@@ -427,6 +473,48 @@ namespace Unity.HLODSystem.Streaming
             }
 
             return path;
+        }
+
+        private bool IsExistsInAddressables(string guid)
+        {
+            var settings = AddressableAssetSettingsDefaultObject.GetSettings(false);
+            if (settings == null)
+                return false;
+
+            for (int gi = 0; gi < settings.groups.Count; ++gi)
+            {
+                var group = settings.groups[gi];
+
+                foreach (var entry in group.entries)
+                {
+                    if (entry.guid == guid)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private AddressableAssetGroup GetGroup(AddressableAssetSettings settings, string groupName)
+        {
+            for (int i = 0; i < settings.groups.Count; ++i)
+            {
+                if (settings.groups[i].Name == groupName)
+                    return settings.groups[i];
+            }
+            
+            List<AddressableAssetGroupSchema> schemas = new List<AddressableAssetGroupSchema>();
+
+            ContentUpdateGroupSchema contentUpdateGroupSchema = ScriptableObject.CreateInstance<ContentUpdateGroupSchema>();
+            BundledAssetGroupSchema bundledAssetGroupSchema = ScriptableObject.CreateInstance<BundledAssetGroupSchema>();
+
+            bundledAssetGroupSchema.BundleMode = BundledAssetGroupSchema.BundlePackingMode.PackSeparately;
+            
+            schemas.Add(contentUpdateGroupSchema);
+            schemas.Add(bundledAssetGroupSchema);
+
+            AddressableAssetGroup group = settings.CreateGroup(groupName, false, false, false, schemas);
+            return group;
         }
     }
 

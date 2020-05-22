@@ -35,11 +35,6 @@ namespace Unity.HLODSystem
 
         }
 
-        
-
-
-       
-        
         private void Combine(Vector3 rootPosition, HLODBuildInfo info)
         {
             var instancesTable = new Dictionary<Material, List<CombineInstance>>();
@@ -83,7 +78,6 @@ namespace Unity.HLODSystem
                 combinedObject.Name = info.Name;
                 combinedObject.SetMesh(combinedMesh);
                 combinedObject.Materials.Add(material);
-                material.Dispose();
                 
                 combinedObjects.Add(combinedObject);
             }

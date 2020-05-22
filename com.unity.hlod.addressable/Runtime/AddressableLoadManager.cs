@@ -1,11 +1,13 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Unity.HLODSystem.Streaming;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
-using Object = UnityEngine.Object;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Unity.HLODSystem
 {
@@ -87,6 +89,15 @@ namespace Unity.HLODSystem
         #region Singleton
         private static AddressableLoadManager s_instance;
         private static bool s_isDestroyed = false;
+        
+        #if UNITY_EDITOR
+        [InitializeOnEnterPlayMode]
+        private static void OnEnterPlayMode()
+        {
+            s_instance = null;
+            s_isDestroyed = false;
+        }
+        #endif
         public static AddressableLoadManager Instance
         {
             get
