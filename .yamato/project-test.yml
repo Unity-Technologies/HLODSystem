@@ -15,7 +15,7 @@ test_{{ projects.first.name}}_{{ package.name }}_{{ platform.name }}_{{ editor }
     flavor: {{ platform.flavor}}
   commands:
     - git submodule update --init --recursive
-    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
     - upm-ci project test -u {{ editor }} --project-path {{ projects.first.path }} --type package-tests --package-filter {{ package.name }}
   artifacts:
     logs:
@@ -37,7 +37,7 @@ validate_{{ projects.first.name }}_{{ package.name }}_{{ test_platforms.first.na
     flavor: {{ test_platforms.first.flavor}}
   commands:
     - git submodule update --init --recursive
-    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
     - upm-ci project test -u {{ test_editors.first }} --project-path {{ projects.first.path }} --type vetting-tests --package-filter {{ package.name }}
   artifacts:
     logs:
@@ -61,7 +61,7 @@ test_{{ project.name }}_{{ editor }}_{{ platform.name }}:
     flavor: {{ platform.flavor}}
   commands:
     - git submodule update --init --recursive
-    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
     - upm-ci project test -u {{ editor }} --project-path {{ project.path }} --type project-tests
   artifacts:
     logs:
@@ -83,7 +83,7 @@ badges_test_trigger:
     image: package-ci/ubuntu:stable
     flavor: b1.small
   commands:
-    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
     - upm-ci package izon -t
   artifacts:
     logs:

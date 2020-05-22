@@ -9,7 +9,7 @@ pack_{{ project.name }}:
     flavor: b1.small
   commands:
     - git submodule update --init --recursive
-    - npm install upm-ci-utils@stable -g --registry https://api.bintray.com/npm/unity/unity-npm
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
     - upm-ci project pack --project-path {{ project.path }}
   artifacts:
     packages:
