@@ -6,7 +6,7 @@ It can replace multiple Static Mesh Actors with single, combined Static Mesh Act
 
 | Render image              | Show draw calls           | Show draw calls of HLOD   |
 | ------------------------- | ------------------------- | ------------------------- |
-| ![](media/overview_1.jpg) | ![](media/overview_2.jpg) | ![](media/overview_3.jpg) |
+| ![](media/overview_1.png) | ![](media/overview_2.png) | ![](media/overview_3.png) |
 
 
 
