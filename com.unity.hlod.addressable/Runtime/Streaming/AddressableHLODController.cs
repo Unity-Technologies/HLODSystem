@@ -30,7 +30,9 @@ namespace Unity.HLODSystem.Streaming
         [SerializeField]
         private List<string> m_lowObjects = new List<string>();
 
-
+        [SerializeField]
+        int m_priority = 0;
+        
         class LoadInfo
         {
             public GameObject GameObject;
@@ -144,7 +146,7 @@ namespace Unity.HLODSystem.Streaming
                 else
                 {
                     //high object's priority is always lowest.
-                    LoadInfo loadInfo = CreateLoadInfo(m_highObjects[id].Address, Int32.MaxValue, distance,
+                    LoadInfo loadInfo = CreateLoadInfo(m_highObjects[id].Address, m_priority, distance,
                         m_highObjects[id].Parent, m_highObjects[id].Position, m_highObjects[id].Rotation, m_highObjects[id].Scale);
                     m_createdHighObjects.Add(id, loadInfo);
                     
@@ -177,7 +179,7 @@ namespace Unity.HLODSystem.Streaming
             }
             else
             {
-                LoadInfo loadInfo = CreateLoadInfo(m_lowObjects[id], level, distance, m_hlodMeshesRoot.transform, Vector3.zero, Quaternion.identity,Vector3.one);
+                LoadInfo loadInfo = CreateLoadInfo(m_lowObjects[id], m_priority, distance, m_hlodMeshesRoot.transform, Vector3.zero, Quaternion.identity,Vector3.one);
                 m_createdLowObjects.Add(id, loadInfo);
 
                 loadInfo.Callbacks = new List<Action<GameObject>>();
