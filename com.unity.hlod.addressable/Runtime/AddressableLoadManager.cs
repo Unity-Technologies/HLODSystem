@@ -5,9 +5,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+
 
 namespace Unity.HLODSystem
 {
@@ -90,14 +88,12 @@ namespace Unity.HLODSystem
         private static AddressableLoadManager s_instance;
         private static bool s_isDestroyed = false;
         
-        #if UNITY_EDITOR
-        [InitializeOnEnterPlayMode]
-        private static void OnEnterPlayMode()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        private static void OnLoad()
         {
             s_instance = null;
             s_isDestroyed = false;
         }
-        #endif
         public static AddressableLoadManager Instance
         {
             get
