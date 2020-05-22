@@ -214,11 +214,8 @@ namespace Unity.HLODSystem
             return new Bounds(data.size * 0.5f, data.size);
         }
 
-        private WorkingObject CreateBakedTerrain(string name, Bounds bounds, out Heightmap heightmap)
+        private Heightmap CreateSubHightmap(Bounds bounds)
         {
-            WorkingObject wo = new WorkingObject(Allocator.Persistent);
-            wo.Name = name;
-            
             int beginX = Mathf.RoundToInt(bounds.min.x / m_size.x * (m_heightmap.Width-1));
             int beginZ = Mathf.RoundToInt(bounds.min.z / m_size.z * (m_heightmap.Height-1));
             int endX = Mathf.RoundToInt(bounds.max.x / m_size.x * (m_heightmap.Width-1));
@@ -227,12 +224,17 @@ namespace Unity.HLODSystem
             int width = endX - beginX + 1;
             int height = endZ - beginZ + 1;
 
-            Heightmap subHeightmap =m_heightmap.GetHeightmap(beginX, beginZ, width, height);
-            heightmap = subHeightmap;
+            return m_heightmap.GetHeightmap(beginX, beginZ, width, height);
+        }
+        private WorkingObject CreateBakedTerrain(string name, Bounds bounds, Heightmap heightmap, int distance)
+        {
+            WorkingObject wo = new WorkingObject(Allocator.Persistent);
+            wo.Name = name;
+            
             
             m_queue.EnqueueJob(() =>
             {
-                WorkingMesh mesh = CreateBakedGeometry(name, subHeightmap, bounds);
+                WorkingMesh mesh = CreateBakedGeometry(name, heightmap, bounds, distance);
                 wo.SetMesh(mesh);
             });
 
@@ -246,27 +248,29 @@ namespace Unity.HLODSystem
             return wo;
         }
 
-        private WorkingMesh CreateBakedGeometry(string name, Heightmap heightmap, Bounds bounds)
+        private WorkingMesh CreateBakedGeometry(string name, Heightmap heightmap, Bounds bounds, int distance)
         {
-
+            int borderWidth = CalcBorderWidth(heightmap, distance);
+            int borderWidth2x = borderWidth * 2;
+            
             WorkingMesh mesh =
                 new WorkingMesh(Allocator.Persistent, heightmap.Width * heightmap.Height,
-                    (heightmap.Width - 1) * (heightmap.Height - 1) * 6, 1, 0);
+                    (heightmap.Width - borderWidth2x - 1) * (heightmap.Height - borderWidth2x - 1) * 6, 1, 0);
 
             mesh.name = name + "_Mesh";
 
-            
-            Vector3[] vertices = new Vector3[(heightmap.Width -2)* (heightmap.Height-2)];
-            Vector3[] normals = new Vector3[(heightmap.Width -2)* (heightmap.Height-2)];
-            Vector2[] uvs = new Vector2[(heightmap.Width -2)* (heightmap.Height-2)];
-            int[] triangles = new int[(heightmap.Width - 3) * (heightmap.Height - 3) * 6];
+
+            Vector3[] vertices =  new Vector3[(heightmap.Width - borderWidth2x) * (heightmap.Height - borderWidth2x)];
+            Vector3[] normals = new Vector3[(heightmap.Width - borderWidth2x) * (heightmap.Height - borderWidth2x)];
+            Vector2[] uvs = new Vector2[(heightmap.Width - borderWidth2x) * (heightmap.Height - borderWidth2x)];
+            int[] triangles = new int[(heightmap.Width - borderWidth2x - 1) * (heightmap.Height - borderWidth2x - 1) * 6];
 
 
             int vi = 0;
             //except boder line
-            for (int z = 1; z < heightmap.Height -1; ++z)
+            for (int z = borderWidth; z < heightmap.Height -borderWidth; ++z)
             {
-                for (int x = 1; x < heightmap.Width -1; ++x)
+                for (int x = borderWidth; x < heightmap.Width -borderWidth; ++x)
                 {
                     int index = vi++;
 
@@ -291,14 +295,14 @@ namespace Unity.HLODSystem
             }
 
             int ii = 0;
-            for (int z = 0; z < heightmap.Height - 3; ++z)
+            for (int z = 0; z < heightmap.Height - borderWidth2x - 1; ++z)
             {
-                for (int x = 0; x < heightmap.Width - 3; ++x)
+                for (int x = 0; x < heightmap.Width - borderWidth2x - 1; ++x)
                 {
-                    int i00 = z * (heightmap.Width -2)+ x;
-                    int i10 = z * (heightmap.Width -2)+ x + 1;
-                    int i01 = (z + 1) * (heightmap.Width -2)+ x;
-                    int i11 = (z + 1) * (heightmap.Width -2)+ x + 1;
+                    int i00 = z * (heightmap.Width -borderWidth2x)+ x;
+                    int i10 = z * (heightmap.Width -borderWidth2x)+ x + 1;
+                    int i01 = (z + 1) * (heightmap.Width -borderWidth2x)+ x;
+                    int i11 = (z + 1) * (heightmap.Width -borderWidth2x)+ x + 1;
 
                     triangles[ii + 0] = i00;
                     triangles[ii + 1] = i11;
@@ -320,7 +324,7 @@ namespace Unity.HLODSystem
 
         private WorkingMaterial CreateBakedMaterial(string name, Bounds bounds)
         {
-            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, m_terrainMaterialInstanceId, m_terrainMaterialName, true);
+            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, m_terrainMaterialInstanceId, m_terrainMaterialName);
             material.Name = name + "_Material";
 
             m_queue.EnqueueJob(() =>
@@ -658,7 +662,54 @@ namespace Unity.HLODSystem
 
             return mesh;
         }
-        
+
+        private void ReampUV(WorkingMesh mesh, Heightmap heightmap)
+        {
+            var vertices = mesh.vertices;
+            var uvs = mesh.uv;
+
+            for (int i = 0; i < mesh.vertexCount; ++i)
+            {
+                Vector2 uv;
+                uv.x = (vertices[i].x - heightmap.Offset.x) / heightmap.Size.x;
+                uv.y = (vertices[i].z - heightmap.Offset.z) / heightmap.Size.z;
+                uvs[i] = uv;
+                //vertices[i].
+            }
+
+            mesh.uv = uvs;
+        }
+        private int CalcBorderWidth(Heightmap heightmap, int distance)
+        {
+            if (m_hlod.SimplifierType == typeof(Simplifier.None))
+            {
+                return 1;
+            }
+            dynamic options = m_hlod.SimplifierOptions;
+            
+            int maxPolygonCount = options.SimplifyMaxPolygonCount;
+            int minPolygonCount = options.SimplifyMinPolygonCount;
+            float polygonRatio = options.SimplifyPolygonRatio;
+            int triangleCount = (heightmap.Width - 1) * (heightmap.Height - 1) * 2;
+
+            float maxQuality = Mathf.Min((float) maxPolygonCount / (float) triangleCount, polygonRatio);
+            float minQuality = Mathf.Max((float) minPolygonCount / (float) triangleCount, 0.0f);
+            
+            var ratio = maxQuality * Mathf.Pow(polygonRatio, distance);
+            ratio = Mathf.Max(ratio, minQuality);
+
+            int expectPolygonCount = (int)(triangleCount * ratio);
+
+            float areaSize = (heightmap.Size.x * heightmap.Size.z); 
+            float sourceSizePerTri = areaSize/  triangleCount;
+            float targetSizePerTri = areaSize / expectPolygonCount;
+            float sizeRatio = targetSizePerTri / sourceSizePerTri;
+            float sizeRatioSqrt = Mathf.Sqrt(sizeRatio);
+            
+            //sizeRatioSqrt is little bit big i think.
+            //So I adjust the value by divide 2.
+            return Mathf.Max((int) sizeRatioSqrt / 2, 1);
+        }
         
 
         public class EdgeGroup
@@ -836,9 +887,8 @@ namespace Unity.HLODSystem
                     depthQueue.Enqueue(depth + 1);
                 }
                 
-                Heightmap createdHeightmap;
-                info.WorkingObjects.Add(CreateBakedTerrain(name, node.Bounds, out createdHeightmap));
-                info.Heightmap = createdHeightmap;
+                info.Heightmap = CreateSubHightmap(node.Bounds);
+                info.WorkingObjects.Add(CreateBakedTerrain(name, node.Bounds, info.Heightmap, depth));
                 info.Distances.Add(depth);
                 results.Add(info);
                 
@@ -945,6 +995,7 @@ namespace Unity.HLODSystem
                                     int borderVertexCount = m_hlod.BorderVertexCount * Mathf.RoundToInt(Mathf.Pow(2.0f, (float)info.Distances[oi]));
                                     using (WorkingMesh m = MakeBorder(o.Mesh, info.Heightmap, borderVertexCount))
                                     {
+                                        ReampUV(m, info.Heightmap);
                                         o.SetMesh(MakeFillHoleMesh(m));
                                     }
                                 }
