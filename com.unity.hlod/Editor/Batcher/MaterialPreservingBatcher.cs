@@ -72,7 +72,7 @@ namespace Unity.HLODSystem
             {
                 WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, pair.Value);
                 WorkingObject combinedObject = new WorkingObject(Allocator.Persistent);
-                WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, pair.Key, materialNames[pair.Key], false);
+                WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, pair.Key, materialNames[pair.Key]);
 
                 combinedMesh.name = info.Name + "_Mesh" + pair.Key;
                 combinedObject.Name = info.Name;

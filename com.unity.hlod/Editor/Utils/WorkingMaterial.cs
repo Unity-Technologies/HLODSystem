@@ -47,9 +47,9 @@ namespace Unity.HLODSystem.Utils
         {
             m_buffer = WorkingMaterialBufferManager.Instance.Get(allocator, mat);
         }
-        public WorkingMaterial(Allocator allocator, int materialId, string name,  bool copy) 
+        public WorkingMaterial(Allocator allocator, int materialId, string name) 
         {
-            m_buffer = WorkingMaterialBufferManager.Instance.Create(allocator, materialId, name, copy);
+            m_buffer = WorkingMaterialBufferManager.Instance.Create(allocator, materialId, name);
         }
 
 
@@ -146,9 +146,9 @@ namespace Unity.HLODSystem.Utils
             return buffer;
         }
 
-        public WorkingMaterialBuffer Create(Allocator allocator, int materialId, string name, bool copy)
+        public WorkingMaterialBuffer Create(Allocator allocator, int materialId, string name)
         {
-            WorkingMaterialBuffer buffer = new WorkingMaterialBuffer(allocator, materialId, name, copy);
+            WorkingMaterialBuffer buffer = new WorkingMaterialBuffer(allocator, materialId, name);
             buffer.AddRef();
             m_cache[buffer.Guid] = buffer;
             return buffer;
@@ -170,7 +170,6 @@ namespace Unity.HLODSystem.Utils
         private string m_name;
         private string m_guid;
         private int m_instanceID;
-        private bool m_copy;
         private DisposableDictionary<string, WorkingTexture> m_textures;
         private Dictionary<string, Color> m_colors;
 
@@ -194,7 +193,6 @@ namespace Unity.HLODSystem.Utils
         {
             m_name = mat.name;
             m_instanceID = mat.GetInstanceID();
-            m_copy = false;
             m_textures.Dispose();
             m_textures = new DisposableDictionary<string, WorkingTexture>();
             m_colors = new Dictionary<string, Color>();
@@ -229,11 +227,10 @@ namespace Unity.HLODSystem.Utils
                 }
             }
         }
-        public WorkingMaterialBuffer(Allocator allocator, int materialId, string name,  bool copy) : this(allocator)
+        public WorkingMaterialBuffer(Allocator allocator, int materialId, string name) : this(allocator)
         {
             m_name = name;
             m_instanceID = materialId;
-            m_copy = copy;
             m_guid = System.Guid.NewGuid().ToString("N");
         }
 
@@ -263,10 +260,7 @@ namespace Unity.HLODSystem.Utils
 
         public bool NeedWrite()
         {
-            if (m_copy == true)
-                return true;
-            
-            string path = AssetDatabase.GetAssetPath(m_instanceID);
+            string path = AssetDatabase.GUIDToAssetPath(m_guid);
             return string.IsNullOrEmpty(path);
         }
         
@@ -276,6 +270,7 @@ namespace Unity.HLODSystem.Utils
             lock (m_textures)
             {
                 m_textures.Add(name, texture);
+                m_guid = System.Guid.NewGuid().ToString("N");
             }
         }
 

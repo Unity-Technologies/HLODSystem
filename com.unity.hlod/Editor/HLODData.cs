@@ -593,6 +593,11 @@ namespace Unity.HLODSystem
                 for (int mi = 0; mi < wo.Materials.Count; ++mi)
                 {
                     WorkingMaterial wm = wo.Materials[mi];
+
+                    //Prevent duplication
+                    if (GetMaterial(wm.Guid) != null)
+                        continue;
+                        
                     string[] textureNames = wm.GetTextureNames();
 
                     SerializableMaterial sm = new SerializableMaterial();
@@ -625,7 +630,7 @@ namespace Unity.HLODSystem
                 WorkingMaterial wm = wmList[i];
 
                 //Prevent duplication
-                if (wm.NeedWrite() == false && GetMaterial(wm.Guid) != null)
+                if (GetMaterial(wm.Guid) != null)
                     continue;
 
                 SerializableMaterial sm = new SerializableMaterial();
