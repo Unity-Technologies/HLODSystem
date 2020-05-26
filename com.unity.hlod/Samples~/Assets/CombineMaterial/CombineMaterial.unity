@@ -669,9 +669,10 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: "This sample shows how to combine materials to reduce batch count. \nObjects
-    exist under HLODRoot.\nHLODRoot has HLOD Component \nand creates HLOD with the
-    component.\nThis sample uses SimpleBatcher for Batcher.\nClick the Generate button
-    on the component to create an HLOD \nand create a Default HLOD Controller.\n\n"
+    exist under CombineMaterialHLODRoot.\nCombineMaterialHLODRoot has HLOD Component
+    \nand creates HLOD with the component.\nThis sample uses SimpleBatcher for Batcher.\nClick
+    the Generate button on the component to create an HLOD \nand create a Default
+    HLOD Controller.\n\n"
 --- !u!222 &351354133
 CanvasRenderer:
   m_ObjectHideFlags: 0

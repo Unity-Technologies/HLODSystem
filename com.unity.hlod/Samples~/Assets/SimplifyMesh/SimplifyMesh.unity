@@ -923,9 +923,10 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: "This sample shows how to simplify mesh to reduce triangle count. \nObjects
-    exist under HLODRoot.\nHLODRoot has HLOD Component \nand creates HLOD with the
-    component.\nThis sample uses UnityMeshSimplifier for Simplifier.\nClick the Generate
-    button on the component to create an HLOD \nand create a Default HLOD Controller."
+    exist under SimplifyHLODRoot.\nSimplifyHLODRoot has HLOD Component \nand creates
+    HLOD with the component.\nThis sample uses UnityMeshSimplifier for Simplifier.\nClick
+    the Generate button on the component to create an HLOD \nand create a Default
+    HLOD Controller."
 --- !u!222 &682406188
 CanvasRenderer:
   m_ObjectHideFlags: 0
