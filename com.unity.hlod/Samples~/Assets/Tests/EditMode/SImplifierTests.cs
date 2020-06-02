@@ -9,11 +9,12 @@ using Unity.HLODSystem.Utils;
 namespace Unity.HLODSystem.EditorTests
 {
     [TestFixture]
-    public class SimplifierTests : IPrebuildSetup, IPostBuildCleanup
+    public class SimplifierTests
     {
-        const float EPSILON = 0.002f;
-        static MeshRenderer s_testMeshRenderer;
+        
+        MeshRenderer s_testMeshRenderer;
 
+        [SetUp]
         public void Setup()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/RinNumber.prefab");
@@ -21,6 +22,7 @@ namespace Unity.HLODSystem.EditorTests
 
         }   
         
+        [TearDown]
         public void Cleanup()
         {
         }
@@ -28,139 +30,37 @@ namespace Unity.HLODSystem.EditorTests
         [Test]        
         public void PolygonRatioTest()
         {
-            SerializableDynamicObject dynamicObject = new SerializableDynamicObject();
-            dynamic options = dynamicObject;
-
-            options.SimplifyPolygonRatio = 0.6f;
-            options.SimplifyMinPolygonCount = 1;
-            options.SimplifyMaxPolygonCount = 1000000;
+            const float EPSILON = 0.005f; //ratio error should less than 0.5%
 
             //original tri count is 1200.
-
-            //level 0 test
-            using (HLODBuildInfo info = new HLODBuildInfo())
-            {
-                info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(0);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                var simplifer = new Simplifier.UnityMeshSimplifier(options);
-                simplifer.SimplifyImmidiate(info);
-
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                float ratio = (float)afterPolygonCount / (float)beforePolygonCount;
-
-                Assert.Less(Mathf.Abs(ratio - 0.6f), EPSILON);
-            }
-
-            //level 1 test
-            using (HLODBuildInfo info = new HLODBuildInfo())
-            {
-                info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(1);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                var simplifer = new Simplifier.UnityMeshSimplifier(options);
-                simplifer.SimplifyImmidiate(info);
-
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                float ratio = (float)afterPolygonCount / (float)beforePolygonCount;
-
-                Assert.Less(Mathf.Abs(ratio - 0.6f * 0.6f), EPSILON);
-            }
-            
-            //level 2 test
-            using (HLODBuildInfo info = new HLODBuildInfo())
-            {
-                info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(2);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                var simplifer = new Simplifier.UnityMeshSimplifier(options);
-                simplifer.SimplifyImmidiate(info);
-
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                float ratio = (float)afterPolygonCount / (float)beforePolygonCount;
-
-                Assert.Less(Mathf.Abs(ratio - 0.6f * 0.6f * 0.6f), EPSILON);
-            }
+            Assert.Less(Mathf.Abs(TestImpl(0.6f, 1, 1000000, 0) / 1200.0f - 0.6f), EPSILON);
+            Assert.Less(Mathf.Abs(TestImpl(0.6f, 1, 1000000, 1) / (1200.0f * 0.6f) - 0.6f), EPSILON);
+            Assert.Less(Mathf.Abs(TestImpl(0.6f, 1, 1000000, 2) / (1200.0f * 0.6f * 0.6f) - 0.6f), EPSILON);
         }
         
         [Test]
         public void MinPolygonTest()
         {
-            SerializableDynamicObject dynamicObject = new SerializableDynamicObject();
-            dynamic options = dynamicObject;
-
-            options.SimplifyPolygonRatio = 0.6f;
-            options.SimplifyMinPolygonCount = 500;
-            options.SimplifyMaxPolygonCount = 1000000;
-
-            //original tri count is 1200.
-
-            //level 0 test
-            using (HLODBuildInfo info = new HLODBuildInfo())
-            {
-                info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(0);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                var simplifer = new Simplifier.UnityMeshSimplifier(options);
-                simplifer.SimplifyImmidiate(info);
-
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                Assert.AreEqual(afterPolygonCount, 720 * 3);// convert tri count to poly count
-            }
-
-            //level 1 test
-            using (HLODBuildInfo info = new HLODBuildInfo())
-            {
-                info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(1);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                var simplifer = new Simplifier.UnityMeshSimplifier(options);
-                simplifer.SimplifyImmidiate(info);
-
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                Assert.AreEqual(afterPolygonCount, 500 * 3);// convert tri count to poly count
-            }
-
-            //level 2 test
-            using (HLODBuildInfo info = new HLODBuildInfo())
-            {
-                info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(2);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                var simplifer = new Simplifier.UnityMeshSimplifier(options);
-                simplifer.SimplifyImmidiate(info);
-
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                Assert.AreEqual(afterPolygonCount, 500 * 3); // convert tri count to poly count
-            }
+            Assert.AreEqual(TestImpl(0.6f, 500, 1000000, 0), 720);
+            Assert.AreEqual(TestImpl(0.6f, 500, 1000000, 1), 500);
+            Assert.AreEqual(TestImpl(0.6f, 500, 1000000, 2), 500);
         }
         [Test]
         public void MaxPolygonTest()
         {
+            Assert.AreEqual(TestImpl(0.6f, 1, 500, 0), 500);
+            Assert.AreEqual(TestImpl(0.6f, 1, 500, 1), 300);
+            Assert.AreEqual(TestImpl(0.6f, 1, 500, 2), 180);            
+        }
+
+        private int TestImpl(float ratio, int min, int max, int level)
+        {
             SerializableDynamicObject dynamicObject = new SerializableDynamicObject();
             dynamic options = dynamicObject;
 
-            options.SimplifyPolygonRatio = 0.6f;
-            options.SimplifyMinPolygonCount = 1;
-            options.SimplifyMaxPolygonCount = 500;
+            options.SimplifyPolygonRatio = ratio;
+            options.SimplifyMinPolygonCount = min;
+            options.SimplifyMaxPolygonCount = max;
 
             //original tri count is 1200.
 
@@ -168,49 +68,15 @@ namespace Unity.HLODSystem.EditorTests
             using (HLODBuildInfo info = new HLODBuildInfo())
             {
                 info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(0);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
+                info.Distances.Add(level);
 
                 var simplifer = new Simplifier.UnityMeshSimplifier(options);
                 simplifer.SimplifyImmidiate(info);
 
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
+                int afterTriCount = info.WorkingObjects[0].Mesh.triangles.Length;
 
-                Assert.AreEqual(afterPolygonCount, 500 * 3);// convert tri count to poly count
+                return afterTriCount / 3;
             }
-
-            //level 1 test
-            using (HLODBuildInfo info = new HLODBuildInfo())
-            {
-                info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(1);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                var simplifer = new Simplifier.UnityMeshSimplifier(options);
-                simplifer.SimplifyImmidiate(info);
-
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                Assert.AreEqual(afterPolygonCount, 300 * 3);// convert tri count to poly count
-            }
-
-            //level 2 test
-            using (HLODBuildInfo info = new HLODBuildInfo())
-            {
-                info.WorkingObjects.Add(s_testMeshRenderer.ToWorkingObject(Collections.Allocator.Persistent));
-                info.Distances.Add(2);
-
-                int beforePolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                var simplifer = new Simplifier.UnityMeshSimplifier(options);
-                simplifer.SimplifyImmidiate(info);
-
-                int afterPolygonCount = info.WorkingObjects[0].Mesh.triangles.Length;
-
-                Assert.AreEqual(afterPolygonCount, 180 * 3); // convert tri count to poly count
-            }
-        }        
+        }
     }
 }
