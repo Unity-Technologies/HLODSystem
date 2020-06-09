@@ -13,12 +13,17 @@ namespace Unity.HLODSystem.EditorTests
 {
 
     [TestFixture]
-    public class MaterialPreservingBatcherTest
+    public class MaterialPreservingBatcherTests
     {
         GameObject m_mesh1material1;
         GameObject m_mesh2material1;
         GameObject m_mesh2material2;
         GameObject m_mesh3material2;
+
+        GameObject m_mesh1material1T;
+        GameObject m_mesh2material1T;
+        GameObject m_mesh2material2T;
+        GameObject m_mesh3material2T;
 
         MethodInfo m_buildInfoFunc;
         Type m_batcherType;
@@ -39,6 +44,11 @@ namespace Unity.HLODSystem.EditorTests
             m_mesh2material1 = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/RinNumber_LOD1.prefab");
             m_mesh2material2 = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/RinNumber_LOD1_2.prefab");
             m_mesh3material2 = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/RinNumber_LOD2.prefab");
+
+            m_mesh1material1T = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/RinNumber_LOD0T_2.prefab");
+            m_mesh2material1T = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/RinNumber_LOD1T.prefab");
+            m_mesh2material2T = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/RinNumber_LOD1T_2.prefab");
+            m_mesh3material2T = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/TestAssets/Prefabs/RinNumber_LOD2T.prefab");
 
             m_hlodGameObject = new GameObject();
             m_hlodComponent = m_hlodGameObject.AddComponent<HLOD>();
@@ -78,7 +88,25 @@ namespace Unity.HLODSystem.EditorTests
                 Assert.AreEqual(infos.Count, 1);
                 Assert.AreEqual(infos[0].WorkingObjects.Count, 1);
             }
-            
+        }
+        [Test]
+        public void OneTextureMaterialOneMesh()
+        {
+            var obj1 = GameObject.Instantiate(m_mesh1material1T);
+            obj1.transform.SetParent(m_hlodGameObject.transform);
+            obj1.transform.position = new Vector3(0.0f, 0.0f, 0.0f);
+
+            var obj2 = GameObject.Instantiate(m_mesh1material1T);
+            obj2.transform.SetParent(m_hlodGameObject.transform);
+            obj2.transform.position = new Vector3(1.0f, 0.0f, 0.0f);
+
+            using (var infos = CreateBuildInfo())
+            {
+                DoBatch(infos);
+
+                Assert.AreEqual(infos.Count, 1);
+                Assert.AreEqual(infos[0].WorkingObjects.Count, 1);
+            }
         }
 
         [Test]
@@ -97,6 +125,35 @@ namespace Unity.HLODSystem.EditorTests
             obj3.transform.position = new Vector3(-1.0f, 0.0f, 0.0f);
 
             var obj4 = GameObject.Instantiate(m_mesh2material1);
+            obj4.transform.SetParent(m_hlodGameObject.transform);
+            obj4.transform.position = new Vector3(0.0f, 0.0f, 1.0f);
+
+
+            using (var infos = CreateBuildInfo())
+            {
+                DoBatch(infos);
+
+                Assert.AreEqual(infos.Count, 1);
+                Assert.AreEqual(infos[0].WorkingObjects.Count, 1);
+            }
+        }
+
+        [Test]
+        public void OneTextureMaterialTwoMesh()
+        {
+            var obj1 = GameObject.Instantiate(m_mesh1material1T);
+            obj1.transform.SetParent(m_hlodGameObject.transform);
+            obj1.transform.position = new Vector3(0.0f, 0.0f, 0.0f);
+
+            var obj2 = GameObject.Instantiate(m_mesh1material1T);
+            obj2.transform.SetParent(m_hlodGameObject.transform);
+            obj2.transform.position = new Vector3(1.0f, 0.0f, 0.0f);
+
+            var obj3 = GameObject.Instantiate(m_mesh2material1T);
+            obj3.transform.SetParent(m_hlodGameObject.transform);
+            obj3.transform.position = new Vector3(-1.0f, 0.0f, 0.0f);
+
+            var obj4 = GameObject.Instantiate(m_mesh2material1T);
             obj4.transform.SetParent(m_hlodGameObject.transform);
             obj4.transform.position = new Vector3(0.0f, 0.0f, 1.0f);
 
@@ -138,6 +195,36 @@ namespace Unity.HLODSystem.EditorTests
                 Assert.AreEqual(infos[0].WorkingObjects.Count, 2);
             }
         }
+
+        [Test]
+        public void TwoTextureMaterialTwoMesh()
+        {
+            var obj1 = GameObject.Instantiate(m_mesh1material1T);
+            obj1.transform.SetParent(m_hlodGameObject.transform);
+            obj1.transform.position = new Vector3(0.0f, 0.0f, 0.0f);
+
+            var obj2 = GameObject.Instantiate(m_mesh1material1T);
+            obj2.transform.SetParent(m_hlodGameObject.transform);
+            obj2.transform.position = new Vector3(1.0f, 0.0f, 0.0f);
+
+            var obj3 = GameObject.Instantiate(m_mesh2material2T);
+            obj3.transform.SetParent(m_hlodGameObject.transform);
+            obj3.transform.position = new Vector3(-1.0f, 0.0f, 0.0f);
+
+            var obj4 = GameObject.Instantiate(m_mesh2material1T);
+            obj4.transform.SetParent(m_hlodGameObject.transform);
+            obj4.transform.position = new Vector3(0.0f, 0.0f, 1.0f);
+
+
+            using (var infos = CreateBuildInfo())
+            {
+                DoBatch(infos);
+
+                Assert.AreEqual(infos.Count, 1);
+                Assert.AreEqual(infos[0].WorkingObjects.Count, 2);
+            }
+        }
+
         [Test]
         public void TwoMaterialThreeMesh()
         {
@@ -162,6 +249,40 @@ namespace Unity.HLODSystem.EditorTests
             obj5.transform.position = new Vector3(0.0f, 0.0f, -1.0f);
 
             
+
+            using (var infos = CreateBuildInfo())
+            {
+                DoBatch(infos);
+
+                Assert.AreEqual(infos.Count, 1);
+                Assert.AreEqual(infos[0].WorkingObjects.Count, 2);
+            }
+        }
+
+        [Test]
+        public void TwoTextureMaterialThreeMesh()
+        {
+            var obj1 = GameObject.Instantiate(m_mesh1material1T);
+            obj1.transform.SetParent(m_hlodGameObject.transform);
+            obj1.transform.position = new Vector3(0.0f, 0.0f, 0.0f);
+
+            var obj2 = GameObject.Instantiate(m_mesh1material1T);
+            obj2.transform.SetParent(m_hlodGameObject.transform);
+            obj2.transform.position = new Vector3(1.0f, 0.0f, 0.0f);
+
+            var obj3 = GameObject.Instantiate(m_mesh2material2T);
+            obj3.transform.SetParent(m_hlodGameObject.transform);
+            obj3.transform.position = new Vector3(-1.0f, 0.0f, 0.0f);
+
+            var obj4 = GameObject.Instantiate(m_mesh2material1T);
+            obj4.transform.SetParent(m_hlodGameObject.transform);
+            obj4.transform.position = new Vector3(0.0f, 0.0f, 1.0f);
+
+            var obj5 = GameObject.Instantiate(m_mesh3material2T);
+            obj5.transform.SetParent(m_hlodGameObject.transform);
+            obj5.transform.position = new Vector3(0.0f, 0.0f, -1.0f);
+
+
 
             using (var infos = CreateBuildInfo())
             {
