@@ -143,6 +143,7 @@ namespace Unity.HLODSystem.Utils
             {
                 buffer = new WorkingMaterialBuffer(allocator, material);
                 m_cache[buffer.Identifier] = buffer;
+                guid = buffer.Identifier;
             }
 
             buffer = m_cache[guid];
@@ -299,7 +300,7 @@ namespace Unity.HLODSystem.Utils
         {
             lock (m_textures)
             {
-                if ( m_textures[name] != null )
+                if (m_textures.ContainsKey(name) == true && m_textures[name] != null )
                     m_textures[name].Dispose();
                         
                 m_textures[name] = texture;

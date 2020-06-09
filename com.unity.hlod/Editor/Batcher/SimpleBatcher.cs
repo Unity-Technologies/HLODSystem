@@ -116,10 +116,11 @@ namespace Unity.HLODSystem
             {
                 string inputName = m_textureInfoList[0].InputName;
                 WorkingTexture texture = material.GetTexture(inputName);
-                
 
                 if (texture == null)
-                    return;
+                {
+                    texture = m_defaultTextures[m_textureInfoList[0].Type];
+                }
                 
                 TexturePacker.MaterialTexture materialTexture = new TexturePacker.MaterialTexture();
 
