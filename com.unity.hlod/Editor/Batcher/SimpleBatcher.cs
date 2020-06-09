@@ -10,7 +10,7 @@ namespace Unity.HLODSystem
 {
     public class SimpleBatcher : IBatcher
     {
-        enum PackingType
+        public enum PackingType
         {
             White,
             Black,
@@ -29,7 +29,7 @@ namespace Unity.HLODSystem
         
 
         [Serializable]
-        class TextureInfo
+        public class TextureInfo
         {
             public string InputName = "_InputProperty";
             public string OutputName = "_OutputProperty";
@@ -116,12 +116,13 @@ namespace Unity.HLODSystem
             {
                 string inputName = m_textureInfoList[0].InputName;
                 WorkingTexture texture = material.GetTexture(inputName);
-                TexturePacker.MaterialTexture materialTexture = new TexturePacker.MaterialTexture();
+                
 
                 if (texture == null)
                     return;
-
                 
+                TexturePacker.MaterialTexture materialTexture = new TexturePacker.MaterialTexture();
+
                 if (m_enableTintColor)
                 {
                     Color tintColor = material.GetColor(m_tintColorName);
