@@ -22,7 +22,11 @@ namespace Unity.HLODSystem
         public MaterialPreservingBatcher(SerializableDynamicObject batcherOptions)
         {
         }
-  
+
+        public void Dispose()
+        {
+        }
+
         public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
         {
             for (int i = 0; i < targets.Count; ++i)
