@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 106223284673187238}
   - component: {fileID: 1658458590856823115}
   m_Layer: 0
-  m_Name: RinNumber_LOD3 (1)
+  m_Name: RinNumber_LOD3T
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -58,7 +58,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -3551014699001434594, guid: bef74881dffda3b4ca366dd62b4403a3, type: 3}
+  - {fileID: 2100000, guid: 249bda716c2bb0a4c902e177115e52a6, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
