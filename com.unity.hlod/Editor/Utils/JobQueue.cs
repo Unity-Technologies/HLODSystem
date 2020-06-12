@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Utils
 {
-    public class JobQueue
+    public class JobQueue : IDisposable
     {        
         public JobQueue(int threadCount)
         {
@@ -77,6 +77,10 @@ namespace Unity.HLODSystem.Utils
                 isFinish = true;
                 for (int i = 0; i < m_workers.Length; ++i)
                 {
+                    if ( m_workers[i].IsException())
+                    {
+                        throw new Exception("Exception from worker thread.");
+                    }
                     if (m_workers[i].IsWorking() == true)
                     {
                         isFinish = false;
@@ -88,6 +92,15 @@ namespace Unity.HLODSystem.Utils
 
             }
             
+        }
+
+        public void Dispose()
+        {
+            for ( int i = 0; i < m_workers.Length; ++i )
+            {
+                m_workers[i].Stop();
+            }
+            m_workers = null;
         }
 
         private Worker[] m_workers;
@@ -105,6 +118,7 @@ namespace Unity.HLODSystem.Utils
             
             private bool m_terminated;
             private bool m_working;
+            private bool m_exception;
 
 
             public Worker(JobQueue queue)
@@ -115,6 +129,7 @@ namespace Unity.HLODSystem.Utils
                 
                 m_terminated = false;
                 m_working = false;
+                m_exception = false;
             }
 
             public void Stop()
@@ -122,6 +137,10 @@ namespace Unity.HLODSystem.Utils
                 m_terminated = true;
             }
 
+            public bool IsException()
+            {
+                return m_exception;
+            }
             public bool IsWorking()
             {
                 return m_working;
@@ -144,6 +163,11 @@ namespace Unity.HLODSystem.Utils
 
                         job.Invoke();
                         m_working = false;
+                    }
+                    catch(Exception e)
+                    {
+                        Debug.LogException(e);
+                        m_exception = true;
                     }
                     finally
                     {
