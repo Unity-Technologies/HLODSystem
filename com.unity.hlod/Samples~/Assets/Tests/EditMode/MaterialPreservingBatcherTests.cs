@@ -297,8 +297,8 @@ namespace Unity.HLODSystem.EditorTests
         {
             
             List<GameObject> hlodTargets = ObjectUtils.HLODTargets(m_hlodComponent.gameObject);
-            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(m_hlodComponent.transform.position, 0.0f, 10.0f);
-            SpaceNode rootNode = spliter.CreateSpaceTree(m_hlodComponent.GetBounds(), hlodTargets, null);
+            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(0.0f);
+            SpaceNode rootNode = spliter.CreateSpaceTree(m_hlodComponent.GetBounds(), 10.0f, m_hlodComponent.transform.position, hlodTargets, null);
 
             return  (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { rootNode, 0.0f });
         }
