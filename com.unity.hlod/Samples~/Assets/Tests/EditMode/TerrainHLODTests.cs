@@ -26,6 +26,7 @@ namespace Unity.HLODSystem.EditorTests
             m_terrainHLOD.BorderVertexCount = 256;
 
             m_terrainHLOD.MaterialGUID = AssetDatabase.AssetPathToGUID("Assets/TerrainHLOD/TestResource/BakedMaterial.mat");
+            m_terrainHLOD.TextureSize = 64;
             m_terrainHLOD.AlbedoPropertyName = "_MainTex";
 
             dynamic simplifierOptions = m_terrainHLOD.SimplifierOptions;
@@ -60,8 +61,6 @@ namespace Unity.HLODSystem.EditorTests
         [Test]
         public void BasicTest()
         {
-            m_terrainHLOD.ChunkSize = 300.0f;
-
             Utils.CustomCoroutine routine = new Utils.CustomCoroutine (TerrainHLODCreator.Create(m_terrainHLOD));
             
 
@@ -125,16 +124,14 @@ namespace Unity.HLODSystem.EditorTests
         }
 
         [Test]
-        public void TestWithSimplifier()
+        public void SimplifierTest()
         {
-            m_terrainHLOD.ChunkSize = 300.0f;
             m_terrainHLOD.SimplifierType = Simplifier.SimplifierTypes.GetTypes()[1];
 
             dynamic simplifierOptions = m_terrainHLOD.SimplifierOptions;
             simplifierOptions.SimplifyMaxPolygonCount = 1000;
             simplifierOptions.SimplifyMinPolygonCount = 0;
             simplifierOptions.SimplifyPolygonRatio = 1.0f;
-
 
             Utils.CustomCoroutine routine = new Utils.CustomCoroutine(TerrainHLODCreator.Create(m_terrainHLOD));
 
@@ -166,6 +163,64 @@ namespace Unity.HLODSystem.EditorTests
             Assert.AreEqual(1543, mesh4.vertices.Length);
         }
 
+        [Test]
+        public void TextureSizeTest()
+        {
+            m_terrainHLOD.TextureSize = 128;
+
+            Utils.CustomCoroutine routine = new Utils.CustomCoroutine(TerrainHLODCreator.Create(m_terrainHLOD));
+
+            while (routine.MoveNext())
+            {
+
+            }
+
+            Assert.AreEqual(5, m_terrainHLOD.transform.childCount);
+            Assert.AreEqual(1, m_terrainHLOD.transform.GetChild(0).childCount);
+
+            var object0 = m_terrainHLOD.transform.GetChild(0).GetChild(0);
+            var object1 = m_terrainHLOD.transform.GetChild(1);
+            var object2 = m_terrainHLOD.transform.GetChild(2);
+            var object3 = m_terrainHLOD.transform.GetChild(3);
+            var object4 = m_terrainHLOD.transform.GetChild(4);
+
+
+            CompareTexture(object0.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_MainTex") as Texture2D, "Assets/TestResult/HLOD_Albedo 128.texture2D");
+            CompareTexture(object1.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_MainTex") as Texture2D, "Assets/TestResult/HLOD_1_Albedo 128.texture2D");
+            CompareTexture(object2.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_MainTex") as Texture2D, "Assets/TestResult/HLOD_2_Albedo 128.texture2D");
+            CompareTexture(object3.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_MainTex") as Texture2D, "Assets/TestResult/HLOD_3_Albedo 128.texture2D");
+            CompareTexture(object4.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_MainTex") as Texture2D, "Assets/TestResult/HLOD_4_Albedo 128.texture2D");
+        }
+
+        [Test]
+        public void NormalMapTest()
+        {
+            m_terrainHLOD.UseNormal = true;
+            m_terrainHLOD.NormalPropertyName = "_BumpMap";
+
+            Utils.CustomCoroutine routine = new Utils.CustomCoroutine(TerrainHLODCreator.Create(m_terrainHLOD));
+
+            while (routine.MoveNext())
+            {
+
+            }
+
+            Assert.AreEqual(5, m_terrainHLOD.transform.childCount);
+            Assert.AreEqual(1, m_terrainHLOD.transform.GetChild(0).childCount);
+
+            var object0 = m_terrainHLOD.transform.GetChild(0).GetChild(0);
+            var object1 = m_terrainHLOD.transform.GetChild(1);
+            var object2 = m_terrainHLOD.transform.GetChild(2);
+            var object3 = m_terrainHLOD.transform.GetChild(3);
+            var object4 = m_terrainHLOD.transform.GetChild(4);
+
+
+            CompareTexture(object0.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_Normal.texture2D");
+            CompareTexture(object1.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_1_Normal.texture2D");
+            CompareTexture(object2.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_2_Normal.texture2D");
+            CompareTexture(object3.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_3_Normal.texture2D");
+            CompareTexture(object4.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_4_Normal.texture2D");
+        }
 
         private void CompareTexture(Texture2D texture, string targetTextureFilename)
         {
