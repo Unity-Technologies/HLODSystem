@@ -133,12 +133,17 @@ namespace Unity.HLODSystem.Utils
                 //issue guid for just create
                 guid = System.Guid.NewGuid().ToString("N");
             }
-
+            else
+            {
+                guid = guid + material.GetInstanceID();
+            }
+            
             
             if (m_cache.ContainsKey(guid) == false)
             {
                 buffer = new WorkingMaterialBuffer(allocator, material);
-                m_cache[guid] = buffer;
+                m_cache[buffer.Identifier] = buffer;
+                guid = buffer.Identifier;
             }
 
             buffer = m_cache[guid];
@@ -150,13 +155,13 @@ namespace Unity.HLODSystem.Utils
         {
             WorkingMaterialBuffer buffer = new WorkingMaterialBuffer(allocator, materialId, name);
             buffer.AddRef();
-            m_cache[buffer.Guid] = buffer;
+            m_cache[buffer.Identifier] = buffer;
             return buffer;
         }
 
         public void Destroy(WorkingMaterialBuffer buffer)
         {
-            m_cache.Remove(buffer.Guid);
+            m_cache.Remove(buffer.Identifier);
         }
     }
 
@@ -180,7 +185,16 @@ namespace Unity.HLODSystem.Utils
         }
         public string Guid => m_guid;
         public int InstanceID => m_instanceID;
-        
+
+        public string Identifier
+        {
+            get
+            {
+                return Guid + InstanceID;
+            }
+        }
+
+
         private WorkingMaterialBuffer(Allocator allocator)
         {
             m_allocator = allocator;
@@ -286,7 +300,7 @@ namespace Unity.HLODSystem.Utils
         {
             lock (m_textures)
             {
-                if ( m_textures[name] != null )
+                if (m_textures.ContainsKey(name) == true && m_textures[name] != null )
                     m_textures[name].Dispose();
                         
                 m_textures[name] = texture;

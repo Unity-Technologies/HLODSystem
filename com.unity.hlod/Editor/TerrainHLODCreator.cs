@@ -11,6 +11,7 @@ using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
@@ -79,34 +80,68 @@ namespace Unity.HLODSystem
             
             public Layer(TerrainLayer layer)
             {
-                WorkingTexture texture = layer.diffuseTexture.ToWorkingTexture(Allocator.Persistent);
-                
+                var texture = layer.diffuseTexture;
+
+                bool linear = !GraphicsFormatUtility.IsSRGBFormat(texture.graphicsFormat);
+
                 m_diffuseTexstures = new DisposableList<WorkingTexture>();
-                m_diffuseTexstures.Add(texture);
 
                 m_offset = layer.tileOffset;
                 m_size = layer.tileSize;
                 var diffuseRemapMin = layer.diffuseRemapMin;
                 var diffuseRemapMax = layer.diffuseRemapMax;
-                
+
                 diffuseRemapMin.x = Mathf.Pow(diffuseRemapMin.x, 0.45f);
                 diffuseRemapMin.y = Mathf.Pow(diffuseRemapMin.y, 0.45f);
                 diffuseRemapMin.z = Mathf.Pow(diffuseRemapMin.z, 0.45f);
-                
+
                 diffuseRemapMax.x = Mathf.Pow(diffuseRemapMax.x, 0.45f);
                 diffuseRemapMax.y = Mathf.Pow(diffuseRemapMax.y, 0.45f);
                 diffuseRemapMax.z = Mathf.Pow(diffuseRemapMax.z, 0.45f);
-        
 
-                RemapTexture(texture, diffuseRemapMin, diffuseRemapMax);
-                
-                while (texture.Width > 2 || texture.Height > 2)
+
+                //make to texture readable.
+                var assetImporter = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(texture));
+                var textureImporter = assetImporter as TextureImporter;
+                TextureImporterType type = TextureImporterType.Default;
+
+                if (textureImporter)
                 {
-                    texture = GenerateMipmap(texture);
-                    m_diffuseTexstures.Add(texture);
+                    type = textureImporter.textureType;
+                    textureImporter.isReadable = true;
+                    textureImporter.textureType = TextureImporterType.Default;
+                    textureImporter.SaveAndReimport();
                 }
-                
-                
+
+                try
+                {
+                    for (int i = 0; i < texture.mipmapCount; ++i)
+                    {
+                        int width = texture.width >> i;
+                        int height = texture.height >> i;
+                        WorkingTexture workingTexture = new WorkingTexture(Allocator.Persistent, texture.format, width, height, linear);
+                        Color[] colors = texture.GetPixels(i);
+                        for (int y = 0; y < height; ++y)
+                        {
+                            for (int x = 0; x < width; ++x)
+                            {
+                                workingTexture.SetPixel(x, y, colors[y * width + x]);
+                            }
+                        }
+
+                        RemapTexture(workingTexture, diffuseRemapMin, diffuseRemapMax);
+                        m_diffuseTexstures.Add(workingTexture);
+                    }
+                }
+                finally
+                {
+                    if (textureImporter)
+                    {
+                        textureImporter.isReadable = false;
+                        textureImporter.textureType = type;
+                        textureImporter.SaveAndReimport();
+                    }
+                }
             }
             
             public void Dispose()
@@ -192,8 +227,8 @@ namespace Unity.HLODSystem
       
 
         private TerrainHLOD m_hlod;
-        
-        private JobQueue m_queue = new JobQueue(8);
+
+        private JobQueue m_queue;
         private Heightmap m_heightmap;
 
         private Vector3 m_size;
@@ -397,9 +432,9 @@ namespace Unity.HLODSystem
                             
                         }
 
-                        color.r = Mathf.Pow(color.r, 0.45f);
-                        color.g = Mathf.Pow(color.g, 0.45f);
-                        color.b = Mathf.Pow(color.b, 0.45f);
+                        color.r = Mathf.Pow(color.r, 0.454545f);
+                        color.g = Mathf.Pow(color.g, 0.454545f);
+                        color.b = Mathf.Pow(color.b, 0.454545f);
                         color.a = 1.0f;
                         albedoTexture.SetPixel(x, y, color);
                     }
@@ -909,183 +944,186 @@ namespace Unity.HLODSystem
         {
             try
             {
-                Stopwatch sw = new Stopwatch();
-                
-                AssetDatabase.Refresh();
-                AssetDatabase.SaveAssets();
-
-                sw.Reset();
-                sw.Start();
-                
-                EditorUtility.DisplayProgressBar("Bake HLOD", "Initialize Bake", 0.0f);
-                
-                
-                TerrainData data = m_hlod.TerrainData;
-
-                m_size = data.size;
-
-                m_heightmap = new Heightmap(data.heightmapResolution, data.heightmapResolution, data.size,
-                    data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution));
-
-                string materialPath = AssetDatabase.GUIDToAssetPath(m_hlod.MaterialGUID);
-                m_terrainMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
-                if ( m_terrainMaterial == null )
-                    m_terrainMaterial = new Material(Shader.Find("Standard"));
-
-                m_terrainMaterialInstanceId = m_terrainMaterial.GetInstanceID();
-                m_terrainMaterialName = m_terrainMaterial.name;
-
-                using (m_alphamaps = new DisposableList<WorkingTexture>()) 
-                using ( m_layers = new DisposableList<Layer>())
+                using (m_queue = new JobQueue(8))
                 {
-                    for (int i = 0; i < data.alphamapTextures.Length; ++i)
+                    Stopwatch sw = new Stopwatch();
+
+                    AssetDatabase.Refresh();
+                    AssetDatabase.SaveAssets();
+
+                    sw.Reset();
+                    sw.Start();
+
+                    EditorUtility.DisplayProgressBar("Bake HLOD", "Initialize Bake", 0.0f);
+
+
+                    TerrainData data = m_hlod.TerrainData;
+
+                    m_size = data.size;
+
+                    m_heightmap = new Heightmap(data.heightmapResolution, data.heightmapResolution, data.size,
+                        data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution));
+
+                    string materialPath = AssetDatabase.GUIDToAssetPath(m_hlod.MaterialGUID);
+                    m_terrainMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+                    if (m_terrainMaterial == null)
+                        m_terrainMaterial = new Material(Shader.Find("Standard"));
+
+                    m_terrainMaterialInstanceId = m_terrainMaterial.GetInstanceID();
+                    m_terrainMaterialName = m_terrainMaterial.name;
+
+                    using (m_alphamaps = new DisposableList<WorkingTexture>())
+                    using (m_layers = new DisposableList<Layer>())
                     {
-                        m_alphamaps.Add(new WorkingTexture(Allocator.Persistent, data.alphamapTextures[i]));
-                    }
+                        for (int i = 0; i < data.alphamapTextures.Length; ++i)
+                        {
+                            m_alphamaps.Add(new WorkingTexture(Allocator.Persistent, data.alphamapTextures[i]));
+                        }
 
-                    for (int i = 0; i < data.terrainLayers.Length; ++i)
-                    {
-                        m_layers.Add(new Layer(data.terrainLayers[i]));
-                    }
+                        for (int i = 0; i < data.terrainLayers.Length; ++i)
+                        {
+                            m_layers.Add(new Layer(data.terrainLayers[i]));
+                        }
 
 
-                    QuadTreeSpaceSplitter splitter = new QuadTreeSpaceSplitter(0.0f);
+                        QuadTreeSpaceSplitter splitter =
+                            new QuadTreeSpaceSplitter(0.0f);
 
-                    SpaceNode rootNode = splitter.CreateSpaceTree(m_hlod.GetBounds(), m_hlod.ChunkSize * 2.0f,
+                        SpaceNode rootNode = splitter.CreateSpaceTree(m_hlod.GetBounds(), m_hlod.ChunkSize * 2.0f,
                         m_hlod.transform.position, null, progress => { });
 
-                    EditorUtility.DisplayProgressBar("Bake HLOD", "Create mesh", 0.0f);
-                    
-                    using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(data, rootNode))
-                    {
-                        yield return m_queue.WaitFinish();
-                        //Write material & textures
-                        
-                        for (int i = 0; i < buildInfos.Count; ++i)
+                        EditorUtility.DisplayProgressBar("Bake HLOD", "Create mesh", 0.0f);
+
+                        using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(data, rootNode))
                         {
-                            int curIndex = i;
-                            m_queue.EnqueueJob(() =>
+                            yield return m_queue.WaitFinish();
+                            //Write material & textures
+
+                            for (int i = 0; i < buildInfos.Count; ++i)
                             {
-                                ISimplifier simplifier = (ISimplifier) Activator.CreateInstance(m_hlod.SimplifierType,
-                                    new object[] {m_hlod.SimplifierOptions});
-                                simplifier.SimplifyImmidiate(buildInfos[curIndex]);
-                            });
-                        }
-
-                        EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes", 0.0f);
-                        yield return m_queue.WaitFinish();
-
-                        Debug.Log("[TerrainHLOD] Simplify: " + sw.Elapsed.ToString("g"));
-                        sw.Reset();
-                        sw.Start();
-                        EditorUtility.DisplayProgressBar("Bake HLOD", "Make border", 0.0f);
-
-                        for (int i = 0; i < buildInfos.Count; ++i)
-                        {
-                            HLODBuildInfo info = buildInfos[i];
-                            m_queue.EnqueueJob(() =>
-                            {
-                                for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
+                                int curIndex = i;
+                                m_queue.EnqueueJob(() =>
                                 {
-                                    WorkingObject o = info.WorkingObjects[oi];
-                                    int borderVertexCount = m_hlod.BorderVertexCount * Mathf.RoundToInt(Mathf.Pow(2.0f, (float)info.Distances[oi]));
-                                    using (WorkingMesh m = MakeBorder(o.Mesh, info.Heightmap, borderVertexCount))
-                                    {
-                                        ReampUV(m, info.Heightmap);
-                                        o.SetMesh(MakeFillHoleMesh(m));
-                                    }
-                                }
-                            });
-                        }
-                        yield return m_queue.WaitFinish();
-                        
-                        Debug.Log("[TerrainHLOD] Make Border: " + sw.Elapsed.ToString("g"));
-                        sw.Reset();
-                        sw.Start();
-                        
-
-                        for (int i = 0; i < buildInfos.Count; ++i)
-                        {
-                            SpaceNode node = buildInfos[i].Target;
-                            HLODBuildInfo info = buildInfos[i];
-                            if (node.HasChild() == false)
-                            {
-                                SpaceNode parent = node.ParentNode;
-                                node.ParentNode = null;
-                                
-                                GameObject go = new GameObject(buildInfos[i].Name);
-
-                                for (int wi = 0; wi < info.WorkingObjects.Count; ++wi)
-                                {
-                                    WorkingObject wo = info.WorkingObjects[wi];
-                                    GameObject targetGO = null;
-                                    if (wi == 0)
-                                    {
-                                        targetGO = go;
-                                    }
-                                    else
-                                    {
-                                        targetGO = new GameObject(wi.ToString());
-                                        targetGO.transform.SetParent(go.transform, false);
-                                    }
-
-                                    List<Material> materials = new List<Material>();
-                                    for (int mi = 0; mi < wo.Materials.Count; ++mi)
-                                    {
-                                        
-                                        WorkingMaterial wm = wo.Materials[mi];
-                                        if (wm.NeedWrite() == false)
-                                        {
-                                            materials.Add(wm.ToMaterial());
-                                            continue;
-                                        }
-                                        
-                                        Material mat = new Material(wm.ToMaterial());
-                                        string[] textureNames = wm.GetTextureNames();
-                                        for (int ti = 0; ti < textureNames.Length; ++ti)
-                                        {
-                                            WorkingTexture wt = wm.GetTexture(textureNames[ti]);
-                                            Texture2D tex = wt.ToTexture();
-                                            tex.wrapMode = wt.WrapMode;
-                                            mat.name = targetGO.name + "_Mat"; 
-                                            mat.SetTexture(textureNames[ti],tex);
-                                        }
-                                        mat.EnableKeyword("_NORMALMAP");
-                                        materials.Add(mat);
-                                    }
-                                    
-                                    targetGO.AddComponent<MeshFilter>().sharedMesh = wo.Mesh.ToMesh();
-                                    targetGO.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
-                                }
-                                
-                                go.transform.SetParent(m_hlod.transform, false);
-                                m_hlod.AddGeneratedResource(go);
-
-                                parent.Objects.Add(go);
-                                buildInfos.RemoveAt(i);
-                                i -= 1;
+                                    ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(m_hlod.SimplifierType,
+                                        new object[] { m_hlod.SimplifierOptions });
+                                    simplifier.SimplifyImmidiate(buildInfos[curIndex]);
+                                });
                             }
-                        }
 
-                        //controller
-                        IStreamingBuilder builder =
-                            (IStreamingBuilder) Activator.CreateInstance(m_hlod.StreamingType,
-                                new object[] {m_hlod, m_hlod.StreamingOptions});
-                        
-                        builder.Build(rootNode, buildInfos, m_hlod.gameObject, m_hlod.CullDistance, m_hlod.LODDistance, true,
-                            progress =>
+                            EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes", 0.0f);
+                            yield return m_queue.WaitFinish();
+
+                            Debug.Log("[TerrainHLOD] Simplify: " + sw.Elapsed.ToString("g"));
+                            sw.Reset();
+                            sw.Start();
+                            EditorUtility.DisplayProgressBar("Bake HLOD", "Make border", 0.0f);
+
+                            for (int i = 0; i < buildInfos.Count; ++i)
                             {
-                                EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
-                                    0.75f + progress * 0.25f);
-                            });
-                        
-                        Debug.Log("[TerrainHLOD] Build: " + sw.Elapsed.ToString("g"));
+                                HLODBuildInfo info = buildInfos[i];
+                                m_queue.EnqueueJob(() =>
+                                {
+                                    for (int oi = 0; oi < info.WorkingObjects.Count; ++oi)
+                                    {
+                                        WorkingObject o = info.WorkingObjects[oi];
+                                        int borderVertexCount = m_hlod.BorderVertexCount * Mathf.RoundToInt(Mathf.Pow(2.0f, (float)info.Distances[oi]));
+                                        using (WorkingMesh m = MakeBorder(o.Mesh, info.Heightmap, borderVertexCount))
+                                        {
+                                            ReampUV(m, info.Heightmap);
+                                            o.SetMesh(MakeFillHoleMesh(m));
+                                        }
+                                    }
+                                });
+                            }
+                            yield return m_queue.WaitFinish();
 
+                            Debug.Log("[TerrainHLOD] Make Border: " + sw.Elapsed.ToString("g"));
+                            sw.Reset();
+                            sw.Start();
+
+
+                            for (int i = 0; i < buildInfos.Count; ++i)
+                            {
+                                SpaceNode node = buildInfos[i].Target;
+                                HLODBuildInfo info = buildInfos[i];
+                                if (node.HasChild() == false)
+                                {
+                                    SpaceNode parent = node.ParentNode;
+                                    node.ParentNode = null;
+
+                                    GameObject go = new GameObject(buildInfos[i].Name);
+
+                                    for (int wi = 0; wi < info.WorkingObjects.Count; ++wi)
+                                    {
+                                        WorkingObject wo = info.WorkingObjects[wi];
+                                        GameObject targetGO = null;
+                                        if (wi == 0)
+                                        {
+                                            targetGO = go;
+                                        }
+                                        else
+                                        {
+                                            targetGO = new GameObject(wi.ToString());
+                                            targetGO.transform.SetParent(go.transform, false);
+                                        }
+
+                                        List<Material> materials = new List<Material>();
+                                        for (int mi = 0; mi < wo.Materials.Count; ++mi)
+                                        {
+
+                                            WorkingMaterial wm = wo.Materials[mi];
+                                            if (wm.NeedWrite() == false)
+                                            {
+                                                materials.Add(wm.ToMaterial());
+                                                continue;
+                                            }
+
+                                            Material mat = new Material(wm.ToMaterial());
+                                            string[] textureNames = wm.GetTextureNames();
+                                            for (int ti = 0; ti < textureNames.Length; ++ti)
+                                            {
+                                                WorkingTexture wt = wm.GetTexture(textureNames[ti]);
+                                                Texture2D tex = wt.ToTexture();
+                                                tex.wrapMode = wt.WrapMode;
+                                                mat.name = targetGO.name + "_Mat";
+                                                mat.SetTexture(textureNames[ti], tex);
+                                            }
+                                            mat.EnableKeyword("_NORMALMAP");
+                                            materials.Add(mat);
+                                        }
+
+                                        targetGO.AddComponent<MeshFilter>().sharedMesh = wo.Mesh.ToMesh();
+                                        targetGO.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
+                                    }
+
+                                    go.transform.SetParent(m_hlod.transform, false);
+                                    m_hlod.AddGeneratedResource(go);
+
+                                    parent.Objects.Add(go);
+                                    buildInfos.RemoveAt(i);
+                                    i -= 1;
+                                }
+                            }
+
+                            //controller
+                            IStreamingBuilder builder =
+                                (IStreamingBuilder)Activator.CreateInstance(m_hlod.StreamingType,
+                                    new object[] { m_hlod, m_hlod.StreamingOptions });
+
+                            builder.Build(rootNode, buildInfos, m_hlod.gameObject, m_hlod.CullDistance, m_hlod.LODDistance, true,
+                                progress =>
+                                {
+                                    EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
+                                        0.75f + progress * 0.25f);
+                                });
+
+                            Debug.Log("[TerrainHLOD] Build: " + sw.Elapsed.ToString("g"));
+
+                        }
                     }
+
+                    EditorUtility.SetDirty(m_hlod.gameObject);
                 }
-
-                EditorUtility.SetDirty(m_hlod.gameObject);
-
             }
             finally
             {

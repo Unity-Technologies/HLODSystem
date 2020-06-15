@@ -230,14 +230,16 @@ namespace Unity.HLODSystem
                     sw.Start();
 
 
-                    IBatcher batcher =
-                        (IBatcher) Activator.CreateInstance(hlod.BatcherType, new object[] {hlod.BatcherOptions});
-                    batcher.Batch(hlod.transform.position, buildInfos,
-                        progress =>
-                        {
-                            EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
-                                0.5f + progress * 0.25f);
-                        });
+                    using (IBatcher batcher =
+                        (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[] { hlod.BatcherOptions }))
+                    {
+                        batcher.Batch(hlod.transform.position, buildInfos,
+                            progress =>
+                            {
+                                EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
+                                    0.5f + progress * 0.25f);
+                            });
+                    }
                     Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
                     sw.Reset();
                     sw.Start();

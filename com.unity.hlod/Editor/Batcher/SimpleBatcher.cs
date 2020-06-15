@@ -10,7 +10,7 @@ namespace Unity.HLODSystem
 {
     public class SimpleBatcher : IBatcher
     {
-        enum PackingType
+        public enum PackingType
         {
             White,
             Black,
@@ -29,7 +29,7 @@ namespace Unity.HLODSystem
         
 
         [Serializable]
-        class TextureInfo
+        public class TextureInfo
         {
             public string InputName = "_InputProperty";
             public string OutputName = "_OutputProperty";
@@ -40,34 +40,33 @@ namespace Unity.HLODSystem
         {
             m_batcherOptions = batcherOptions;
         }
-        
-        public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
+
+        public void Dispose()
         {
-            try
-            {
-                dynamic options = m_batcherOptions;
-                if (onProgress != null)
-                    onProgress(0.0f);
-
-                using (TexturePacker packer = new TexturePacker())
-                {
-                    PackingTexture(packer, targets, options, onProgress);
-
-                    for (int i = 0; i < targets.Count; ++i)
-                    {
-                        Combine(rootPosition, packer, targets[i], options);
-                        if (onProgress != null)
-                            onProgress(0.5f + ((float) i / (float) targets.Count) * 0.5f);
-                    }
-                }
-            }
-            finally
-            {
-                m_createdMaterials.Dispose(); 
-            }
+            m_createdMaterials.Dispose();
         }
 
-        
+        public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
+        {
+            dynamic options = m_batcherOptions;
+            if (onProgress != null)
+                onProgress(0.0f);
+
+            using (TexturePacker packer = new TexturePacker())
+            {
+                PackingTexture(packer, targets, options, onProgress);
+
+                for (int i = 0; i < targets.Count; ++i)
+                {
+                    Combine(rootPosition, packer, targets[i], options);
+                    if (onProgress != null)
+                        onProgress(0.5f + ((float)i / (float)targets.Count) * 0.5f);
+                }
+            }
+
+        }
+
+
         class MaterialTextureCache : IDisposable
         {
             private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
@@ -116,12 +115,14 @@ namespace Unity.HLODSystem
             {
                 string inputName = m_textureInfoList[0].InputName;
                 WorkingTexture texture = material.GetTexture(inputName);
-                TexturePacker.MaterialTexture materialTexture = new TexturePacker.MaterialTexture();
 
                 if (texture == null)
-                    return;
-
+                {
+                    texture = m_defaultTextures[m_textureInfoList[0].Type];
+                }
                 
+                TexturePacker.MaterialTexture materialTexture = new TexturePacker.MaterialTexture();
+
                 if (m_enableTintColor)
                 {
                     Color tintColor = material.GetColor(m_tintColorName);
@@ -603,7 +604,7 @@ namespace Unity.HLODSystem
             return texturePropertyNames.ToArray();
         }
 
-        
+
     }
 
 }

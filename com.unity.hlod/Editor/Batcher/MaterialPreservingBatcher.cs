@@ -22,7 +22,11 @@ namespace Unity.HLODSystem
         public MaterialPreservingBatcher(SerializableDynamicObject batcherOptions)
         {
         }
-  
+
+        public void Dispose()
+        {
+        }
+
         public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
         {
             for (int i = 0; i < targets.Count; ++i)
@@ -66,25 +70,26 @@ namespace Unity.HLODSystem
                 }
             }
 
-            DisposableList<WorkingObject> combinedObjects = new DisposableList<WorkingObject>();
-            MeshCombiner combiner = new MeshCombiner();
-            foreach (var pair in combineInfos)
+            using (var originWorkingObject = info.WorkingObjects)
             {
-                WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, pair.Value);
-                WorkingObject combinedObject = new WorkingObject(Allocator.Persistent);
-                WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, pair.Key, materialNames[pair.Key]);
+                DisposableList<WorkingObject> combinedObjects = new DisposableList<WorkingObject>();
+                info.WorkingObjects = combinedObjects;
 
-                combinedMesh.name = info.Name + "_Mesh" + pair.Key;
-                combinedObject.Name = info.Name;
-                combinedObject.SetMesh(combinedMesh);
-                combinedObject.Materials.Add(material);
-                
-                combinedObjects.Add(combinedObject);
+                MeshCombiner combiner = new MeshCombiner();
+                foreach (var pair in combineInfos)
+                {
+                    WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, pair.Value);
+                    WorkingObject combinedObject = new WorkingObject(Allocator.Persistent);
+                    WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, pair.Key, materialNames[pair.Key]);
+
+                    combinedMesh.name = info.Name + "_Mesh" + pair.Key;
+                    combinedObject.Name = info.Name;
+                    combinedObject.SetMesh(combinedMesh);
+                    combinedObject.Materials.Add(material);
+
+                    combinedObjects.Add(combinedObject);
+                }
             }
-
-            //release before change
-            info.WorkingObjects.Dispose();
-            info.WorkingObjects = combinedObjects;
         }
 
         static void OnGUI(HLOD hlod)
