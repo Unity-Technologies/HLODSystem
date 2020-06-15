@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Linq;
+using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace Unity.HLODSystem
@@ -17,6 +17,14 @@ namespace Unity.HLODSystem
             public static GUIContent GenerateButtonExists = new GUIContent("Generate", "HLOD already generated.");
             public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destroy HLOD mesh.");
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "HLOD must be created before the destroying.");
+
+            public static GUIStyle RedTextColor = new GUIStyle();
+
+            static Styles()
+            {
+                RedTextColor.normal.textColor = Color.red;
+            }
+
         }        
         private SerializedProperty m_ChunkSizeProperty;
         private SerializedProperty m_LODDistanceProperty;
@@ -38,6 +46,8 @@ namespace Unity.HLODSystem
         private bool isShowBatcher = true;
         private bool isShowSimplifier = true;
         private bool isShowStreaming = true;
+        
+        private ISpaceSplitter m_splitter = new QuadTreeSpaceSplitter(5.0f);
 
         [InitializeOnLoadMethod]
         static void InitTagTagUtils()
@@ -85,8 +95,21 @@ namespace Unity.HLODSystem
             isShowCommon = EditorGUILayout.BeginFoldoutHeaderGroup(isShowCommon, "Common");
             if (isShowCommon == true)
             {
-
                 EditorGUILayout.PropertyField(m_ChunkSizeProperty);
+
+                m_ChunkSizeProperty.floatValue = HLODUtils.GetChunkSizePropertyValue(m_ChunkSizeProperty.floatValue);
+                
+                var bounds = hlod.GetBounds();
+                int depth = m_splitter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
+                
+                EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
+                if (depth > 5)
+                {
+                    EditorGUILayout.LabelField($"Node Level Count greater than 5 may cause a frozen Editor.", Styles.RedTextColor);
+                    EditorGUILayout.LabelField($"I recommend keeping the level under 5.", Styles.RedTextColor);
+                    
+                }
+
 
                 m_LODSlider.Draw();
                 EditorGUILayout.PropertyField(m_MinObjectSizeProperty);

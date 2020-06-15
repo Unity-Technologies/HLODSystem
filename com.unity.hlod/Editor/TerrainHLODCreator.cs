@@ -244,10 +244,6 @@ namespace Unity.HLODSystem
         {
             m_hlod = hlod;
         }
-        private static Bounds GetBounds(TerrainData data)
-        {
-            return new Bounds(data.size * 0.5f, data.size);
-        }
 
         private Heightmap CreateSubHightmap(Bounds bounds)
         {
@@ -968,6 +964,7 @@ namespace Unity.HLODSystem
                     m_heightmap = new Heightmap(data.heightmapResolution, data.heightmapResolution, data.size,
                         data.GetHeights(0, 0, data.heightmapResolution, data.heightmapResolution));
 
+<<<<<<< HEAD
                     string materialPath = AssetDatabase.GUIDToAssetPath(m_hlod.MaterialGUID);
                     m_terrainMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
                     if (m_terrainMaterial == null)
@@ -975,6 +972,12 @@ namespace Unity.HLODSystem
 
                     m_terrainMaterialInstanceId = m_terrainMaterial.GetInstanceID();
                     m_terrainMaterialName = m_terrainMaterial.name;
+=======
+                    QuadTreeSpaceSplitter splitter = new QuadTreeSpaceSplitter(0.0f);
+
+                    SpaceNode rootNode = splitter.CreateSpaceTree(m_hlod.GetBounds(), m_hlod.ChunkSize * 2.0f,
+                        m_hlod.transform.position, null, progress => { });
+>>>>>>> master
 
                     using (m_alphamaps = new DisposableList<WorkingTexture>())
                     using (m_layers = new DisposableList<Layer>())
