@@ -1,5 +1,5 @@
 test_editors:
-  - version: 2019.3.0f5
+  - version: 2019.3.7f1
 test_platforms:
   - name: Windows
     type: Unity::VM
