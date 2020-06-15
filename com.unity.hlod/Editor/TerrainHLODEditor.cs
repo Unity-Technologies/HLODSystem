@@ -4,6 +4,7 @@ using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.HLODSystem.SpaceManager;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -26,6 +27,8 @@ namespace Unity.HLODSystem
                 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096
             };
             public static string[] TextureSizeStrings;
+            
+            public static GUIStyle RedTextColor = new GUIStyle();
 
             static Styles()
             {
@@ -34,6 +37,8 @@ namespace Unity.HLODSystem
                 {
                     TextureSizeStrings[i] = TextureSizes[i].ToString();
                 }
+                
+                RedTextColor.normal.textColor = Color.red;
             }
         }        
         
@@ -57,7 +62,11 @@ namespace Unity.HLODSystem
         private bool isShowStreaming = true;
 
         private bool isShowTexturePropertices = true;
-
+        
+        private ISpaceSplitter m_splitter = new QuadTreeSpaceSplitter(0.0f);
+        
+        
+        
         void OnEnable()
         {
             m_TerrainDataProperty = serializedObject.FindProperty("m_TerrainData");
@@ -94,6 +103,20 @@ namespace Unity.HLODSystem
             {
                 EditorGUILayout.PropertyField(m_TerrainDataProperty, Styles.SourceText);
                 EditorGUILayout.PropertyField(m_ChunkSizeProperty);
+                
+                m_ChunkSizeProperty.floatValue = HLODUtils.GetChunkSizePropertyValue(m_ChunkSizeProperty.floatValue);
+                
+                var bounds = hlod.GetBounds();
+                int depth = m_splitter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
+                EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
+                if (depth > 5)
+                {
+                    EditorGUILayout.LabelField($"Node Level Count greater than 5 may cause a frozen Editor.", Styles.RedTextColor);
+                    EditorGUILayout.LabelField($"Use a value less than 5.", Styles.RedTextColor);
+                    
+                }
+
+                
                 EditorGUILayout.PropertyField(m_BorderVertexCountProperty);
                 m_LODSlider.Draw();
                 

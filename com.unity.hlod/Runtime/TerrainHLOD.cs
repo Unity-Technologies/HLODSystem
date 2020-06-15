@@ -183,5 +183,11 @@ namespace Unity.HLODSystem
         {
             m_convertedPrefabObjects.Add(obj);
         }
+        
+        public Bounds GetBounds()
+        {
+            return new Bounds(m_TerrainData.size * 0.5f, m_TerrainData.size);
+        }
+
     }
 }
