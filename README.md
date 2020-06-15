@@ -24,7 +24,7 @@ Here is the result what the HLODSystem how can be helped it.
 ## Prerequisites
 ### Unity
 ```
-Unity Version: 2019.1.0b1
+Unity Version: 2019.3.7f1
 
 ```
 Currently, I developed in **2019.1.0b1**. Probably it works on the 2018.3 but I can't guarantee.
