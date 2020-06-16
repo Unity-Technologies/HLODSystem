@@ -12,6 +12,10 @@ namespace Unity.HLODSystem
         [SerializeField]
         private List<HLODTreeNode> m_treeNodes = new List<HLODTreeNode>();
 
+        public int Count
+        {
+            get => m_treeNodes.Count;
+        }
         /**
          * @return node id
          */
@@ -33,6 +37,7 @@ namespace Unity.HLODSystem
             
         }
 
+        
         public HLODTreeNode Get(int id)
         {
             return m_treeNodes[id];

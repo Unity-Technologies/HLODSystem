@@ -17,9 +17,11 @@ namespace Unity.HLODSystem.Streaming
         public abstract void OnStart();
         public abstract void OnStop();
 
+        public abstract int HighObjectCount { get; }
+        public abstract int LowObjectCount { get; }
+
         //This should be a coroutine.
         public abstract void GetHighObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
-
         public abstract void GetLowObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
 
         public abstract void ReleaseHighObject(ControllerID id);
