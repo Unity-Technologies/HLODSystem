@@ -9,7 +9,7 @@ test_platforms:
 
 {% for editor in test_editors %}
 {% for platform in test_platforms %}
-test_{{ platform.name }}_{{ editor.version }}:
+test_hlod_{{ platform.name }}_{{ editor.version }}:
   name : Test com.unity.hlod on {{ platform.name }} against {{ editor.version }}
   agent:
     type: {{ platform.type }}
@@ -26,7 +26,7 @@ test_{{ platform.name }}_{{ editor.version }}:
   dependencies:
     - .yamato/package-pack.yml#pack
 
-test_{{ platform.name }}_{{ editor.version }}:
+test_hlodaddressable_{{ platform.name }}_{{ editor.version }}:
   name : Test com.unity.hlod.addressable on {{ platform.name }} against {{ editor.version }}
   agent:
     type: {{ platform.type }}
