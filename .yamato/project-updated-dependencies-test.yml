@@ -4,18 +4,19 @@
 # to generate its independent package tests and validation tests.
 # The idea is to only run validation once per package and not mix.
 # the results with package tests
-{% for package in projects.first.packages -%}
+{% for project in projects -%}
+{% for package in project.packages -%}
 {% for editor in test_editors -%}
 {% for platform in test_platforms -%}
-dependency_{{ projects.first.name }}_{{ package.name }}_{{ platform.name }}_{{ editor }}:
-  name : Dependency Test of Project {{ projects.first.name }} - Package {{ package.name }} - {{ editor }} on {{ platform.name }}
+dependency_{{ project.name }}_{{ package.name }}_{{ platform.name }}_{{ editor }}:
+  name : Dependency Test of Project {{ project.name }} - Package {{ package.name }} - {{ editor }} on {{ platform.name }}
   agent:
     type: {{ platform.type }}
     image: {{ platform.image }}
     flavor: {{ platform.flavor}}
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci project test -u {{ editor }} --project-path {{ projects.first.path }} --type updated-dependencies-tests --package-filter {{ package.name }}
+    - upm-ci project test -u {{ editor }} --project-path {{ project.path }} --type updated-dependencies-tests --package-filter {{ package.name }}
   artifacts:
     logs:
       paths:
@@ -25,22 +26,24 @@ dependency_{{ projects.first.name }}_{{ package.name }}_{{ platform.name }}_{{ e
       - branch: master
         frequency: 20 * * ?
   dependencies:
-    - path: .yamato/project-pack.yml#pack_{{ projects.first.name }}
+    - path: .yamato/project-pack.yml#pack_{{ project.name }}
       rerun: always
 
 {% endfor -%}
 {% endfor -%}
 {% endfor -%}
+{% endfor -%}
 
-dependency_test_trigger_{{ projects.first.name }}:
-  name: Project {{ projects.first.name }} Dependency Tests Trigger
+{% for project in projects -%}
+dependency_test_trigger_{{ project.name }}:
+  name: Project {{ project.name }} Dependency Tests Trigger
   agent:
     type: Unity::VM
     image: package-ci/ubuntu:stable
     flavor: b1.small
   commands:
     - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci project izon -d --project-path {{ projects.first.path }}
+    - upm-ci project izon -d --project-path {{ project.path }}
   artifacts:
     logs:
       paths:
@@ -50,10 +53,11 @@ dependency_test_trigger_{{ projects.first.name }}:
       - branch: master
         frequency: 22 * * ?
   dependencies:
-{% for package in projects.first.packages -%}
+{% for package in project.packages -%}
 {% for editor in test_editors -%}
 {% for platform in test_platforms -%}
-    - .yamato/project-updated-dependencies-test.yml#dependency_{{ projects.first.name }}_{{ package.name }}_{{ platform.name }}_{{ editor }}
+    - .yamato/project-updated-dependencies-test.yml#dependency_{{ project.name }}_{{ package.name }}_{{ platform.name }}_{{ editor }}
+{% endfor -%}
 {% endfor -%}
 {% endfor -%}
 {% endfor -%}
