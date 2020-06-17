@@ -2,7 +2,7 @@
 
 
 pack:
-  name: Pack {{ project.name }}
+  name: Pack packages
   agent:
     type: Unity::VM
     image: package-ci/ubuntu:stable
