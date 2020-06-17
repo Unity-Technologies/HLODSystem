@@ -25,6 +25,23 @@ test_{{ platform.name }}_{{ editor.version }}:
         - "upm-ci~/test-results/**/*"
   dependencies:
     - .yamato/package-pack.yml#pack
+
+test_{{ platform.name }}_{{ editor.version }}:
+  name : Test com.unity.hlod.addressable on {{ platform.name }} against {{ editor.version }}
+  agent:
+    type: {{ platform.type }}
+    image: {{ platform.image }}
+    flavor: {{ platform.flavor}}
+  commands:
+    - git submodule update --init --recursive
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
+    - upm-ci package test -u {{ editor.version }} --package-path com.unity.hlod.addressable --enable-code-coverage --code-coverage-options 'enableCyclomaticComplexity;generateHtmlReport;assemblyFilters:+com.unity.hlod.addressable'
+  artifacts:
+    logs:
+      paths:
+        - "upm-ci~/test-results/**/*"
+  dependencies:
+    - .yamato/package-pack.yml#pack
 {% endfor %}
 {% endfor %}
 

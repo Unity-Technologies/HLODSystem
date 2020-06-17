@@ -12,3 +12,18 @@ pack:
     packages:
       paths:
         - "upm-ci~/packages/**/*"
+
+pack:
+  name: Pack com.unity.hlod.addressable
+  agent:
+    type: Unity::VM
+    image: package-ci/ubuntu:stable
+    flavor: b1.large
+  commands:
+    - git submodule update --init --recursive
+    - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
+    - upm-ci package pack --package-path com.unity.hlod.addressable 
+  artifacts:
+    packages:
+      paths:
+        - "upm-ci~/packages/**/*"
