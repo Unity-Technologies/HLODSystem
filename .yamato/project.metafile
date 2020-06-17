@@ -20,3 +20,9 @@ projects:
     packages:
       - name: com.unity.hlod
         path: com.unity.hlod
+  - name: HLOD Addressables Sample
+    path: com.unity.hlod.addressable/Samples~
+    # Packages within a project that will be tested
+    packages:
+      - name: com.unity.hlod.addressable
+        path: com.unity.hlod.addressable
