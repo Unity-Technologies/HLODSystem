@@ -1,4 +1,4 @@
-pack Pack com.unity.hlod:
+pack_com_unity_hlod:
   name: Pack com.unity.hlod
   agent:
     type: Unity::VM
@@ -13,7 +13,7 @@ pack Pack com.unity.hlod:
       paths:
         - "upm-ci~/packages/**/*"
 
-pack com.unity.hlod.addressable:
+pack_com_unity_hlod_addressable:
   name: Pack com.unity.hlod.addressable
   agent:
     type: Unity::VM
