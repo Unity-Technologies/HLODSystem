@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: SampleHLOD
+  m_EditorClassIdentifier: 
+  m_GroupName: SampleHLOD
+  m_Data:
+    m_SerializedData: []
+  m_GUID: ab42ac06a4d4cbb42a3406ee8dc04bcb
+  m_SerializeEntries:
+  - m_GUID: 1c7d2747655a0a743a77051688e30ef9
+    m_Address: Assets/AddressableStreaming/HLOD/AddressableRoot_group3.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: 
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 3a758d985c68d4e408e058c8b406dc86
+    m_Address: Assets/AddressableStreaming/HLOD/AddressableRoot_group2.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: 
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 632d0a7d30f1d184baed7faca4858c15
+    m_Address: Assets/AddressableStreaming/HLOD/AddressableRoot_group4.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: 
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 8211c2bd068101842bea1d602f6b74c6
+    m_Address: Assets/AddressableStreaming/HLOD/AddressableRoot_group1.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: 
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: c8ce2cc8039643e4fa6979289c20fadc
+    m_Address: Assets/AddressableStreaming/HLOD/AddressableRoot_group-1.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: 
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: fca803a205409284591363b80f0b651c
+    m_Address: Assets/AddressableStreaming/HLOD/AddressableRoot_group0.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: 
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 03006e3b6d91c244a98e3b3cfedb77ed, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 1b8cbb3c34eb93d4ea4dcbb78311b264, type: 2}
+    - {fileID: 11400000, guid: 1ed4b6362bcf47342820c67e8055224b, type: 2}

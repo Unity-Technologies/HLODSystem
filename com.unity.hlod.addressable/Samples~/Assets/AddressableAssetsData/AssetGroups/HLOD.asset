@@ -15,11 +15,11 @@ MonoBehaviour:
   m_GroupName: HLOD
   m_Data:
     m_SerializedData: []
-  m_GUID: 862b629d20b5c7641b02997fbfed8365
+  m_GUID: d155d5eae0df48c479fb26a6e3bdf4b5
   m_SerializeEntries: []
   m_ReadOnly: 0
-  m_Settings: {fileID: 11400000, guid: d0fcb61aa6d5ab64a98365bcbaf72e55, type: 2}
+  m_Settings: {fileID: 11400000, guid: 03006e3b6d91c244a98e3b3cfedb77ed, type: 2}
   m_SchemaSet:
     m_Schemas:
-    - {fileID: 11400000, guid: 9b69b8d525b48954bab5ab22a1c14267, type: 2}
-    - {fileID: 11400000, guid: 91a0c8c3123947342a522792088cb117, type: 2}
+    - {fileID: 11400000, guid: 705f24849bd275a44ac75561932ff558, type: 2}
+    - {fileID: 11400000, guid: 7745b81d88533aa40af602a53a927cb3, type: 2}

@@ -96,6 +96,7 @@ LightmapSettings:
     m_PVRFilteringAtrousPositionSigmaAO: 1
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
   m_UseShadowmask: 1
 --- !u!196 &4
@@ -127,11 +128,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 457238568}
     m_Modifications:
-    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
-        type: 3}
-      propertyPath: m_Name
-      value: VegetationLarge01 (5)
-      objectReference: {fileID: 0}
     - target: {fileID: 587087765909476164, guid: 0d151ea12dc863b4eaba670c706321a2,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -187,6 +183,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
+        type: 3}
+      propertyPath: m_Name
+      value: VegetationLarge01 (5)
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0d151ea12dc863b4eaba670c706321a2, type: 3}
 --- !u!4 &150081202 stripped
@@ -202,11 +203,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 457238568}
     m_Modifications:
-    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
-        type: 3}
-      propertyPath: m_Name
-      value: VegetationLarge01 (3)
-      objectReference: {fileID: 0}
     - target: {fileID: 587087765909476164, guid: 0d151ea12dc863b4eaba670c706321a2,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -261,6 +257,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
+        type: 3}
+      propertyPath: m_Name
+      value: VegetationLarge01 (3)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0d151ea12dc863b4eaba670c706321a2, type: 3}
@@ -332,152 +333,154 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a49f5c15e5928543926349fecc9dccb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_root:
-    m_level: 0
-    m_bounds:
-      m_Center: {x: -8.94566, y: 4.5251265, z: -2.6575775}
-      m_Extent: {x: 39.94223, y: 39.94223, z: 39.94223}
-    m_childTreeNodes:
+  m_treeNodeContainer:
+    m_treeNodes:
     - m_level: 1
       m_bounds:
         m_Center: {x: -28.916775, y: 4.5251265, z: -22.628693}
         m_Extent: {x: 22.471115, y: 39.94223, z: 22.471115}
-      m_childTreeNodes:
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -40.152332, y: 4.5251265, z: -33.86425}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 00000000
-        m_lowObjectIds: 05000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -40.152332, y: 4.5251265, z: -11.393135}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 01000000
-        m_lowObjectIds: 06000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -17.681217, y: 4.5251265, z: -33.86425}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 
-        m_lowObjectIds: 07000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -17.681217, y: 4.5251265, z: -11.393135}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 02000000
-        m_lowObjectIds: 08000000
+      m_childTreeNodeIds: 04000000050000000600000007000000
       m_highObjectIds: 
       m_lowObjectIds: 01000000
     - m_level: 1
       m_bounds:
         m_Center: {x: -28.916775, y: 4.5251265, z: 17.313538}
         m_Extent: {x: 22.471115, y: 39.94223, z: 22.471115}
-      m_childTreeNodes:
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -40.152332, y: 4.5251265, z: 6.07798}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 
-        m_lowObjectIds: 09000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -40.152332, y: 4.5251265, z: 28.549095}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 03000000
-        m_lowObjectIds: 0a000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -17.681217, y: 4.5251265, z: 6.07798}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 04000000
-        m_lowObjectIds: 0b000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -17.681217, y: 4.5251265, z: 28.549095}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 
-        m_lowObjectIds: 0c000000
+      m_childTreeNodeIds: 08000000090000000a0000000b000000
       m_highObjectIds: 
       m_lowObjectIds: 02000000
     - m_level: 1
       m_bounds:
         m_Center: {x: 11.025455, y: 4.5251265, z: -22.628693}
         m_Extent: {x: 22.471115, y: 39.94223, z: 22.471115}
-      m_childTreeNodes:
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -0.21010208, y: 4.5251265, z: -33.86425}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 05000000
-        m_lowObjectIds: 0d000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -0.21010208, y: 4.5251265, z: -11.393135}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 
-        m_lowObjectIds: 0e000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: 22.261013, y: 4.5251265, z: -33.86425}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 06000000
-        m_lowObjectIds: 0f000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: 22.261013, y: 4.5251265, z: -11.393135}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 07000000
-        m_lowObjectIds: 10000000
+      m_childTreeNodeIds: 0c0000000d0000000e0000000f000000
       m_highObjectIds: 
       m_lowObjectIds: 03000000
     - m_level: 1
       m_bounds:
         m_Center: {x: 11.025455, y: 4.5251265, z: 17.313538}
         m_Extent: {x: 22.471115, y: 39.94223, z: 22.471115}
-      m_childTreeNodes:
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -0.21010208, y: 4.5251265, z: 6.07798}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 08000000
-        m_lowObjectIds: 11000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: -0.21010208, y: 4.5251265, z: 28.549095}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 09000000
-        m_lowObjectIds: 12000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: 22.261013, y: 4.5251265, z: 6.07798}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 0a0000000b000000
-        m_lowObjectIds: 13000000
-      - m_level: 2
-        m_bounds:
-          m_Center: {x: 22.261013, y: 4.5251265, z: 28.549095}
-          m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
-        m_childTreeNodes: []
-        m_highObjectIds: 
-        m_lowObjectIds: 14000000
+      m_childTreeNodeIds: 10000000110000001200000013000000
       m_highObjectIds: 
       m_lowObjectIds: 04000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -40.152332, y: 4.5251265, z: -33.86425}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 00000000
+      m_lowObjectIds: 05000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -40.152332, y: 4.5251265, z: -11.393135}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 01000000
+      m_lowObjectIds: 06000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -17.681217, y: 4.5251265, z: -33.86425}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 
+      m_lowObjectIds: 
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -17.681217, y: 4.5251265, z: -11.393135}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 02000000
+      m_lowObjectIds: 07000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -40.152332, y: 4.5251265, z: 6.07798}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 
+      m_lowObjectIds: 
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -40.152332, y: 4.5251265, z: 28.549095}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 03000000
+      m_lowObjectIds: 08000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -17.681217, y: 4.5251265, z: 6.07798}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 04000000
+      m_lowObjectIds: 09000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -17.681217, y: 4.5251265, z: 28.549095}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 
+      m_lowObjectIds: 
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -0.21010208, y: 4.5251265, z: -33.86425}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 05000000
+      m_lowObjectIds: 0a000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -0.21010208, y: 4.5251265, z: -11.393135}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 
+      m_lowObjectIds: 
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: 22.261013, y: 4.5251265, z: -33.86425}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 06000000
+      m_lowObjectIds: 0b000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: 22.261013, y: 4.5251265, z: -11.393135}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 07000000
+      m_lowObjectIds: 0c000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -0.21010208, y: 4.5251265, z: 6.07798}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 08000000
+      m_lowObjectIds: 0d000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: -0.21010208, y: 4.5251265, z: 28.549095}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 09000000
+      m_lowObjectIds: 0e000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: 22.261013, y: 4.5251265, z: 6.07798}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 0a0000000b000000
+      m_lowObjectIds: 0f000000
+    - m_level: 2
+      m_bounds:
+        m_Center: {x: 22.261013, y: 4.5251265, z: 28.549095}
+        m_Extent: {x: 13.735558, y: 22.471115, z: 13.735558}
+      m_childTreeNodeIds: 
+      m_highObjectIds: 
+      m_lowObjectIds: 
+  m_root:
+    m_level: 0
+    m_bounds:
+      m_Center: {x: -8.94566, y: 4.5251265, z: -2.6575775}
+      m_Extent: {x: 39.94223, y: 39.94223, z: 39.94223}
+    m_childTreeNodeIds: 00000000010000000200000003000000
     m_highObjectIds: 
     m_lowObjectIds: 00000000
   m_cullDistance: 0.01
@@ -556,27 +559,23 @@ MonoBehaviour:
     Rotation: {x: 0, y: 0, z: 0, w: 1}
     Scale: {x: 1, y: 1, z: 1}
   m_lowObjects:
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level0.hlod.
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level1.hlod._1
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level1.hlod._2
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level1.hlod._3
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level1.hlod._4
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._1_1
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._1_2
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._1_3
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._1_4
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._2_1
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._2_2
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._2_3
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._2_4
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._3_1
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._3_2
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._3_3
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._3_4
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._4_1
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._4_2
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._4_3
-  - Assets/AddressableStreaming/HLOD/AddressableRoot_level2.hlod._4_4
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group-1.hlod[]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group0.hlod[_1]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group0.hlod[_2]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group0.hlod[_3]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group0.hlod[_4]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group1.hlod[_1_1]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group1.hlod[_1_2]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group1.hlod[_1_4]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group2.hlod[_2_2]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group2.hlod[_2_3]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group3.hlod[_3_1]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group3.hlod[_3_3]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group3.hlod[_3_4]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group4.hlod[_4_1]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group4.hlod[_4_2]
+  - Assets/AddressableStreaming/HLOD/AddressableRoot_group4.hlod[_4_3]
+  m_priority: 0
 --- !u!114 &457238570
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -595,7 +594,7 @@ MonoBehaviour:
   m_MinObjectSize: 1
   m_BatcherTypeStr: Unity.HLODSystem.MaterialPreservingBatcher, HLODEditor, Version=0.0.0.0,
     Culture=neutral, PublicKeyToken=null
-  m_SimplifierTypeStr: Unity.HLODSystem.Simplifier.NotUseSimplifier, HLODEditor, Version=0.0.0.0,
+  m_SimplifierTypeStr: Unity.HLODSystem.Simplifier.None, HLODEditor, Version=0.0.0.0,
     Culture=neutral, PublicKeyToken=null
   m_StreamingTypeStr: Unity.HLODSystem.Streaming.AddressableStreaming, HLODEditor.Addressable,
     Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
@@ -629,11 +628,17 @@ MonoBehaviour:
         UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]],
         HLOD, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
       Data: '{"Name":"tvOSCompression","Data":48}'
+    - Type: Unity.HLODSystem.SerializableDynamicObject+SerializeItem`1[[System.String,
+        mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]],
+        HLOD, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+      Data: '{"Name":"AddressablesGroupName","Data":"SampleHLOD"}'
   m_generatedObjects:
-  - {fileID: -8117966405139107755, guid: f53b445c96f072c4081585306f20382b, type: 3}
-  - {fileID: -8117966405139107755, guid: eeaddabbe9861154ba2e24daa3da3864, type: 3}
-  - {fileID: -8117966405139107755, guid: b0ed89091659c8b4ea34214a52857c12, type: 3}
-  - {fileID: -8117966405139107755, guid: f1ee9638d3cc98747a7d92a4d4c36339, type: 3}
+  - {fileID: -8117966405139107755, guid: c8ce2cc8039643e4fa6979289c20fadc, type: 3}
+  - {fileID: -8117966405139107755, guid: fca803a205409284591363b80f0b651c, type: 3}
+  - {fileID: -8117966405139107755, guid: 8211c2bd068101842bea1d602f6b74c6, type: 3}
+  - {fileID: -8117966405139107755, guid: 3a758d985c68d4e408e058c8b406dc86, type: 3}
+  - {fileID: -8117966405139107755, guid: 1c7d2747655a0a743a77051688e30ef9, type: 3}
+  - {fileID: -8117966405139107755, guid: 632d0a7d30f1d184baed7faca4858c15, type: 3}
   m_convertedPrefabObjects: []
 --- !u!1001 &562436512
 PrefabInstance:
@@ -717,11 +722,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 457238568}
     m_Modifications:
-    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
-        type: 3}
-      propertyPath: m_Name
-      value: VegetationLarge01
-      objectReference: {fileID: 0}
     - target: {fileID: 587087765909476164, guid: 0d151ea12dc863b4eaba670c706321a2,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -777,6 +777,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
+        type: 3}
+      propertyPath: m_Name
+      value: VegetationLarge01
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0d151ea12dc863b4eaba670c706321a2, type: 3}
 --- !u!4 &616320031 stripped
@@ -798,11 +803,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 457238568}
     m_Modifications:
-    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
-        type: 3}
-      propertyPath: m_Name
-      value: VegetationLarge01 (2)
-      objectReference: {fileID: 0}
     - target: {fileID: 587087765909476164, guid: 0d151ea12dc863b4eaba670c706321a2,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -858,6 +858,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
+        type: 3}
+      propertyPath: m_Name
+      value: VegetationLarge01 (2)
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0d151ea12dc863b4eaba670c706321a2, type: 3}
 --- !u!4 &682212717 stripped
@@ -891,8 +896,9 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 705507993}
   m_Enabled: 1
-  serializedVersion: 9
+  serializedVersion: 10
   m_Type: 1
+  m_Shape: 0
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
@@ -1296,11 +1302,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 457238568}
     m_Modifications:
-    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
-        type: 3}
-      propertyPath: m_Name
-      value: VegetationLarge01 (1)
-      objectReference: {fileID: 0}
     - target: {fileID: 587087765909476164, guid: 0d151ea12dc863b4eaba670c706321a2,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -1356,6 +1357,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
+        type: 3}
+      propertyPath: m_Name
+      value: VegetationLarge01 (1)
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0d151ea12dc863b4eaba670c706321a2, type: 3}
 --- !u!4 &1212728148 stripped
@@ -1377,11 +1383,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 457238568}
     m_Modifications:
-    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
-        type: 3}
-      propertyPath: m_Name
-      value: VegetationLarge01 (4)
-      objectReference: {fileID: 0}
     - target: {fileID: 587087765909476164, guid: 0d151ea12dc863b4eaba670c706321a2,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -1436,6 +1437,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4503204827611128151, guid: 0d151ea12dc863b4eaba670c706321a2,
+        type: 3}
+      propertyPath: m_Name
+      value: VegetationLarge01 (4)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0d151ea12dc863b4eaba670c706321a2, type: 3}
