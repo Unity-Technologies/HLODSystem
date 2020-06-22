@@ -1,0 +1,201 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: BakedHLOD
+  m_EditorClassIdentifier: 
+  m_GroupName: BakedHLOD
+  m_Data:
+    m_SerializedData: []
+  m_GUID: d155d5eae0df48c479fb26a6e3bdf4b5
+  m_SerializeEntries:
+  - m_GUID: 00e40eb05b10f254daaf945fca70b347
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group13.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 01d230a03ab18944daa12f4cdcc17089
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group15.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 01d7e4e0a650d4c41aabf4341d858415
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group6.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 0481eaef8a3378a448cc9b03dd86cbe6
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group19.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 119082899632cef4eb92186a5824b25e
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group10.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 1474729afcdd0a54cbf0a4cbb00199ab
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group1.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 17b4b28c45d23a14ba2daf8127338835
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group18.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 2fa5e3cacaa30064882afd1db48e0ea5
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group5.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 3e3856c159775b943839f06586fd2136
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group11.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 3ea43bb1ddc92c841ab89126e39129f3
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group16.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 4885d5eaa62bf9343b94f777024ea45f
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group8.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 5c941d1b331056f488eeac2fa1f9d15b
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group12.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 5dcd9b7609eb1cf4cb7db8c26701a448
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group2.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 64fed387a32cd204abb88f13e4d65743
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group0.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 6c69d0522cdc2474cac0093935d362c2
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group-1.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 8db44f673084f3546adcfe2301e50e7e
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group7.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 9bc7f4fb4db82b647b6bc240899988f7
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group20.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: ab665f027cded6447ab041a9822ae99d
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group9.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: c19c956464bcda3438685fc27fa70e50
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group4.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: c8896e228bdc95f4c8b1b17eec4afedc
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group14.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: f2ac027506f2e49449cfefd030894da6
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group3.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: f88be22d9cbb0194584fef6d4691c99a
+    m_Address: Assets/TestAssets/BakedHLOD/HLOD_group17.hlod
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_mainAssetType: Unity.HLODSystem.RootData, HLOD, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 03006e3b6d91c244a98e3b3cfedb77ed, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 705f24849bd275a44ac75561932ff558, type: 2}
+    - {fileID: 11400000, guid: 7745b81d88533aa40af602a53a927cb3, type: 2}

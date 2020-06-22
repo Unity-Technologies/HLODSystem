@@ -14,13 +14,15 @@ using Object = UnityEngine.Object;
 namespace Unity.HLODSystem.RuntimeTests
 {
     [TestFixture]
-    public class RuntimeTests : IPrebuildSetup, IPostBuildCleanup
+    public class RuntimeTests //: IPrebuildSetup, IPostBuildCleanup
     {
         private GameObject mGameObject;
         private GameObject mHlodGameObject;
-        private GameObject mHlodCameraObject;
+        private HLODControllerBase mHlodController;
 
-        [OneTimeSetUp]
+        private Camera mHlodCameraComponent;
+
+        [SetUp]
         public void Setup()
         {
             mGameObject =
@@ -31,33 +33,42 @@ namespace Unity.HLODSystem.RuntimeTests
             mHlodGameObject = mGameObject.transform.Find("HLOD").gameObject;
             Assert.NotNull(mHlodGameObject);
 
-            mHlodGameObject.GetComponentInChildren<HLODControllerBase>().Install();
+            mHlodController = mHlodGameObject.GetComponentInChildren<HLODControllerBase>();
+            mHlodController.Install();
 
-            mHlodCameraObject = mGameObject.transform.Find("Main Camera").gameObject;
-            Assert.NotNull(mHlodCameraObject);
+            mHlodController.Awake();
+            mHlodController.Start();
+            mHlodController.OnEnable();
 
-            UnityEditor.AddressableAssets.Settings.AddressableAssetSettings.BuildPlayerContent();
+            mHlodCameraComponent = HLODCameraRecognizer.RecognizedCamera;
+            Assert.NotNull(mHlodCameraComponent);
+
         }
 
+        [TearDown]
         public void Cleanup()
         {
-            Object.Destroy(mHlodCameraObject);
+            mHlodController.OnDisable();
+            mHlodController.OnDestroy();
+
+
             Object.Destroy(mHlodGameObject);
             Object.Destroy(mGameObject);
         }
+
+     
 
         [Test]
         public void HlodGameObjectHasChildren()
         {
             int childrenCount = mHlodGameObject.transform.childCount;
-            Assert.True(childrenCount == 11);
+            Assert.AreEqual(11, childrenCount);
         }
 
         [Test]
         public void CameraHasHlodCameraRecognizerComponent()
         {
-            HLODCameraRecognizer hlodCameraRecognizer = mHlodCameraObject.GetComponent<HLODCameraRecognizer>();
-            Assert.NotNull(hlodCameraRecognizer);
+            Assert.NotNull(mHlodCameraComponent);
         }
 
         [UnityTest]
@@ -72,11 +83,12 @@ namespace Unity.HLODSystem.RuntimeTests
 
             SetUpCamera(testData.cameraSettings);
 
-            var cam = mHlodCameraObject.GetComponent<Camera>();
+            var cam = mHlodCameraComponent;
             
-            for (int i = 0; i < 3; ++i)
+            while (mHlodController.IsLoadDone() == false)
             {
                 HLODManager.Instance.OnPreCull(cam);
+                yield return null;
             }
             
             CheckGameObjectActiveState(testData.listOfGameObjects);
@@ -87,7 +99,7 @@ namespace Unity.HLODSystem.RuntimeTests
 
         private void SetUpCamera(CameraSettings cameraSettings)
         {
-            Camera hlodCamera = mHlodCameraObject.GetComponent<Camera>();
+            Camera hlodCamera = mHlodCameraComponent;
 
             hlodCamera.transform.position = new Vector3(
                 cameraSettings.location.x,
@@ -96,7 +108,7 @@ namespace Unity.HLODSystem.RuntimeTests
 
             hlodCamera.transform.eulerAngles = new Vector3(
                 cameraSettings.rotation.x,
-                cameraSettings.rotation.y + 180,
+                cameraSettings.rotation.y,
                 cameraSettings.rotation.z);
 
             HLODManager.Instance.OnPreCull(hlodCamera);
@@ -109,7 +121,7 @@ namespace Unity.HLODSystem.RuntimeTests
                 Transform rinNumbers = mHlodGameObject.transform.Find(playModeTestGameObject.groupName);
 
                 for (int i = 0; i < rinNumbers.childCount; i++)
-                    Assert.AreEqual(rinNumbers.GetChild(i).gameObject.activeSelf, playModeTestGameObject.enabled[i]);
+                    Assert.AreEqual(playModeTestGameObject.enabled[i], rinNumbers.GetChild(i).gameObject.activeSelf);
             }
         }
 
@@ -118,7 +130,7 @@ namespace Unity.HLODSystem.RuntimeTests
             //Just in case when this list gets too big in future TestCases
             HashSet<string> hashSet = new HashSet<string>(listOfActiveHlods);
 
-            Transform hlods = mHlodGameObject.transform.Find("HLODRoot");
+            Transform hlods = mHlodGameObject.transform.Find("HLODMeshesRoot");
 
             foreach (Transform child in hlods.transform)
                 Assert.AreEqual(child.gameObject.activeSelf, hashSet.Contains(child.gameObject.name));

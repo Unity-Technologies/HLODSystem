@@ -29,28 +29,28 @@ namespace Unity.HLODSystem.Streaming
         #endregion
 
         #region Unity Events
-        void Awake()
+        public void Awake()
         {
             m_spaceManager = new QuadTreeSpaceManager();
         }
 
-        void Start()
+        public void Start()
         {
             m_root.Initialize(this, m_spaceManager, null);
             OnStart();
         }
 
-        void OnEnable()
+        public void OnEnable()
         {
             HLODManager.Instance.Register(this);
         }
 
-        void OnDisable()
+        public void OnDisable()
         {
             HLODManager.Instance.Unregister(this);
         }
 
-        void OnDestroy()
+        public void OnDestroy()
         {
             OnStop();
             HLODManager.Instance.Unregister(this);
