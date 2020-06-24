@@ -38,10 +38,10 @@ namespace Unity.HLODSystem.EditorTests
 
             dynamic streamingOptions = m_terrainHLOD.StreamingOptions;
             streamingOptions.OutputDirectory = "Assets/TestResult/";
-            streamingOptions.PCCompression = TextureFormat.BC7;
+            streamingOptions.PCCompression = TextureFormat.ARGB32;
             streamingOptions.WebGLCompression = TextureFormat.ARGB32;
-            streamingOptions.AndroidCompression = TextureFormat.ASTC_8x8;
-            streamingOptions.iOSCompression = TextureFormat.ASTC_8x8;
+            streamingOptions.AndroidCompression = TextureFormat.ARGB32;
+            streamingOptions.iOSCompression = TextureFormat.ARGB32;
             streamingOptions.tvOSCompression = TextureFormat.ARGB32;
 
             m_terrainHLOD.StreamingType = Streaming.StreamingBuilderTypes.GetTypes()[0];
