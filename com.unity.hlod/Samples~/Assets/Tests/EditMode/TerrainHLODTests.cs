@@ -221,6 +221,29 @@ namespace Unity.HLODSystem.EditorTests
             CompareTexture(object3.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_3_Normal.texture2D");
             CompareTexture(object4.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_4_Normal.texture2D");
         }
+        
+        [Test]
+        public void PrefabTest()
+        {
+            Utils.CustomCoroutine routine = new Utils.CustomCoroutine(TerrainHLODCreator.Create(m_terrainHLOD));
+
+            while (routine.MoveNext())
+            {
+
+            }
+            
+            Assert.AreEqual(5, m_terrainHLOD.transform.childCount);
+            
+            var object1 = m_terrainHLOD.transform.GetChild(1);
+            var object2 = m_terrainHLOD.transform.GetChild(2);
+            var object3 = m_terrainHLOD.transform.GetChild(3);
+            var object4 = m_terrainHLOD.transform.GetChild(4);
+            
+            Assert.True(PrefabUtility.IsPartOfAnyPrefab(object1));
+            Assert.True(PrefabUtility.IsPartOfAnyPrefab(object2));
+            Assert.True(PrefabUtility.IsPartOfAnyPrefab(object3));
+            Assert.True(PrefabUtility.IsPartOfAnyPrefab(object4));
+        }
 
         private void CompareTexture(Texture2D texture, string targetTextureFilename)
         {
