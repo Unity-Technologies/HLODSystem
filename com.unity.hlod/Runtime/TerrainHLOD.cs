@@ -186,6 +186,8 @@ namespace Unity.HLODSystem
         
         public Bounds GetBounds()
         {
+            if ( m_TerrainData == null )
+                return new Bounds();
             return new Bounds(m_TerrainData.size * 0.5f, m_TerrainData.size);
         }
 
