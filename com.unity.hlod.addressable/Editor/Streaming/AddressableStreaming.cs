@@ -182,9 +182,13 @@ namespace Unity.HLODSystem.Streaming
 
                     if (PrefabUtility.IsPartOfAnyPrefab(obj) == false)
                     {
-                        int parentIndex = infos[i].ParentIndex;
 
-                        GameObject rootGameObject = rootDatas[parentIndex].GetRootObject(obj.name);
+
+                        GameObject rootGameObject = null;
+                        
+                        if ( rootDatas.ContainsKey(i))
+                            rootGameObject = rootDatas[i].GetRootObject(obj.name);
+
                         if (rootGameObject != null)
                         {
                             GameObject go = PrefabUtility.InstantiatePrefab(rootGameObject) as GameObject;
