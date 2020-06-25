@@ -24,7 +24,7 @@ test_{{ platform.name }}_{{ editor.version }}:
     - git submodule update --init --recursive
     - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
 {% for package in test_packages %}
-    - upm-ci package test -u {{ editor.version }} --package-path {{ package.path }} --enable-code-coverage --code-coverage-options 'enableCyclomaticComplexity;generateHtmlReport;assemblyFilters:+com.unity.hlod'
+    - upm-ci package test -u {{ editor.version }} --package-path {{ package.path }} --enable-code-coverage --code-coverage-options 'enableCyclomaticComplexity;generateHtmlReport;assemblyFilters:+{{ package.name }}'
 {% endfor %}
   artifacts:
     logs:
