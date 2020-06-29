@@ -55,8 +55,15 @@ namespace Unity.HLODSystem.Streaming
             m_spaceManager = null;
             m_root = null;
         }
+        public void OnRenderObject()
+        {
+            if (m_runtimeDebug == false)
+                return;
+
+            m_root.RenderBounds();
+        }
         #endregion
-        
+
         #region Method
         public void UpdateCull(Camera camera)
         {
@@ -85,6 +92,8 @@ namespace Unity.HLODSystem.Streaming
 
         [SerializeField] private float m_cullDistance;
         [SerializeField] private float m_lodDistance;
+
+        [SerializeField] private bool m_runtimeDebug = false;
 
         public HLODTreeNodeContainer Container
         {
