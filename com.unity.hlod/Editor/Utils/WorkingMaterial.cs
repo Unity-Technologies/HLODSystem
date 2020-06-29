@@ -322,7 +322,6 @@ namespace Unity.HLODSystem.Utils
         {
             lock (m_colors)
             {
-                Color color;
                 if (m_colors.ContainsKey(name) == false)
                     return Color.white;
 

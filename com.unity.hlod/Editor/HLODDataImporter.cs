@@ -187,7 +187,7 @@ namespace Unity.HLODSystem
                 return data.CompressionData.iOSTextureFormat;
             if (group == BuildTargetGroup.tvOS)
                 return data.CompressionData.tvOSTextureFormat;
-            if (group == BuildTargetGroup.Facebook || group == BuildTargetGroup.WebGL)
+            if (group == BuildTargetGroup.WebGL)
                 return data.CompressionData.WebGLTextureFormat;
             return data.CompressionData.PCTextureFormat;
         }

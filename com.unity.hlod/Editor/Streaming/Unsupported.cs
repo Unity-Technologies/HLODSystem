@@ -218,7 +218,7 @@ namespace Unity.HLODSystem.Streaming
 
                 hlodTreeNode.Level = level;
                 hlodTreeNode.Bounds = spaceNode.Bounds;
-                if (spaceNode.HasChild()!= null)
+                if (spaceNode.HasChild())
                 {
                     List<HLODTreeNode> childTreeNodes = new List<HLODTreeNode>(spaceNode.GetChildCount());
                     for (int i = 0; i < spaceNode.GetChildCount(); ++i)
