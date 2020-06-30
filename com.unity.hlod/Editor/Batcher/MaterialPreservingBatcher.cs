@@ -41,9 +41,8 @@ namespace Unity.HLODSystem
 
         private void Combine(Vector3 rootPosition, HLODBuildInfo info)
         {
-            var instancesTable = new Dictionary<Material, List<CombineInstance>>();
-            var combineInfos = new Dictionary<int, List<MeshCombiner.CombineInfo>>();
-            var materialNames = new Dictionary<int, string>();
+            var materialTable = new Dictionary<string, WorkingMaterial>();
+            var combineInfos = new Dictionary<string, List<MeshCombiner.CombineInfo>>();           
 
             for (int i = 0; i < info.WorkingObjects.Count; ++i)
             {
@@ -60,13 +59,13 @@ namespace Unity.HLODSystem
                     combineInfo.Mesh = info.WorkingObjects[i].Mesh;
                     combineInfo.MeshIndex = m;
 
-                    if (combineInfos.ContainsKey(materials[m].InstanceID) == false)
+                    if (combineInfos.ContainsKey(materials[m].Identifier) == false)
                     {
-                        combineInfos.Add(materials[m].InstanceID, new List<MeshCombiner.CombineInfo>());
-                        materialNames.Add(materials[m].InstanceID, materials[m].Name);
+                        combineInfos.Add(materials[m].Identifier, new List<MeshCombiner.CombineInfo>());
+                        materialTable.Add(materials[m].Identifier, materials[m]);
                     }
                     
-                    combineInfos[materials[m].InstanceID].Add(combineInfo);
+                    combineInfos[materials[m].Identifier].Add(combineInfo);
                 }
             }
 
@@ -80,7 +79,7 @@ namespace Unity.HLODSystem
                 {
                     WorkingMesh combinedMesh = combiner.CombineMesh(Allocator.Persistent, pair.Value);
                     WorkingObject combinedObject = new WorkingObject(Allocator.Persistent);
-                    WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, pair.Key, materialNames[pair.Key]);
+                    WorkingMaterial material = materialTable[pair.Key].Clone();
 
                     combinedMesh.name = info.Name + "_Mesh" + pair.Key;
                     combinedObject.Name = info.Name;
