@@ -633,6 +633,10 @@ namespace Unity.HLODSystem
                 if (GetMaterial(wm.Guid) != null)
                     continue;
 
+                string path = AssetDatabase.GUIDToAssetPath(wm.Guid);
+                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) != null)
+                    return;
+
                 SerializableMaterial sm = new SerializableMaterial();
                 sm.From(wmList[i]);
 
