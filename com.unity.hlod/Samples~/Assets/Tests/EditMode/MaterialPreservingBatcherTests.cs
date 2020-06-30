@@ -85,8 +85,8 @@ namespace Unity.HLODSystem.EditorTests
             {
                 DoBatch(infos);
 
-                Assert.AreEqual(infos.Count, 1);
-                Assert.AreEqual(infos[0].WorkingObjects.Count, 1);
+                Assert.AreEqual(1, infos.Count);
+                Assert.AreEqual(1, infos[0].WorkingObjects.Count);
             }
         }
         [Test]
@@ -104,8 +104,8 @@ namespace Unity.HLODSystem.EditorTests
             {
                 DoBatch(infos);
 
-                Assert.AreEqual(infos.Count, 1);
-                Assert.AreEqual(infos[0].WorkingObjects.Count, 1);
+                Assert.AreEqual(1, infos.Count);
+                Assert.AreEqual(1, infos[0].WorkingObjects.Count);
             }
         }
 
@@ -133,8 +133,8 @@ namespace Unity.HLODSystem.EditorTests
             {
                 DoBatch(infos);
 
-                Assert.AreEqual(infos.Count, 1);
-                Assert.AreEqual(infos[0].WorkingObjects.Count, 1);
+                Assert.AreEqual(1, infos.Count);
+                Assert.AreEqual(1, infos[0].WorkingObjects.Count);
             }
         }
 
@@ -162,8 +162,8 @@ namespace Unity.HLODSystem.EditorTests
             {
                 DoBatch(infos);
 
-                Assert.AreEqual(infos.Count, 1);
-                Assert.AreEqual(infos[0].WorkingObjects.Count, 1);
+                Assert.AreEqual(1, infos.Count);
+                Assert.AreEqual(1, infos[0].WorkingObjects.Count);
             }
         }
 
@@ -191,8 +191,8 @@ namespace Unity.HLODSystem.EditorTests
             {
                 DoBatch(infos);
 
-                Assert.AreEqual(infos.Count, 1);
-                Assert.AreEqual(infos[0].WorkingObjects.Count, 2);
+                Assert.AreEqual(1, infos.Count);
+                Assert.AreEqual(2, infos[0].WorkingObjects.Count);
             }
         }
 
@@ -220,8 +220,8 @@ namespace Unity.HLODSystem.EditorTests
             {
                 DoBatch(infos);
 
-                Assert.AreEqual(infos.Count, 1);
-                Assert.AreEqual(infos[0].WorkingObjects.Count, 2);
+                Assert.AreEqual(1, infos.Count);
+                Assert.AreEqual(2, infos[0].WorkingObjects.Count);
             }
         }
 
@@ -254,8 +254,8 @@ namespace Unity.HLODSystem.EditorTests
             {
                 DoBatch(infos);
 
-                Assert.AreEqual(infos.Count, 1);
-                Assert.AreEqual(infos[0].WorkingObjects.Count, 2);
+                Assert.AreEqual(1, infos.Count);
+                Assert.AreEqual(2, infos[0].WorkingObjects.Count);
             }
         }
 
@@ -288,8 +288,8 @@ namespace Unity.HLODSystem.EditorTests
             {
                 DoBatch(infos);
 
-                Assert.AreEqual(infos.Count, 1);
-                Assert.AreEqual(infos[0].WorkingObjects.Count, 2);
+                Assert.AreEqual(1, infos.Count);
+                Assert.AreEqual(2, infos[0].WorkingObjects.Count);
             }
         }
 

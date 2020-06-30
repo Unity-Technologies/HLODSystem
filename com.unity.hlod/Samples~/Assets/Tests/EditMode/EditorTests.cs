@@ -17,7 +17,6 @@ namespace Unity.HLODSystem.EditorTests
         private static string mHlodArtifactName = "Assets/TestAssets/Artifacts/HLOD.hlod";
         private static HLOD hlod;
         private static GameObject mHlodGameObject;
-        private static int childrenCount;
 
         public void Setup()
         {
@@ -67,6 +66,32 @@ namespace Unity.HLODSystem.EditorTests
         public void HlodControllerIsNotNull()
         {
             Assert.NotNull(hlod.GetComponent<HLODControllerBase>());
+        }
+
+        [Test]
+        public void MaterialCountTest()
+        {
+            Object[] objs = AssetDatabase.LoadAllAssetsAtPath(mHlodArtifactName);
+            int count = 0;
+            for ( int i = 0; i < objs.Length; ++i )
+            {
+                if (objs[i] is Material)
+                    count += 1;
+            }
+
+            Assert.AreEqual(0, count);
+        }
+
+        [Test]
+        public void HLODDataTest()
+        {
+            using (Stream stream = new FileStream(mHlodArtifactName, FileMode.Open, FileAccess.Read))
+            {
+                HLODData data = HLODDataSerializer.Read(stream);
+                
+                Assert.AreEqual(0, data.GetMaterialCount());
+                Assert.AreEqual(85, data.GetObjects().Count);
+            }
         }
 
         /*[Test]
