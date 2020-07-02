@@ -36,6 +36,10 @@ namespace Unity.HLODSystem.Utils
         {
             get { return m_buffer.InstanceID; }
         }
+        public string Identifier
+        {
+            get { return m_buffer.Identifier; }
+        }
 
 
 

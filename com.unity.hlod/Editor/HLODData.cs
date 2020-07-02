@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Xml;
 using Unity.Collections;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
@@ -187,7 +186,12 @@ namespace Unity.HLODSystem
             }
             public int BytesLength
             {
-                get { return m_bytes.Length; }
+                get 
+                { 
+                    if (m_bytes == null)
+                        return 0;
+                    return m_bytes.Length; 
+                }
             }
 
             public void From(Texture2D texture)
@@ -196,7 +200,7 @@ namespace Unity.HLODSystem
                 m_format = texture.graphicsFormat;
                 m_wrapMode = texture.wrapMode;
                 m_width = texture.width;
-                m_height = texture.height;
+                m_height = texture.height;                
                 m_bytes = texture.EncodeToPNG();
             }
 
@@ -632,6 +636,10 @@ namespace Unity.HLODSystem
                 //Prevent duplication
                 if (GetMaterial(wm.Guid) != null)
                     continue;
+
+                string path = AssetDatabase.GUIDToAssetPath(wm.Guid);
+                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) != null)
+                    return;
 
                 SerializableMaterial sm = new SerializableMaterial();
                 sm.From(wmList[i]);
