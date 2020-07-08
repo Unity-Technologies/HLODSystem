@@ -1,0 +1,170 @@
+{
+	"cameraSettings": {
+		"location": {
+			"x": -2.5,
+			"y": 30,
+			"z": -70
+		},
+		"rotation": {
+			"x": 35,
+			"y": 0,
+			"z": 0
+		}
+	},
+	"listOfGameObjects": [
+		{
+			"groupName": "Numbers_1",
+			"enabled": [
+				0,
+				0,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				0
+			]
+		},
+		{
+			"groupName": "Numbers_2",
+			"enabled": [
+				0,
+				0,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				0
+			]
+		},
+		{
+			"groupName": "Numbers_3",
+			"enabled": [
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1
+			]
+		},
+		{
+			"groupName": "Numbers_4",
+			"enabled": [
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1
+			]
+		},
+		{
+			"groupName": "Numbers_5",
+			"enabled": [
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1
+			]
+		},
+		{
+			"groupName": "Numbers_6",
+			"enabled": [
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1
+			]
+		},
+		{
+			"groupName": "Numbers_7",
+			"enabled": [
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1
+			]
+		},
+		{
+			"groupName": "Numbers_8",
+			"enabled": [
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1
+			]
+		},
+		{
+			"groupName": "Numbers_9",
+			"enabled": [
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1
+			]
+		},
+		{
+			"groupName": "Numbers_10",
+			"enabled": [
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1,
+				1
+			]
+		}
+	],
+	"listOfActiveHlods": [
+		"_2_2_2",
+		"_4_4_4"
+	]
+}

@@ -1,15 +1,13 @@
 {
   "dependencies": {
-	"com.unity.hlod": "file:../../../com.unity.hlod",
-	"com.unity.hlod.addressable": "file:../../",
+    "com.unity.hlod": "file:../../../com.unity.hlod",
+    "com.unity.hlod.addressable": "file:../../",
     "com.unity.collab-proxy": "1.2.16",
-    "com.unity.ext.nunit": "1.0.0",
-    "com.unity.ide.rider": "1.0.8",
-    "com.unity.ide.vscode": "1.0.7",
-    "com.unity.package-manager-ui": "2.2.0",
-    "com.unity.test-framework": "1.0.13",
+    "com.unity.ide.rider": "1.1.4",
+    "com.unity.ide.vscode": "1.1.4",
+    "com.unity.test-framework": "1.1.11",
     "com.unity.textmeshpro": "2.0.1",
-    "com.unity.timeline": "1.1.0",
+    "com.unity.timeline": "1.2.13",
     "com.unity.ugui": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
@@ -42,5 +40,8 @@
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
-  }
+  },
+  "testables": [
+    "com.unity.hlod.addressable"
+  ]
 }

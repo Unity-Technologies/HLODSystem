@@ -25,7 +25,8 @@ namespace Unity.HLODSystem.Streaming
             m_lowGameObjects.Add(gameObject);
             return id;
         }
-
+        public override int HighObjectCount { get => m_gameObjectList.Count; }
+        public override int LowObjectCount { get => m_lowGameObjects.Count; }
         public override void GetHighObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
         {
             loadDoneCallback?.Invoke(m_gameObjectList[id]);            

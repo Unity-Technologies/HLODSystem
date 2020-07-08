@@ -17,9 +17,11 @@ namespace Unity.HLODSystem.Streaming
         public abstract void OnStart();
         public abstract void OnStop();
 
+        public abstract int HighObjectCount { get; }
+        public abstract int LowObjectCount { get; }
+
         //This should be a coroutine.
         public abstract void GetHighObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
-
         public abstract void GetLowObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
 
         public abstract void ReleaseHighObject(ControllerID id);
@@ -27,28 +29,28 @@ namespace Unity.HLODSystem.Streaming
         #endregion
 
         #region Unity Events
-        void Awake()
+        public void Awake()
         {
             m_spaceManager = new QuadTreeSpaceManager();
         }
 
-        void Start()
+        public void Start()
         {
             m_root.Initialize(this, m_spaceManager, null);
             OnStart();
         }
 
-        void OnEnable()
+        public void OnEnable()
         {
             HLODManager.Instance.Register(this);
         }
 
-        void OnDisable()
+        public void OnDisable()
         {
             HLODManager.Instance.Unregister(this);
         }
 
-        void OnDestroy()
+        public void OnDestroy()
         {
             OnStop();
             HLODManager.Instance.Unregister(this);

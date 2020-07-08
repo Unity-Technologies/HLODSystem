@@ -38,10 +38,10 @@ namespace Unity.HLODSystem.EditorTests
 
             dynamic streamingOptions = m_terrainHLOD.StreamingOptions;
             streamingOptions.OutputDirectory = "Assets/TestResult/";
-            streamingOptions.PCCompression = TextureFormat.BC7;
+            streamingOptions.PCCompression = TextureFormat.ARGB32;
             streamingOptions.WebGLCompression = TextureFormat.ARGB32;
-            streamingOptions.AndroidCompression = TextureFormat.ASTC_8x8;
-            streamingOptions.iOSCompression = TextureFormat.ASTC_8x8;
+            streamingOptions.AndroidCompression = TextureFormat.ARGB32;
+            streamingOptions.iOSCompression = TextureFormat.ARGB32;
             streamingOptions.tvOSCompression = TextureFormat.ARGB32;
 
             m_terrainHLOD.StreamingType = Streaming.StreamingBuilderTypes.GetTypes()[0];
@@ -220,6 +220,29 @@ namespace Unity.HLODSystem.EditorTests
             CompareTexture(object2.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_2_Normal.texture2D");
             CompareTexture(object3.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_3_Normal.texture2D");
             CompareTexture(object4.GetComponent<MeshRenderer>().sharedMaterial.GetTexture("_BumpMap") as Texture2D, "Assets/TestResult/HLOD_4_Normal.texture2D");
+        }
+        
+        [Test]
+        public void PrefabTest()
+        {
+            Utils.CustomCoroutine routine = new Utils.CustomCoroutine(TerrainHLODCreator.Create(m_terrainHLOD));
+
+            while (routine.MoveNext())
+            {
+
+            }
+            
+            Assert.AreEqual(5, m_terrainHLOD.transform.childCount);
+            
+            var object1 = m_terrainHLOD.transform.GetChild(1);
+            var object2 = m_terrainHLOD.transform.GetChild(2);
+            var object3 = m_terrainHLOD.transform.GetChild(3);
+            var object4 = m_terrainHLOD.transform.GetChild(4);
+            
+            Assert.True(PrefabUtility.IsPartOfAnyPrefab(object1));
+            Assert.True(PrefabUtility.IsPartOfAnyPrefab(object2));
+            Assert.True(PrefabUtility.IsPartOfAnyPrefab(object3));
+            Assert.True(PrefabUtility.IsPartOfAnyPrefab(object4));
         }
 
         private void CompareTexture(Texture2D texture, string targetTextureFilename)

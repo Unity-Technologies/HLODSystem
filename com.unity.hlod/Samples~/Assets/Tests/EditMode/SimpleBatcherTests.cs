@@ -359,23 +359,27 @@ namespace Unity.HLODSystem.EditorTests
 
                 var texture = atlas.Textures[0];
 
-                Assert.AreEqual(texture.Width, 256);
-                Assert.AreEqual(texture.Height, 256);
+                Assert.AreEqual(256, texture.Width);
+                Assert.AreEqual(256, texture.Height);
 
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[0].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.0f, 0.0f, 0.5f, 0.5f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[1].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.5f, 0.0f, 0.5f, 0.5f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[2].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.0f, 0.5f, 0.5f, 0.5f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[3].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.5f, 0.5f, 0.5f, 0.5f));
+                Assert.AreEqual(new Rect(0.0f, 0.0f, 0.5f, 0.5f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[0].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.5f, 0.0f, 0.5f, 0.5f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[1].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.0f, 0.5f, 0.5f, 0.5f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[2].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.5f, 0.5f, 0.5f, 0.5f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[3].Materials[0].GetTexture("_MainTex").GetGUID()));
 
-                Assert.AreEqual(texture.GetPixel(0, 0), new Color(1.0f, 1.0f, 0.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(255, 0), new Color(0.0f, 0.0f, 1.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(0, 255), new Color(0.0f, 1.0f, 0.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(255, 255), new Color(1.0f, 0.0f, 0.0f, 1.0f));
+                Assert.AreEqual(new Color(1.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(0, 0));
+                Assert.AreEqual(new Color(0.0f, 0.0f, 1.0f, 1.0f), texture.GetPixel(255, 0));
+                Assert.AreEqual(new Color(0.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(0, 255));
+                Assert.AreEqual(new Color(1.0f, 0.0f, 0.0f, 1.0f), texture.GetPixel(255, 255));
 
-                Assert.AreEqual(texture.GetPixel(127, 127), new Color(1.0f, 1.0f, 0.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(128, 127), new Color(0.0f, 0.0f, 1.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(127, 128), new Color(0.0f, 1.0f, 0.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(128, 128), new Color(1.0f, 0.0f, 0.0f, 1.0f));
+                Assert.AreEqual(new Color(1.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(127, 127));
+                Assert.AreEqual(new Color(0.0f, 0.0f, 1.0f, 1.0f), texture.GetPixel(128, 127));
+                Assert.AreEqual(new Color(0.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(127, 128));
+                Assert.AreEqual(new Color(1.0f, 0.0f, 0.0f, 1.0f), texture.GetPixel(128, 128));
             }
 
             batcherOptions.PackTextureSize = 128;
@@ -395,23 +399,27 @@ namespace Unity.HLODSystem.EditorTests
 
                 var texture = atlas.Textures[0];
 
-                Assert.AreEqual(texture.Width, 128);
-                Assert.AreEqual(texture.Height, 128);
+                Assert.AreEqual(128, texture.Width);
+                Assert.AreEqual(128, texture.Height);
 
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[0].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.0f, 0.0f, 0.5f, 0.5f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[1].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.5f, 0.0f, 0.5f, 0.5f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[2].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.0f, 0.5f, 0.5f, 0.5f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[3].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.5f, 0.5f, 0.5f, 0.5f));
+                Assert.AreEqual(new Rect(0.0f, 0.0f, 0.5f, 0.5f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[0].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.5f, 0.0f, 0.5f, 0.5f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[1].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.0f, 0.5f, 0.5f, 0.5f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[2].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.5f, 0.5f, 0.5f, 0.5f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[3].Materials[0].GetTexture("_MainTex").GetGUID()));
 
-                Assert.AreEqual(texture.GetPixel(0, 0), new Color(1.0f, 1.0f, 0.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(127, 0), new Color(0.0f, 0.0f, 1.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(0, 127), new Color(0.0f, 1.0f, 0.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(127, 127), new Color(1.0f, 0.0f, 0.0f, 1.0f));
+                Assert.AreEqual(new Color(1.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(0, 0));
+                Assert.AreEqual(new Color(0.0f, 0.0f, 1.0f, 1.0f), texture.GetPixel(127, 0));
+                Assert.AreEqual(new Color(0.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(0, 127));
+                Assert.AreEqual(new Color(1.0f, 0.0f, 0.0f, 1.0f), texture.GetPixel(127, 127));
 
-                Assert.AreEqual(texture.GetPixel(63, 63), new Color(1.0f, 1.0f, 0.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(64, 63), new Color(0.0f, 0.0f, 1.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(63, 64), new Color(0.0f, 1.0f, 0.0f, 1.0f));
-                Assert.AreEqual(texture.GetPixel(64, 64), new Color(1.0f, 0.0f, 0.0f, 1.0f));
+                Assert.AreEqual(new Color(1.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(63, 63));
+                Assert.AreEqual(new Color(0.0f, 0.0f, 1.0f, 1.0f), texture.GetPixel(64, 63));
+                Assert.AreEqual(new Color(0.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(63, 64));
+                Assert.AreEqual(new Color(1.0f, 0.0f, 0.0f, 1.0f), texture.GetPixel(64, 64));
 
             }
 
@@ -432,13 +440,17 @@ namespace Unity.HLODSystem.EditorTests
 
                 var texture = atlas.Textures[0];
 
-                Assert.AreEqual(texture.Width, 512);
-                Assert.AreEqual(texture.Height, 512);
+                Assert.AreEqual(512, texture.Width);
+                Assert.AreEqual(512, texture.Height);
 
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[0].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.0f, 0.0f, 0.25f, 0.25f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[1].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.5f, 0.0f, 0.25f, 0.25f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[2].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.0f, 0.5f, 0.25f, 0.25f));
-                Assert.AreEqual(atlas.GetUV(buildInfo[0].WorkingObjects[3].Materials[0].GetTexture("_MainTex").GetGUID()), new Rect(0.5f, 0.5f, 0.25f, 0.25f));
+                Assert.AreEqual(new Rect(0.0f, 0.0f, 0.25f, 0.25f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[0].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.5f, 0.0f, 0.25f, 0.25f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[1].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.0f, 0.5f, 0.25f, 0.25f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[2].Materials[0].GetTexture("_MainTex").GetGUID()));
+                Assert.AreEqual(new Rect(0.5f, 0.5f, 0.25f, 0.25f),
+                    atlas.GetUV(buildInfo[0].WorkingObjects[3].Materials[0].GetTexture("_MainTex").GetGUID()));
 
                 Assert.AreEqual(new Color(1.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(0, 0));
                 Assert.AreEqual(new Color(1.0f, 1.0f, 0.0f, 1.0f), texture.GetPixel(127, 127));

@@ -1,5 +1,8 @@
+{% metadata_file .yamato/project.metafile %}
+
+
 pack:
-  name: Pack com.unity.hlod
+  name: Pack packages
   agent:
     type: Unity::VM
     image: package-ci/ubuntu:stable
@@ -7,7 +10,11 @@ pack:
   commands:
     - git submodule update --init --recursive
     - npm install upm-ci-utils@stable -g --registry https://artifactory.prd.cds.internal.unity3d.com/artifactory/api/npm/upm-npm
-    - upm-ci package pack --package-path com.unity.hlod 
+{% for project in projects -%}
+{% for package in project.packages -%}
+    - upm-ci package pack --package-path {{ package.path }} 
+{% endfor -%}
+{% endfor -%}
   artifacts:
     packages:
       paths:

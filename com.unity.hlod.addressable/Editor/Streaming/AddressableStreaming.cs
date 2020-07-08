@@ -182,7 +182,13 @@ namespace Unity.HLODSystem.Streaming
 
                     if (PrefabUtility.IsPartOfAnyPrefab(obj) == false)
                     {
-                        GameObject rootGameObject = rootDatas[i].GetRootObject(obj.name);
+
+
+                        GameObject rootGameObject = null;
+                        
+                        if ( rootDatas.ContainsKey(i))
+                            rootGameObject = rootDatas[i].GetRootObject(obj.name);
+
                         if (rootGameObject != null)
                         {
                             GameObject go = PrefabUtility.InstantiatePrefab(rootGameObject) as GameObject;
@@ -416,6 +422,11 @@ namespace Unity.HLODSystem.Streaming
                 Shader shader = mat.shader;
                 var shaderPath = AssetDatabase.GetAssetPath(shader);
                 var shaderGuid = AssetDatabase.AssetPathToGUID(shaderPath);
+
+                //GUID should not be included when using default resources.
+                //if including this, addressable build will be failed.
+                if (shaderGuid == "0000000000000000f000000000000000")
+                    continue;
 
                 m_shaderGuids.Add(shaderGuid);
             }

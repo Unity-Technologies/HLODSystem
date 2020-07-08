@@ -3,7 +3,7 @@
 	"displayName": "HLOD Addressable Streaming System",
 	"version": "0.0.1-preview",
 	"unity": "2018.3",
-	"description": "",
+	"description": "Plugin that enables streaming using Addressables on HLOD System.",
 	"keywords": ["HLOD"],
 	"category": "",
 	"dependencies": {

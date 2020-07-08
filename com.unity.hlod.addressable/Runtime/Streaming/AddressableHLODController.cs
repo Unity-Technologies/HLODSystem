@@ -115,7 +115,12 @@ namespace Unity.HLODSystem.Streaming
             m_lowObjects.Add(address);
             return id;
         }
-       
+
+        public override int HighObjectCount { get => m_highObjects.Count; }
+        public override int LowObjectCount { get => m_lowObjects.Count; }
+
+        public string GetLowObjectAddr(int index) { return m_lowObjects[index]; }
+
         public override void GetHighObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
         {
             //already processing object to load.
