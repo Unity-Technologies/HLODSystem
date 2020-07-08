@@ -8,6 +8,6 @@
 	"category": "",
 	"dependencies": {
 		"com.unity.hlod": "0.0.1-preview",
-		"com.unity.addressables": "1.7.5"
+		"com.unity.addressables": "1.11.2"
 	}
 }
