@@ -31,6 +31,10 @@ namespace Unity.HLODSystem.EditorTests
             m_hlodGameObject = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             PrefabUtility.UnpackPrefabInstance(m_hlodGameObject, PrefabUnpackMode.OutermostRoot, InteractionMode.AutomatedAction);
             m_hlod = m_hlodGameObject.GetComponentInChildren<HLOD>();
+
+            dynamic streamingOptions = m_hlod.StreamingOptions;
+            streamingOptions.AddressablesGroupName = "HLODEditorTest";
+
             var coroutine = CoroutineRunner.RunCoroutine(HLODCreator.Create(m_hlod));
 
             while (coroutine.MoveNext())
@@ -170,7 +174,7 @@ namespace Unity.HLODSystem.EditorTests
             Assert.NotNull(settings);
             Assert.AreEqual(85, controller.LowObjectCount);
 
-            var group = settings.FindGroup("HLOD");
+            var group = settings.FindGroup("HLODEditorTest");
             Assert.NotNull(group);
 
             List<AddressableAssetEntry> entries = new List<AddressableAssetEntry>();
