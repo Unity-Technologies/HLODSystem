@@ -45,7 +45,7 @@ namespace Unity.HLODSystem
             {
                 var controller = controllers[i];
 
-                if (controller != null)
+                if (controller != null && controller.enabled == true)
                 {
                     controller.Install();
                 }
