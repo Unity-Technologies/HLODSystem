@@ -477,7 +477,7 @@ namespace Unity.HLODSystem.Streaming
         {
             string path = AssetDatabase.GetAssetPath(obj);
 
-            if (string.IsNullOrEmpty(path))
+            if (string.IsNullOrEmpty(path) && PrefabUtility.GetPrefabInstanceStatus(obj) == PrefabInstanceStatus.Connected)
             {
                 Object prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
                 path = AssetDatabase.GetAssetPath(prefab);   
