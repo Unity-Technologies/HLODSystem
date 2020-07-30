@@ -470,8 +470,8 @@ namespace Unity.HLODSystem
             private GameObject CreateMeshCollider()
             {
                 dynamic param = m_parameters;
-                string sharedMeshGuid = param.SharedMesh;
-                string path = AssetDatabase.GUIDToAssetPath(sharedMeshGuid);
+                Guid sharedMeshGuid = param.SharedMesh;
+                string path = AssetDatabase.GUIDToAssetPath(sharedMeshGuid.ToString("N"));
                 if (string.IsNullOrEmpty(path) == true)
                     return null;
 
