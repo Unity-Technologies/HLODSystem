@@ -94,6 +94,25 @@ namespace Unity.HLODSystem.EditorTests
             }
         }
 
+        [Test]
+        public void MaterialSetupTest()
+        {
+            var objects = AssetDatabase.LoadAllAssetsAtPath(mHlodArtifactName);
+            for ( int i = 0; i < objects.Length; ++i )
+            {
+                var go = objects[i] as GameObject;
+                if (go == null)
+                    continue;
+
+                var mr = go.GetComponent<MeshRenderer>();
+                if (mr == null)
+                    continue;
+
+                Assert.AreNotEqual(0, mr.sharedMaterials.Length);
+            }
+            
+        }
+
         /*[Test]
         public void ArtifactIsCreated()
         {
