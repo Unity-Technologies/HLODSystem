@@ -65,7 +65,8 @@ namespace Unity.HLODSystem.Streaming
             m_streamingOptions = streamingOptions;
         }
 
-        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, bool writeNoPrefab, Action<float> onProgress)
+        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, 
+            float cullDistance, float lodDistance, bool writeNoPrefab, bool extractMaterial, Action<float> onProgress)
         {
             dynamic options = m_streamingOptions;
             string path = options.OutputDirectory;
@@ -117,6 +118,10 @@ namespace Unity.HLODSystem.Streaming
                             }
                         }
                     }
+                }
+
+                if (extractMaterial == true )
+                {
                 }
                 
                 HLODDataSerializer.Write(stream, data);

@@ -248,7 +248,7 @@ namespace Unity.HLODSystem
                     IStreamingBuilder builder =
                         (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType,
                             new object[] {hlod, hlod.StreamingOptions});
-                    builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, false,
+                    builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, false, true,
                         progress =>
                         {
                             EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",

@@ -8,6 +8,7 @@ using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using Object = UnityEngine.Object;
 
 namespace Unity.HLODSystem.Streaming
@@ -70,7 +71,8 @@ namespace Unity.HLODSystem.Streaming
             m_streamingOptions = streamingOptions;
         }
         
-        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, float cullDistance, float lodDistance, bool writeNoPrefab, Action<float> onProgress)
+        public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, 
+            float cullDistance, float lodDistance, bool writeNoPrefab, bool extractMaterial, Action<float> onProgress)
         {
             dynamic options = m_streamingOptions;
             string path = options.OutputDirectory;
@@ -143,10 +145,17 @@ namespace Unity.HLODSystem.Streaming
                     }
                 }
 
+
                 if (onProgress != null)
                     onProgress((float) i / (float) infos.Count);
             }
-             
+
+
+            if (extractMaterial)
+            {
+                ExtractMaterial(hlodDatas, filenamePrefix);
+                
+            }
 
             Dictionary<int, RootData> rootDatas = new Dictionary<int, RootData>();
             foreach (var item in hlodDatas)
@@ -254,6 +263,102 @@ namespace Unity.HLODSystem.Streaming
             addressableController.LODDistance = lodDistance;
         }
 
+        private void ExtractMaterial(Dictionary<int, HLODData> hlodDatas, string filenamePrefix)
+        {
+            Dictionary<string, HLODData.SerializableMaterial> hlodAllMaterials = new Dictionary<string, HLODData.SerializableMaterial>();
+            //collect all materials
+            foreach (var hlodData in hlodDatas.Values)
+            {
+                var hlodMaterials = hlodData.GetMaterials();
+                for (int mi = 0; mi < hlodMaterials.Count; ++mi)
+                {
+                    if (hlodAllMaterials.ContainsKey(hlodMaterials[mi].ID) == false)
+                    {
+                        hlodAllMaterials.Add(hlodMaterials[mi].ID, hlodMaterials[mi]);
+                    }
+                }
+            }
+
+            Dictionary<string, HLODData.SerializableMaterial> extractedMaterials = new Dictionary<string, HLODData.SerializableMaterial>();
+            //save files to disk
+            foreach (var hlodMaterial in hlodAllMaterials)
+            {
+
+                hlodMaterial.Value.GetTextureCount();
+                Material mat = hlodMaterial.Value.To();
+
+                for (int ti = 0; ti < hlodMaterial.Value.GetTextureCount(); ++ti)
+                {
+                    var serializeTexture = hlodMaterial.Value.GetTexture(ti);
+                    Texture2D texture = serializeTexture.To();
+                    byte[] bytes = texture.EncodeToPNG();
+                    string textureFilename = $"{filenamePrefix}_{mat.name}_{serializeTexture.TextureName}.png";
+                    File.WriteAllBytes(textureFilename, bytes);
+
+                    AssetDatabase.ImportAsset(textureFilename);
+
+                    var assetImporter = AssetImporter.GetAtPath(textureFilename);
+                    var textureImporter = assetImporter as TextureImporter;
+
+                    if (textureImporter)
+                    {
+                        textureImporter.wrapMode = serializeTexture.WrapMode;
+                        textureImporter.sRGBTexture = GraphicsFormatUtility.IsSRGBFormat(serializeTexture.GraphicsFormat);
+                        textureImporter.SaveAndReimport();
+                    }
+
+                    var storedTexture = AssetDatabase.LoadAssetAtPath<Texture>(textureFilename);
+                    m_manager.AddGeneratedResource(storedTexture);
+                    mat.SetTexture(serializeTexture.Name, storedTexture);
+                }
+
+                string matFilename = $"{filenamePrefix}_{mat.name}.mat";
+                AssetDatabase.CreateAsset(mat, matFilename);
+                AssetDatabase.ImportAsset(matFilename);
+
+                var storedMaterial = AssetDatabase.LoadAssetAtPath<Material>(matFilename);
+                m_manager.AddGeneratedResource(storedMaterial);
+
+
+                using (WorkingMaterial newWM = new WorkingMaterial(Collections.Allocator.Temp, storedMaterial))
+                {
+                    var newSM = new HLODData.SerializableMaterial();
+                    newSM.From(newWM);
+
+                    extractedMaterials.Add(hlodMaterial.Key, newSM);
+                }
+
+            }
+
+            //apply to HLODData
+            foreach(var hlodData in hlodDatas.Values)
+            {
+                
+                var materials = hlodData.GetMaterials();
+                for ( int i = 0; i < materials.Count; ++i )
+                {
+                    if (extractedMaterials.ContainsKey(materials[i].ID) == false)
+                        continue;
+
+                    materials[i] = extractedMaterials[materials[i].ID];
+                }
+
+                var objects = hlodData.GetObjects();
+                for (int oi = 0; oi < objects.Count; ++oi)
+                {
+                    var matIds = objects[oi].GetMaterialIds();
+
+                    for (int mi = 0; mi < matIds.Count; ++mi)
+                    {
+                        if (extractedMaterials.ContainsKey(matIds[mi]) == false)
+                            continue;
+
+                        matIds[mi] = extractedMaterials[matIds[mi]].ID;
+                    }
+                }
+
+            }
+        }
       
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
 

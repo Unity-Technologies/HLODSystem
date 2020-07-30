@@ -102,6 +102,18 @@ namespace Unity.HLODSystem
                                 {
                                     materials.Add(loadedMaterials[id]);
                                 }
+                                else 
+                                {
+                                    string path = AssetDatabase.GUIDToAssetPath(id);
+                                    if (string.IsNullOrEmpty(path) == false)
+                                    {
+                                        materials.Add(AssetDatabase.LoadAssetAtPath<Material>(path));
+                                    }
+                                    else
+                                    {
+                                        materials.Add(null);
+                                    }
+                                }
                             }
 
                             Mesh mesh = so.GetMesh().To();
