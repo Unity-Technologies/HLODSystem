@@ -8,6 +8,7 @@ using UnityEditor.VersionControl;
 using UnityEngine;
 using FileMode = System.IO.FileMode;
 using Object = UnityEngine.Object;
+using UnityEngine.Experimental.Rendering;
 
 namespace Unity.HLODSystem.Streaming
 {
@@ -122,6 +123,7 @@ namespace Unity.HLODSystem.Streaming
 
                 if (extractMaterial == true )
                 {
+                    ExtractMaterial(data, $"{path}{root.name}");
                 }
                 
                 HLODDataSerializer.Write(stream, data);
@@ -196,6 +198,84 @@ namespace Unity.HLODSystem.Streaming
             defaultController.Root = convertedRootNode;
             defaultController.CullDistance = cullDistance;
             defaultController.LODDistance = lodDistance;
+        }
+
+        private void ExtractMaterial(HLODData hlodData, string filenamePrefix)
+        {
+            Dictionary<string, HLODData.SerializableMaterial> extractedMaterials = new Dictionary<string, HLODData.SerializableMaterial>();
+            //save files to disk
+            foreach (var hlodMaterial in hlodData.GetMaterials())
+            {
+                string id = hlodMaterial.ID;
+                hlodMaterial.GetTextureCount();
+                Material mat = hlodMaterial.To();
+
+                for (int ti = 0; ti < hlodMaterial.GetTextureCount(); ++ti)
+                {
+                    var serializeTexture = hlodMaterial.GetTexture(ti);
+                    Texture2D texture = serializeTexture.To();
+                    byte[] bytes = texture.EncodeToPNG();
+                    string textureFilename = $"{filenamePrefix}_{mat.name}_{serializeTexture.TextureName}.png";
+                    File.WriteAllBytes(textureFilename, bytes);
+
+                    AssetDatabase.ImportAsset(textureFilename);
+
+                    var assetImporter = AssetImporter.GetAtPath(textureFilename);
+                    var textureImporter = assetImporter as TextureImporter;
+
+                    if (textureImporter)
+                    {
+                        textureImporter.wrapMode = serializeTexture.WrapMode;
+                        textureImporter.sRGBTexture = GraphicsFormatUtility.IsSRGBFormat(serializeTexture.GraphicsFormat);
+                        textureImporter.SaveAndReimport();
+                    }
+
+                    var storedTexture = AssetDatabase.LoadAssetAtPath<Texture>(textureFilename);
+                    m_manager.AddGeneratedResource(storedTexture);
+                    mat.SetTexture(serializeTexture.Name, storedTexture);
+                }
+
+                string matFilename = $"{filenamePrefix}_{mat.name}.mat";
+                AssetDatabase.CreateAsset(mat, matFilename);
+                AssetDatabase.ImportAsset(matFilename);
+
+                var storedMaterial = AssetDatabase.LoadAssetAtPath<Material>(matFilename);
+                m_manager.AddGeneratedResource(storedMaterial);
+
+
+                using (WorkingMaterial newWM = new WorkingMaterial(Collections.Allocator.Temp, storedMaterial))
+                {
+                    var newSM = new HLODData.SerializableMaterial();
+                    newSM.From(newWM);
+
+                    extractedMaterials.Add(id, newSM);
+                }
+
+            }
+
+            //apply to HLODData
+            var materials = hlodData.GetMaterials();
+            for (int i = 0; i < materials.Count; ++i)
+            {
+                if (extractedMaterials.ContainsKey(materials[i].ID) == false)
+                    continue;
+
+                materials[i] = extractedMaterials[materials[i].ID];
+            }
+
+            var objects = hlodData.GetObjects();
+            for (int oi = 0; oi < objects.Count; ++oi)
+            {
+                var matIds = objects[oi].GetMaterialIds();
+
+                for (int mi = 0; mi < matIds.Count; ++mi)
+                {
+                    if (extractedMaterials.ContainsKey(matIds[mi]) == false)
+                        continue;
+
+                    matIds[mi] = extractedMaterials[matIds[mi]].ID;
+                }
+            }
         }
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
