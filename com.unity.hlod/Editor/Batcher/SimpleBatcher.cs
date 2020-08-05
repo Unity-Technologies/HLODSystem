@@ -540,16 +540,10 @@ namespace Unity.HLODSystem
             }
 
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PrefixLabel("New texture");
-            addingTextureInfo.InputName =
-                StringPopup(addingTextureInfo.InputName, inputTexturePropertyNames);
-            addingTextureInfo.OutputName =
-                StringPopup(addingTextureInfo.OutputName, outputTexturePropertyNames);
-            addingTextureInfo.Type = (PackingType)EditorGUILayout.EnumPopup(addingTextureInfo.Type);
-            if (GUILayout.Button("+") == true)
+            EditorGUILayout.PrefixLabel(" ");
+            if (GUILayout.Button("Add new texture property") == true)
             {
-                batcherOptions.TextureInfoList.Add(addingTextureInfo);
-                addingTextureInfo = new TextureInfo();
+                batcherOptions.TextureInfoList.Add(new TextureInfo());
             }
 
             EditorGUILayout.EndHorizontal();
