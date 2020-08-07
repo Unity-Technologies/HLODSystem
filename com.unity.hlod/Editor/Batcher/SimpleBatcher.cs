@@ -411,8 +411,14 @@ namespace Unity.HLODSystem
         private static string[] inputTexturePropertyNames = null;
         private static string[] outputTexturePropertyNames = null;
         private static TextureInfo addingTextureInfo = new TextureInfo();
-        public static void OnGUI(HLOD hlod)
+        public static void OnGUI(HLOD hlod, bool isFirst)
         {
+            if (isFirst )
+            {
+                inputTexturePropertyNames = null;
+                outputTexturePropertyNames = null;
+            }
+
             EditorGUI.indentLevel += 1;
             dynamic batcherOptions = hlod.BatcherOptions;
 
@@ -553,7 +559,8 @@ namespace Unity.HLODSystem
             if (GUILayout.Button("Update texture properties"))
             {
                 //TODO: Need update automatically
-                inputTexturePropertyNames = GetAllMaterialTextureProperties(hlod.gameObject);
+                inputTexturePropertyNames = null;
+                outputTexturePropertyNames = null;
             }
             EditorGUILayout.EndHorizontal();
 
