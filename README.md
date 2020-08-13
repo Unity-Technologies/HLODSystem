@@ -57,8 +57,8 @@ $ git submodule update --init --recursive
 Please refer to this document:
 https://docs.google.com/document/d/18HgBIr8oJweKaXtsIHZlh0s5HuXvQVmVfVcMPHAYS1A/edit#
 
-Also, you can see below project to how to make it.
-https://github.com/Unity-Technologies/HLODSystemDemo
+Also, you can see [demoProject][this project] to how to apply to 3D game kit.
+
 
 ### License
 Copyright (c) 2019 Unity Technologies ApS
@@ -73,3 +73,4 @@ Document: https://docs.google.com/document/d/1OPYDNpwGFpkBorZ3GCpL9Z4ck-6qRRD1tz
 [gitSSHSetup]: <https://help.github.com/articles/connecting-to-github-with-ssh/>
 [sampleBranch]: <https://github.com/Unity-Technologies/HLODSystem/tree/samples>
 [badgesLink]: <https://badges.cds.internal.unity3d.com/badge-gallery/com.unity.hlod?branch=PackageTests&proxied=true>
+[demoProject]: <https://github.com/Unity-Technologies/HLODSystemDemo>
