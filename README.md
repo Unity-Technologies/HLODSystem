@@ -57,6 +57,9 @@ $ git submodule update --init --recursive
 Please refer to this document:
 https://docs.google.com/document/d/18HgBIr8oJweKaXtsIHZlh0s5HuXvQVmVfVcMPHAYS1A/edit#
 
+Also, you can see below project to how to make it.
+https://github.com/Unity-Technologies/HLODSystemDemo
+
 ### License
 Copyright (c) 2019 Unity Technologies ApS
 Licensed under the Unity Companion License for Unity-dependent projects see [Unity Companion License][license].
