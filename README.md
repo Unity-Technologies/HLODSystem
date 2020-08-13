@@ -57,7 +57,7 @@ $ git submodule update --init --recursive
 Please refer to this document:
 https://docs.google.com/document/d/18HgBIr8oJweKaXtsIHZlh0s5HuXvQVmVfVcMPHAYS1A/edit#
 
-Also, you can see [demoProject][this project] to how to apply to 3D game kit.
+Also, you can see [this project][demoProject] to how to apply to 3D game kit.
 
 
 ### License
