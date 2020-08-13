@@ -91,7 +91,7 @@ namespace Unity.HLODSystem
             }
         }
 
-        static void OnGUI(HLOD hlod)
+        static void OnGUI(HLOD hlod, bool isFirst)
         {
 
         }

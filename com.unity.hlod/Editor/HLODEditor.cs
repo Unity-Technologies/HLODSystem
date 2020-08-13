@@ -46,6 +46,8 @@ namespace Unity.HLODSystem
         private bool isShowBatcher = true;
         private bool isShowSimplifier = true;
         private bool isShowStreaming = true;
+
+        private bool isFirstOnGUI = true;
         
         private ISpaceSplitter m_splitter = new QuadTreeSpaceSplitter(5.0f);
 
@@ -78,6 +80,8 @@ namespace Unity.HLODSystem
 
             m_StreamingTypes = Streaming.StreamingBuilderTypes.GetTypes();
             m_StreamingNames = m_StreamingTypes.Select(t => t.Name).ToArray();
+
+            isFirstOnGUI = true;
         }
 
         public override void OnInspectorGUI()
@@ -156,7 +160,7 @@ namespace Unity.HLODSystem
                     {
                         if (info.IsStatic == true)
                         {
-                            info.Invoke(null, new object[] {hlod});
+                            info.Invoke(null, new object[] {hlod, isFirstOnGUI });
                         }
                     }
                 }
@@ -223,6 +227,7 @@ namespace Unity.HLODSystem
             GUI.enabled = true;
 
             serializedObject.ApplyModifiedProperties();
+            isFirstOnGUI = false;
         }
 
     }
