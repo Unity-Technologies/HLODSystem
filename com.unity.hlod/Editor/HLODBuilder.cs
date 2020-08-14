@@ -18,13 +18,17 @@ namespace Unity.HLODSystem
         public void OnProcessScene(Scene scene, BuildReport report)
         {
             GameObject[] rootObjects = scene.GetRootGameObjects();
+            List<Terrain> terrains = new List<Terrain>();
+            List<TerrainData> needDestroyDatas = new List<TerrainData>();
+
             for (int oi = 0; oi < rootObjects.Length; ++oi)
             {
                 List<HLOD> hlods = new List<HLOD>();
                 List<TerrainHLOD> terrainHlods = new List<TerrainHLOD>();
-                
+
                 FindComponentsInChild(rootObjects[oi], ref hlods);
                 FindComponentsInChild(rootObjects[oi], ref terrainHlods);
+                FindComponentsInChild(rootObjects[oi], ref terrains);
 
                 for (int hi = 0; hi < hlods.Count; ++hi)
                 {
@@ -32,7 +36,23 @@ namespace Unity.HLODSystem
                 }
                 for (int hi = 0; hi < terrainHlods.Count; ++hi)
                 {
+                    if (terrainHlods[hi].DestroyTerrain)
+                    {
+                        needDestroyDatas.Add(terrainHlods[hi].TerrainData);
+                    }
                     Object.DestroyImmediate(terrainHlods[hi]);
+                }
+            }
+
+            for (int ti = 0; ti < terrains.Count; ++ti)
+            {
+                if (terrains[ti] == null)
+                    continue;
+
+                bool needDestroy = needDestroyDatas.Contains(terrains[ti].terrainData);
+                if (needDestroy)
+                {
+                    Object.DestroyImmediate(terrains[ti]);
                 }
             }
         }

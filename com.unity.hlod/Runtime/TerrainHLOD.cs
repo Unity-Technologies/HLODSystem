@@ -55,6 +55,11 @@ namespace Unity.HLODSystem
             set { m_TerrainData = value;}
             get { return m_TerrainData; }
         }
+        public bool DestroyTerrain
+        {
+            set { m_DestroyTerrain = value; }
+            get { return m_DestroyTerrain; }
+        }
         public float ChunkSize
         {
             get { return m_ChunkSize; }
