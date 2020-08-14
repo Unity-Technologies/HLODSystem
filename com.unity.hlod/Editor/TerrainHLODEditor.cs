@@ -17,7 +17,7 @@ namespace Unity.HLODSystem
         public static class Styles
         {
             public static GUIContent SourceText = new GUIContent("Source");
-            public static GUIContent DestoryTerrainText = new GUIContent("Destory terrain", "Destory original terrain when build time.");
+            public static GUIContent DestoryTerrainText = new GUIContent("Destroy terrain", "Destory original terrain when build time.");
             public static GUIContent GenerateButtonEnable = new GUIContent("Generate", "Generate a HLOD mesh.");
             public static GUIContent GenerateButtonExists = new GUIContent("Generate", "HLOD already generated.");
             public static GUIContent DestroyButtonEnable = new GUIContent("Destroy", "Destroy a HLOD mesh.");
