@@ -4,9 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 using Unity.HLODSystem.Streaming;
-using Unity.HLODSystem.Utils;
 using UnityEditor;
-using UnityEditor.VersionControl;
 using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
@@ -14,7 +12,7 @@ using Object = UnityEngine.Object;
 namespace Unity.HLODSystem.RuntimeTests
 {
     [TestFixture]
-    public class RuntimeTests : IPrebuildSetup, IPostBuildCleanup
+    public class RuntimeTests
     {
         private GameObject mGameObject;
         private GameObject mHlodGameObject;
@@ -37,6 +35,7 @@ namespace Unity.HLODSystem.RuntimeTests
             Assert.NotNull(mHlodCameraObject);
         }
 
+        [OneTimeTearDown]
         public void Cleanup()
         {
             Object.Destroy(mHlodCameraObject);
