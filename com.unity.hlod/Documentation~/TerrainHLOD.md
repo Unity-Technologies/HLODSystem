@@ -8,6 +8,9 @@ TerrainHLOD takes a Terrain as input and converts it to a HLOD Mesh.
 
 **Source**: Set the source TerrainData to generate the HLOD.
 
+**Destroy terrain**: The original terrain will be deleted on build when you check this.
+It is deleted only the Terrain when using same TerrainData on same scene.
+
 **Chunk Size**: Sets the size of the terminal node in HLOD. Nodes are
 split into quadtrees until they are smaller than this value at full
 size.
