@@ -82,8 +82,24 @@ namespace Unity.HLODSystem.Streaming
         {
             return Root.IsLoadDone();
         }
+        public int GetNodeCount()
+        {
+            return m_treeNodeContainer.Count;
+        }
+        public int GetReadyNodeCount()
+        {
+            int count = 0;
+            for ( int i = 0; i < m_treeNodeContainer.Count; ++i )
+            {
+                var node = m_treeNodeContainer.Get(i);
+                if (node.IsNodeReadySelf())
+                    count += 1;
+            }
+
+            return count;
+        }
         #endregion
- 
+
         #region variables
         private ISpaceManager m_spaceManager;
 
