@@ -54,6 +54,11 @@ namespace Unity.HLODSystem
             get { return m_lowObjectIds; }
         }
 
+        private State ExprectedState
+        {
+            get { return m_expectedState; }
+        }
+
         enum State
         {
             Release,
@@ -62,6 +67,7 @@ namespace Unity.HLODSystem
         }
 
         private FSM<State> m_fsm = new FSM<State>();
+        private State m_expectedState = State.Release;
 
         private HLODControllerBase m_controller;
         private ISpaceManager m_spaceManager;
@@ -183,6 +189,40 @@ namespace Unity.HLODSystem
             return true;
         }
 
+        public bool IsNodeReadySelf()
+        {
+            return m_expectedState == m_fsm.CurrentState;
+        }
+
+        public int GetReadyNodeCount()
+        {
+            int readyNodeCount = 0;
+            for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
+            {
+                var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
+                readyNodeCount += childTreeNode.GetReadyNodeCount();
+            }
+
+            if (m_fsm.LastState == State.Release)
+                return readyNodeCount + 1;
+            if (m_fsm.LastState == State.Low)
+            {
+                if (IsReadyToEnterLow())
+                    return readyNodeCount + 1;
+                else
+                    return readyNodeCount;
+            }
+            if ( m_fsm.CurrentState == State.High)
+            {
+                if (IsReadyToEnterHigh())
+                    return readyNodeCount + 1;
+                else
+                    return readyNodeCount;
+                
+            }
+            return readyNodeCount;
+        }
+
         public void Cull(bool isCull)
         {
             if (isCull)
@@ -239,6 +279,9 @@ namespace Unity.HLODSystem
         }
         bool IsReadyToEnterLow()
         {
+            if (m_loadedLowObjects == null)
+                return true;
+
             return m_loadedLowObjects.Count == m_lowObjectIds.Count;
         }
         
@@ -297,6 +340,9 @@ namespace Unity.HLODSystem
 
         bool IsReadyToEnterHigh()
         {
+            if (m_loadedHighObjects == null)
+                return true;
+
             if ( m_loadedHighObjects.Count != m_highObjectIds.Count )
                 return false;
             
@@ -352,12 +398,22 @@ namespace Unity.HLODSystem
 
             //Change state if a change to another state is needed immediately after changing the state.
             var beforeState = m_fsm.CurrentState;
+            m_expectedState = m_spaceManager.IsHigh(lodDistance, m_bounds) ? State.High : State.Low;
+
+            if ( m_parent != null)
+            {
+                if ( m_parent.ExprectedState == State.Release || m_parent.ExprectedState == State.Low)
+                {
+                    m_expectedState = State.Release;
+                }
+            }
+
             do
             {
                 beforeState = m_fsm.CurrentState;
                 if (m_fsm.LastState != State.Release)
                 {
-                    if (m_spaceManager.IsHigh(lodDistance, m_bounds))
+                    if (m_expectedState == State.High)
                     {
                         //if isVisible is false, it loaded from parent but not showing. 
                         //We have to wait for showing after then, change state to high.
