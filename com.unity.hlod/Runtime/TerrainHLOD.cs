@@ -24,6 +24,7 @@ namespace Unity.HLODSystem
         [SerializeField] private SerializableDynamicObject m_StreamingOptions = new SerializableDynamicObject();
 
         [SerializeField] private string m_materialGUID = "";
+        [SerializeField] private string m_materialLowGUID = "";
         [SerializeField] private int m_textureSize = 64;
 
         [SerializeField] private bool m_useNormal = false;
@@ -104,6 +105,12 @@ namespace Unity.HLODSystem
         {
             set { m_materialGUID = value; }
             get { return m_materialGUID; }
+        }
+
+        public string MaterialLowGUID
+        {
+            set { m_materialLowGUID = value; }
+            get { return m_materialLowGUID; }
         }
 
         public bool UseNormal

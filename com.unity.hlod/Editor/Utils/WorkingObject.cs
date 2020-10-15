@@ -26,6 +26,8 @@ namespace Unity.HLODSystem.Utils
 
         private Allocator m_allocator;
 
+        private UnityEngine.Rendering.LightProbeUsage m_lightProbeUsage;
+
         public string Name { set; get; }
         public WorkingMesh Mesh
         {
@@ -42,12 +44,19 @@ namespace Unity.HLODSystem.Utils
             get { return m_localToWorld; }
         }
 
+        public UnityEngine.Rendering.LightProbeUsage LightProbeUsage
+        {
+            get => m_lightProbeUsage;
+            set => m_lightProbeUsage = value;
+        }
+
         public WorkingObject(Allocator allocator)
         {
             m_allocator = allocator;
             m_mesh = null;
             m_materials = new DisposableList<WorkingMaterial>();
             m_localToWorld = Matrix4x4.identity;
+            m_lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.BlendProbes;
         }
 
         public void FromRenderer(MeshRenderer renderer)
@@ -68,6 +77,8 @@ namespace Unity.HLODSystem.Utils
             }
 
             m_localToWorld = renderer.localToWorldMatrix;
+
+            m_lightProbeUsage = renderer.lightProbeUsage;
         }
 
         public void SetMesh(WorkingMesh mesh)

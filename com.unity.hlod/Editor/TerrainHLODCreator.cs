@@ -77,27 +77,43 @@ namespace Unity.HLODSystem
         class Layer : IDisposable
         {
             private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
+
+            public float NormalScale => m_normalScale;
             
-            public Layer(TerrainLayer layer)
+            public Layer(TerrainLayer layer, float chunkSize)
             {
-                var texture = layer.diffuseTexture;
-
-                bool linear = !GraphicsFormatUtility.IsSRGBFormat(texture.graphicsFormat);
-
-                m_diffuseTexstures = new DisposableList<WorkingTexture>();
+                m_diffuseTextures = new DisposableList<WorkingTexture>();
+                m_maskTextures = new DisposableList<WorkingTexture>();
+                m_normalTextures = new DisposableList<WorkingTexture>();
 
                 m_offset = layer.tileOffset;
                 m_size = layer.tileSize;
-                var diffuseRemapMin = layer.diffuseRemapMin;
-                var diffuseRemapMax = layer.diffuseRemapMax;
+                m_normalScale = layer.normalScale;
 
-                diffuseRemapMin.x = Mathf.Pow(diffuseRemapMin.x, 0.45f);
-                diffuseRemapMin.y = Mathf.Pow(diffuseRemapMin.y, 0.45f);
-                diffuseRemapMin.z = Mathf.Pow(diffuseRemapMin.z, 0.45f);
+                m_chunkSize = chunkSize;
 
-                diffuseRemapMax.x = Mathf.Pow(diffuseRemapMax.x, 0.45f);
-                diffuseRemapMax.y = Mathf.Pow(diffuseRemapMax.y, 0.45f);
-                diffuseRemapMax.z = Mathf.Pow(diffuseRemapMax.z, 0.45f);
+                MakeTexture(layer, layer.diffuseTexture, layer.diffuseRemapMin, layer.diffuseRemapMax, m_diffuseTextures);
+                MakeTexture(layer, layer.maskMapTexture, layer.maskMapRemapMin, layer.maskMapRemapMax, m_maskTextures);
+                MakeTexture(layer, layer.normalMapTexture, Vector4.zero, Vector4.one, m_normalTextures);
+            }
+
+            void MakeTexture(TerrainLayer layer, Texture2D texture, Vector4 min, Vector4 max, DisposableList<WorkingTexture> results)
+            {
+                bool linear = !GraphicsFormatUtility.IsSRGBFormat(texture.graphicsFormat);
+
+                var offset = layer.tileOffset;
+                var size = layer.tileSize;
+
+                if (!linear)
+                {
+                    min.x = Mathf.Pow(min.x, 0.45f);
+                    min.y = Mathf.Pow(min.y, 0.45f);
+                    min.z = Mathf.Pow(min.z, 0.45f);
+
+                    max.x = Mathf.Pow(max.x, 0.45f);
+                    max.y = Mathf.Pow(max.y, 0.45f);
+                    max.z = Mathf.Pow(max.z, 0.45f);
+                }
 
 
                 //make to texture readable.
@@ -129,8 +145,8 @@ namespace Unity.HLODSystem
                             }
                         }
 
-                        RemapTexture(workingTexture, diffuseRemapMin, diffuseRemapMax);
-                        m_diffuseTexstures.Add(workingTexture);
+                        RemapTexture(workingTexture, min, max);
+                        results.Add(workingTexture);
                     }
                 }
                 finally
@@ -146,7 +162,9 @@ namespace Unity.HLODSystem
             
             public void Dispose()
             {
-                m_diffuseTexstures?.Dispose();
+                m_diffuseTextures?.Dispose();
+                m_maskTextures?.Dispose();
+                m_normalTextures?.Dispose();
                 m_detector.Dispose();
             }
 
@@ -155,22 +173,63 @@ namespace Unity.HLODSystem
                 u = u - Mathf.Floor(u);
                 v = v - Mathf.Floor(v);
 
-                mipLevel = Mathf.Min(mipLevel, m_diffuseTexstures.Count - 1);
+                mipLevel = Mathf.Min(mipLevel, m_diffuseTextures.Count - 1);
                 
-                return m_diffuseTexstures[mipLevel].GetPixel(u, v);
+                return m_diffuseTextures[mipLevel].GetPixel(u, v);
             }
 
-            public Color GetColorByWorld(float wx, float wz, float sx, float sz)
+            public Vector3 GetUVByWorld(float wx, float wz, float sx, float sz)
             {
                 float u = (wx + m_offset.x) / m_size.x;
                 float v = (wz + m_offset.y) / m_size.y;
 
-                float mipx = sx / m_size.x;
-                float mipy = sz / m_size.y;
+                float mipx = Mathf.Max(0, sx / (m_chunkSize * 2.0f) - 1);
+                float mipy = Mathf.Max(0, sz / (m_chunkSize * 2.0f) - 1);
 
                 float mip = Mathf.Max(mipx, mipy);
 
-                return GetColor(u, v, Mathf.RoundToInt(mip));
+                return new Vector3(u, v, mip);
+            }
+
+            public Color GetColorByWorld(float wx, float wz, float sx, float sz)
+            {
+                Vector3 uv = GetUVByWorld(wx, wz, sx, sz);
+
+                return GetColor(uv.x, uv.y, Mathf.RoundToInt(uv.z));
+            }
+
+            public Color GetMask(float u, float v, int mipLevel = 0)
+            {
+                u = u - Mathf.Floor(u);
+                v = v - Mathf.Floor(v);
+
+                mipLevel = Mathf.Min(mipLevel, m_diffuseTextures.Count - 1);
+
+                return m_maskTextures[mipLevel].GetPixel(u, v);
+            }
+
+            public Color GetMaskByWorld(float wx, float wz, float sx, float sz)
+            {
+                Vector3 uv = GetUVByWorld(wx, wz, sx, sz);
+
+                return GetMask(uv.x, uv.y, Mathf.RoundToInt(uv.z));
+            }
+
+            public Color GetNormal(float u, float v, int mipLevel = 0)
+            {
+                u = u - Mathf.Floor(u);
+                v = v - Mathf.Floor(v);
+
+                mipLevel = Mathf.Min(mipLevel, m_normalTextures.Count - 1);
+
+                return m_normalTextures[mipLevel].GetPixel(u, v);
+            }
+
+            public Color GetNormalByWorld(float wx, float wz, float sx, float sz)
+            {
+                Vector3 uv = GetUVByWorld(wx, wz, sx, sz);
+
+                return GetNormal(uv.x, uv.y, Mathf.RoundToInt(uv.z));
             }
 
             private WorkingTexture GenerateMipmap(WorkingTexture source)
@@ -219,9 +278,13 @@ namespace Unity.HLODSystem
                 }
             }
 
-            private DisposableList<WorkingTexture> m_diffuseTexstures;
+            private DisposableList<WorkingTexture> m_diffuseTextures;
+            private DisposableList<WorkingTexture> m_maskTextures;
+            private DisposableList<WorkingTexture> m_normalTextures;
             private Vector2 m_offset;
             private Vector2 m_size;
+            private float m_chunkSize;
+            private float m_normalScale;
         }
 
       
@@ -239,7 +302,10 @@ namespace Unity.HLODSystem
         private int m_terrainMaterialInstanceId;
         private string m_terrainMaterialName;
 
-        
+        private Material m_terrainMaterialLow;
+        private int m_terrainMaterialLowInstanceId;
+        private string m_terrainMaterialLowName;
+
         private TerrainHLODCreator(TerrainHLOD hlod)
         {
             m_hlod = hlod;
@@ -257,11 +323,11 @@ namespace Unity.HLODSystem
 
             return m_heightmap.GetHeightmap(beginX, beginZ, width, height);
         }
-        private WorkingObject CreateBakedTerrain(string name, Bounds bounds, Heightmap heightmap, int distance)
+        private WorkingObject CreateBakedTerrain(string name, Bounds bounds, Heightmap heightmap, int distance, bool isLeaf)
         {
             WorkingObject wo = new WorkingObject(Allocator.Persistent);
             wo.Name = name;
-            
+            wo.LightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
             
             m_queue.EnqueueJob(() =>
             {
@@ -271,7 +337,7 @@ namespace Unity.HLODSystem
 
             m_queue.EnqueueJob(() =>
             {
-                WorkingMaterial material = CreateBakedMaterial(name, bounds); 
+                WorkingMaterial material = CreateBakedMaterial(name, bounds, isLeaf); 
                 wo.Materials.Add(material);
             });
 
@@ -311,15 +377,8 @@ namespace Unity.HLODSystem
 
                     uvs[index].x = (float)x / (heightmap.Width - 1);
                     uvs[index].y = (float)z / (heightmap.Height - 1);
-
-                    if (m_hlod.UseNormal)
-                    {
-                        normals[index] = Vector3.up;
-                    }
-                    else
-                    {
-                        normals[index] = heightmap.GetInterpolatedNormal(uvs[index].x, uvs[index].y);
-                    }
+                    
+                    normals[index] = heightmap.GetInterpolatedNormal(uvs[index].x, uvs[index].y);
                     
                     
                 }
@@ -353,9 +412,12 @@ namespace Unity.HLODSystem
             return mesh;
         }
 
-        private WorkingMaterial CreateBakedMaterial(string name, Bounds bounds)
+        private WorkingMaterial CreateBakedMaterial(string name, Bounds bounds, bool useHighMaterial)
         {
-            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, m_terrainMaterialInstanceId, m_terrainMaterialName);
+            int matInstanceID = useHighMaterial ? m_terrainMaterialInstanceId : m_terrainMaterialLowInstanceId;
+            string matName = useHighMaterial ? m_terrainMaterialName : m_terrainMaterialLowName;
+
+            WorkingMaterial material = new WorkingMaterial(Allocator.Persistent, matInstanceID, matName);
             material.Name = name + "_Material";
 
             m_queue.EnqueueJob(() =>
@@ -373,29 +435,52 @@ namespace Unity.HLODSystem
                 });
             }
 
+            if (m_hlod.UseMask)
+            {
+                m_queue.EnqueueJob(() =>
+                {
+                    WorkingTexture mask = BakeMask(name, bounds, m_hlod.TextureSize);
+                    material.AddTexture(m_hlod.MaskPropertyName, mask);
+                });
+            }
+
             return material;
         }
 
-        private WorkingTexture BakeAlbedo(string name, Bounds bounds, int resolution)
+        private Color UnPackNormal(Color c, float scale)
         {
-            WorkingTexture albedoTexture = new WorkingTexture(Allocator.Persistent, TextureFormat.RGB24, resolution, resolution, false);
-            albedoTexture.Name = name + "_Albedo";
-            albedoTexture.WrapMode = TextureWrapMode.Clamp;
-            
+            c.r = (c.r * 2 - 1) * scale;
+            c.g = (c.g * 2 - 1) * scale;
+            c.b = c.b * 2 - 1;
+            return c;
+        }
+
+        private Color PackNormal(Color c)
+        {
+            c.r = c.r * 0.5f + 0.5f;
+            c.g = c.g * 0.5f + 0.5f;
+            c.b = c.b * 0.5f + 0.5f;
+            return c;
+        }
+
+        private void EnqueueBlendTextureJob(WorkingTexture texture, Bounds bounds, int resolution, System.Func<int, float, float, float, float, bool, Color> getColor, System.Func<Color, Color> packColor = null)
+        {
+            bool linear = texture.Linear;
+
             m_queue.EnqueueJob(() =>
             {
                 float ustart = (bounds.min.x) / m_size.x;
                 float vstart = (bounds.min.z) / m_size.z;
                 float usize = (bounds.max.x - bounds.min.x) / m_size.x;
                 float vsize = (bounds.max.z - bounds.min.z) / m_size.z;
-                
+
                 for (int y = 0; y < resolution; ++y)
                 {
                     for (int x = 0; x < resolution; ++x)
                     {
                         float u = (float)x / (float)resolution * usize + ustart;
                         float v = (float)y / (float)resolution * vsize + vstart;
-                        
+
                         Color color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
 
                         for (int li = 0; li < m_layers.Count; ++li)
@@ -416,33 +501,72 @@ namespace Unity.HLODSystem
                                     weight = m_alphamaps[li / 4].GetPixel(u, v).a;
                                     break;
                             }
-                            
+
                             //optimize to skip not effect pixels.
-                            if ( weight < 0.01f)
+                            if (weight < 0.01f)
                                 continue;
 
-                            float wx = (float) x / (float) resolution * bounds.size.x + bounds.min.x;
-                            float wy = (float) y / (float) resolution * bounds.size.z + bounds.min.z;
+                            float wx = (float)x / (float)resolution * bounds.size.x + bounds.min.x;
+                            float wy = (float)y / (float)resolution * bounds.size.z + bounds.min.z;
 
-                            Color c = m_layers[li].GetColorByWorld(wx, wy, bounds.size.x, bounds.size.z);
+                            Color c = getColor(li, wx, wy, bounds.size.x, bounds.size.z, linear);
 
-                            color.r += Mathf.Pow(c.r, 2.2f) * weight;
-                            color.g += Mathf.Pow(c.g, 2.2f) * weight;
-                            color.b += Mathf.Pow(c.b, 2.2f) * weight;
-                            
+                            // blend in linear space.
+                            color.r += c.r * weight;
+                            color.g += c.g * weight;
+                            color.b += c.b * weight;
+                            color.a += c.a * weight;
                         }
 
-                        color.r = Mathf.Pow(color.r, 0.454545f);
-                        color.g = Mathf.Pow(color.g, 0.454545f);
-                        color.b = Mathf.Pow(color.b, 0.454545f);
-                        color.a = 1.0f;
-                        albedoTexture.SetPixel(x, y, color);
+                        if (packColor != null)
+                        {
+                            color = packColor(color);
+                        }
+
+                        if (!linear)
+                        {
+                            color = color.gamma;
+                        }
+
+                        texture.SetPixel(x, y, color);
                     }
                 }
             });
-            
+        }
+
+        private WorkingTexture BakeAlbedo(string name, Bounds bounds, int resolution)
+        {
+            WorkingTexture albedoTexture = new WorkingTexture(Allocator.Persistent, TextureFormat.RGB24, resolution, resolution, false);
+            albedoTexture.Name = name + "_Albedo";
+            albedoTexture.WrapMode = TextureWrapMode.Clamp;
+
+            EnqueueBlendTextureJob(albedoTexture, bounds, resolution, (layer, wx, wz, sx, sz, linear) => 
+            {
+                Color c = m_layers[layer].GetColorByWorld(wx, wz, sx, sz);
+                if (!linear)
+                    c = c.linear;
+                return c;
+            });
+
             
             return albedoTexture;
+        }
+
+        private WorkingTexture BakeMask(string name, Bounds bounds, int resolution)
+        {
+            WorkingTexture maskTexture = new WorkingTexture(Allocator.Persistent, TextureFormat.ARGB32, resolution, resolution, false);
+            maskTexture.Name = name + "_Mask";
+            maskTexture.WrapMode = TextureWrapMode.Clamp;
+
+            EnqueueBlendTextureJob(maskTexture, bounds, resolution, (layer, wx, wz, sx, sz, linear) =>
+            {
+                Color c = m_layers[layer].GetMaskByWorld(wx, wz, sx, sz);
+                if (!linear)
+                    c = c.linear;
+                return c;
+            });
+
+            return maskTexture;
         }
 
         private WorkingTexture BakeNormal(string name, Bounds bounds, int resolution)
@@ -451,33 +575,18 @@ namespace Unity.HLODSystem
             normalTexture.Name = name + "_Normal";
             normalTexture.WrapMode = TextureWrapMode.Clamp;
 
-            m_queue.EnqueueJob(() =>
+            EnqueueBlendTextureJob(normalTexture, bounds, resolution, (layer, wx, wz, sx, sz, linear) =>
             {
-                float ustart = (bounds.min.x) / m_size.x;
-                float vstart = (bounds.min.z) / m_size.z;
-                float usize = (bounds.max.x - bounds.min.x) / m_size.x;
-                float vsize = (bounds.max.z - bounds.min.z) / m_size.z;
-
-                for (int y = 0; y < resolution; ++y)
-                {
-                    for (int x = 0; x < resolution; ++x)
-                    {
-                        float u = (float) x / (float) resolution * usize + ustart;
-                        float v = (float) y / (float) resolution * vsize + vstart;
-
-                        Vector3 normal = m_heightmap.GetInterpolatedNormal(u, v);
-
-                        Color color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
-                        color.r = normal.x * 0.5f + 0.5f;
-                        color.g = -normal.z * 0.5f + 0.5f;
-                        color.b = normal.y * 0.5f + 0.5f;
-                        
-                        color.a = 1.0f;
-                        normalTexture.SetPixel(x, y, color);
-                    }
-                }
+                Color c = m_layers[layer].GetNormalByWorld(wx, wz, sx, sz);
+                c = UnPackNormal(c, m_layers[layer].NormalScale);
+                return c;
+            },(c) =>
+            {
+                Vector3 n = new Vector3(c.r, c.g, c.b);
+                n.Normalize();
+                c = new Color(n.x, n.y, n.z);
+                return PackNormal(c);
             });
-            
             
             return normalTexture;
         }
@@ -655,14 +764,7 @@ namespace Unity.HLODSystem
                     uv.y = (borderVertices[bi].Pos.z - heightmap.Offset.z) / heightmap.Size.z;
                     vertices.Add(borderVertices[bi].Pos);
                     
-                    if (m_hlod.UseNormal)
-                    {
-                        normals.Add(Vector3.up);
-                    }
-                    else
-                    {
-                        normals.Add(heightmap.GetInterpolatedNormal(uv.x, uv.y));
-                    }
+                    normals.Add(heightmap.GetInterpolatedNormal(uv.x, uv.y));
                     
                     uvs.Add(uv);
                     
@@ -909,7 +1011,6 @@ namespace Unity.HLODSystem
                     Target = node,
                 };
 
-
                 for (int i = 0; i < node.GetChildCount(); ++i)
                 {
                     trevelQueue.Enqueue(node.GetChild(i));
@@ -919,7 +1020,7 @@ namespace Unity.HLODSystem
                 }
                 
                 info.Heightmap = CreateSubHightmap(node.Bounds);
-                info.WorkingObjects.Add(CreateBakedTerrain(name, node.Bounds, info.Heightmap, depth));
+                info.WorkingObjects.Add(CreateBakedTerrain(name, node.Bounds, info.Heightmap, depth, node.GetChildCount() == 0));
                 info.Distances.Add(depth);
                 results.Add(info);
                 
@@ -967,10 +1068,18 @@ namespace Unity.HLODSystem
                     string materialPath = AssetDatabase.GUIDToAssetPath(m_hlod.MaterialGUID);
                     m_terrainMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
                     if (m_terrainMaterial == null)
-                        m_terrainMaterial = new Material(Shader.Find("Standard"));
+                        m_terrainMaterial = new Material(Shader.Find("Lightweight Render Pipeline/Lit-Terrain-HLOD-High"));
 
                     m_terrainMaterialInstanceId = m_terrainMaterial.GetInstanceID();
                     m_terrainMaterialName = m_terrainMaterial.name;
+
+                    materialPath = AssetDatabase.GUIDToAssetPath(m_hlod.MaterialLowGUID);
+                    m_terrainMaterialLow = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+                    if (m_terrainMaterialLow == null)
+                        m_terrainMaterialLow = new Material(Shader.Find("Lightweight Render Pipeline/Lit-Terrain-HLOD-Low"));
+
+                    m_terrainMaterialLowInstanceId = m_terrainMaterialLow.GetInstanceID();
+                    m_terrainMaterialLowName = m_terrainMaterialLow.name;
 
                     using (m_alphamaps = new DisposableList<WorkingTexture>())
                     using (m_layers = new DisposableList<Layer>())
@@ -982,7 +1091,7 @@ namespace Unity.HLODSystem
 
                         for (int i = 0; i < data.terrainLayers.Length; ++i)
                         {
-                            m_layers.Add(new Layer(data.terrainLayers[i]));
+                            m_layers.Add(new Layer(data.terrainLayers[i], m_hlod.ChunkSize));
                         }
 
 
@@ -1093,7 +1202,10 @@ namespace Unity.HLODSystem
                                         }
 
                                         targetGO.AddComponent<MeshFilter>().sharedMesh = wo.Mesh.ToMesh();
-                                        targetGO.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
+
+                                        var mr = targetGO.AddComponent<MeshRenderer>();
+                                        mr.sharedMaterials = materials.ToArray();
+                                        mr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
                                     }
 
                                     go.transform.SetParent(m_hlod.transform, false);
