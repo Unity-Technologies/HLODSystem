@@ -200,7 +200,7 @@ namespace Unity.HLODSystem
 
                 using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.MinObjectSize))
                 {
-                    if (buildInfos.Count == 0 | buildInfos[0].WorkingObjects.Count == 0)
+                    if (buildInfos.Count == 0 || buildInfos[0].WorkingObjects.Count == 0)
                     {
                         EditorUtility.DisplayDialog("Empty HLOD sources.",
                             "There are no objects to be included in the HLOD.",

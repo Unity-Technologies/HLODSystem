@@ -169,6 +169,21 @@ namespace Unity.HLODSystem
                     string path = AssetDatabase.GetAssetPath(mat);
                     hlod.MaterialGUID = AssetDatabase.AssetPathToGUID(path);
                 }
+
+                matGUID = hlod.MaterialLowGUID;
+                if (string.IsNullOrEmpty(matGUID) == false)
+                {
+                    string path = AssetDatabase.GUIDToAssetPath(matGUID);
+                    mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                }
+
+                mat = EditorGUILayout.ObjectField("MaterialLow", mat, typeof(Material), false) as Material;
+                if (mat != null)
+                {
+                    string path = AssetDatabase.GetAssetPath(mat);
+                    hlod.MaterialLowGUID = AssetDatabase.AssetPathToGUID(path);
+                }
+
                 hlod.TextureSize = EditorGUILayout.IntPopup("Size", hlod.TextureSize, Styles.TextureSizeStrings,
                     Styles.TextureSizes);
                 //Output Property name
