@@ -1,11 +1,10 @@
 {
     "name": "HLODEditor",
+    "rootNamespace": "",
     "references": [
         "HLOD",
-        "CCU",
         "UnityMeshSimplifier"
     ],
-    "optionalUnityReferences": [],
     "includePlatforms": [
         "Editor"
     ],
@@ -14,5 +13,7 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": []
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
