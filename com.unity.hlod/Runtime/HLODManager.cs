@@ -11,7 +11,7 @@ namespace Unity.HLODSystem
     public class HLODManager
     {
         private static HLODManager s_instance = null;
-        private bool IsSRP => GraphicsSettings.renderPipelineAsset != null;
+        private bool IsSRP => GraphicsSettings.renderPipelineAsset != null || QualitySettings.renderPipeline != null;
 
         public static HLODManager Instance
         {
