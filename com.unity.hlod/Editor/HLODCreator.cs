@@ -22,35 +22,36 @@ namespace Unity.HLODSystem
         {
             List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
 
-            for (int i = 0; i < gameObjects.Count; ++i)
+            for (int oi = 0; oi < gameObjects.Count; ++oi)
             {
-                GameObject obj = gameObjects[i];
-                LODGroup lodGroup = obj.GetComponent<LODGroup>();
+                GameObject obj = gameObjects[oi];
+                LODGroup[] lodGroups = obj.GetComponentsInChildren<LODGroup>();
+                List<MeshRenderer> allRenderers = obj.GetComponentsInChildren<MeshRenderer>().ToList();
 
-                Renderer[] renderers;
-
-                if (lodGroup != null)
+                for (int li = 0; li < lodGroups.Length; ++li)
                 {
-                    renderers = lodGroup.GetLODs().Last().renderers;
+                    LODGroup lodGroup = lodGroups[li];
+                    Renderer[] renderers = lodGroup.GetLODs().Last().renderers;
+                    
+                    for (int ri = 0; ri < renderers.Length; ++ri)
+                    {
+                        MeshRenderer mr = renderers[ri] as MeshRenderer;
+
+                        if (mr == null)
+                            continue;
+
+                        allRenderers.Remove(mr);
+
+                        float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
+                        if (max < minObjectSize)
+                            continue;
+
+                        meshRenderers.Add(mr);
+                    }
                 }
-                else
-                {
-                    renderers = obj.GetComponents<Renderer>();
-                }
+                
+                meshRenderers.AddRange(allRenderers);
 
-                for (int ri = 0; ri < renderers.Length; ++ri)
-                {
-                    MeshRenderer mr = renderers[ri] as MeshRenderer;
-
-                    if (mr == null)
-                        continue;
-
-                    float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
-                    if (max < minObjectSize)
-                        continue;
-
-                    meshRenderers.Add(mr);
-                }
             }
 
             return meshRenderers;

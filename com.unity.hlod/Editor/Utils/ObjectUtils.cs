@@ -56,8 +56,43 @@ namespace Unity.HLODSystem.Utils
             //Combine renderer which in the LODGroup and renderer which without the LODGroup.
             targets.AddRange(meshRenderers.Select(r => r.gameObject));
 
-            return targets;
+
+            
+            //Combine several LODGroups and MeshRenderers belonging to Prefab into one.
+            //Since the minimum unit of streaming is Prefab, it must be set to the minimum unit.
+            HashSet<GameObject> targetsByPrefab = new HashSet<GameObject>();
+            for (int ti = 0; ti < targets.Count; ++ti)
+            {
+                var targetPrefab = GetCandidatePrefabRoot(root, targets[ti]);
+                targetsByPrefab.Add(targetPrefab);
+            }
+
+            return targetsByPrefab.ToList();
         }
+
+        //This is finding nearest prefab root from the HLODRoot.
+        public static GameObject GetCandidatePrefabRoot(GameObject hlodRoot, GameObject target)
+        {
+            if (PrefabUtility.IsPartOfAnyPrefab(target) == false)
+                return target;
+
+            GameObject candidate = target;
+            GameObject outermost = PrefabUtility.GetOutermostPrefabInstanceRoot(target);
+
+            while (Equals(target,outermost) == false && Equals(target, hlodRoot) == false)
+            {
+                target = target.transform.parent.gameObject;
+                if (PrefabUtility.IsAnyPrefabInstanceRoot(target))
+                {
+                    candidate = target;
+                }
+            }
+
+            return candidate;
+        }
+        
+        
+        
         
         public static T CopyComponent<T>(T original, GameObject destination) where T : Component
         {
