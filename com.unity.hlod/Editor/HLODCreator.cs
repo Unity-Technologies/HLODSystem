@@ -32,14 +32,28 @@ namespace Unity.HLODSystem
                 LODGroup[] lodGroups = obj.GetComponentsInChildren<LODGroup>();
                 List<MeshRenderer> allRenderers = obj.GetComponentsInChildren<MeshRenderer>().ToList();
 
-                for (int li = 0; li < lodGroups.Length; ++li)
+                for (int gi = 0; gi < lodGroups.Length; ++gi)
                 {
-                    LODGroup lodGroup = lodGroups[li];
-                    if (lodGroup.enabled == false)
+                    LODGroup lodGroup = lodGroups[gi];
+                    if (lodGroup.enabled == false || lodGroup.gameObject.activeInHierarchy == false)
                         continue;
                     
-                    Renderer[] renderers = lodGroup.GetLODs().Last().renderers;
-                    
+                    //all renderers using in LODGroup should be removed in the allRenderers
+                    LOD[] lods = lodGroup.GetLODs();
+                    for (int li = 0; li < lods.Length; ++li)
+                    {
+                        Renderer[] lodRenderers = lods[li].renderers;
+                        for (int ri = 0; ri < lodRenderers.Length; ++ri)
+                        {
+                            MeshRenderer mr = lodRenderers[ri] as MeshRenderer;
+                            if (mr == null)
+                                continue;
+                            
+                            allRenderers.Remove(mr);
+                        }
+                    }
+
+                    Renderer[] renderers = lods.Last().renderers;
                     for (int ri = 0; ri < renderers.Length; ++ri)
                     {
                         MeshRenderer mr = renderers[ri] as MeshRenderer;
@@ -49,8 +63,6 @@ namespace Unity.HLODSystem
                         
                         if (mr.gameObject.activeInHierarchy == false || mr.enabled == false)
                             continue;
-
-                        allRenderers.Remove(mr);
 
                         float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
                         if (max < minObjectSize)
@@ -62,8 +74,10 @@ namespace Unity.HLODSystem
 
                 for (int ai = 0; ai < allRenderers.Count; ++ai)
                 {
-                    if ( allRenderers[ai].enabled == true)
-                        meshRenderers.Add(allRenderers[ai]);
+                    if ( allRenderers[ai].enabled == false || allRenderers[ai].gameObject.activeInHierarchy == false )
+                        continue;
+                    
+                    meshRenderers.Add(allRenderers[ai]);
                 }
 
             }
