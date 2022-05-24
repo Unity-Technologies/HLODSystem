@@ -43,7 +43,11 @@ namespace Unity.HLODSystem.Utils
             
             for (int i = 0; i < lodGroups.Count; ++i)
             {
-                LOD[] lods = lodGroups[i].GetLODs();
+                if ( lodGroups[i].enabled == false )
+                    continue;
+                if (lodGroups[i].gameObject.activeInHierarchy == false)
+                    continue;
+
                 targets.Add(lodGroups[i].gameObject);
 
                 var childMeshRenderers = lodGroups[i].GetComponentsInChildren<MeshRenderer>();
@@ -54,9 +58,16 @@ namespace Unity.HLODSystem.Utils
             }
 
             //Combine renderer which in the LODGroup and renderer which without the LODGroup.
-            targets.AddRange(meshRenderers.Select(r => r.gameObject));
+            for (int ri = 0; ri < meshRenderers.Count; ++ri)
+            {
+                if (meshRenderers[ri].enabled == false)
+                    continue;
 
+                if (meshRenderers[ri].gameObject.activeInHierarchy == false)
+                    continue;
 
+                targets.Add(meshRenderers[ri].gameObject);
+            }
             
             //Combine several LODGroups and MeshRenderers belonging to Prefab into one.
             //Since the minimum unit of streaming is Prefab, it must be set to the minimum unit.

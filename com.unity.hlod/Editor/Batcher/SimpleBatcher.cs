@@ -298,6 +298,9 @@ namespace Unity.HLODSystem
                     ci.Transform.m03 -= rootPosition.x;
                     ci.Transform.m13 -= rootPosition.y;
                     ci.Transform.m23 -= rootPosition.z;
+
+                    if (ci.Mesh == null)
+                        continue;
                     
                     combineInfos.Add(ci);
                 }
