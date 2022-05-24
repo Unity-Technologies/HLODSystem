@@ -80,7 +80,7 @@ namespace Unity.HLODSystem
             return results;
         }
 
-        private static DisposableList<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float minObjectSize)
+        private static DisposableList<HLODBuildInfo> CreateBuildInfo(HLOD hlod, SpaceNode root, float minObjectSize)
         {
 
             List<HLODBuildInfo> resultsCandidates = new List<HLODBuildInfo>();
@@ -135,12 +135,9 @@ namespace Unity.HLODSystem
 
                     for (int i = 0; i < colliders.Count; ++i)
                     {
-                        curInfo.Colliders.Add(colliders[i].ToWorkingCollider());
+                        curInfo.Colliders.Add(colliders[i].ToWorkingCollider(hlod));
                     }
 
-                    
-                   
-  
                     currentNodeIndex = curInfo.ParentIndex;
                     distance += 1;
                 }
@@ -199,7 +196,7 @@ namespace Unity.HLODSystem
                 }
                 
 
-                using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.MinObjectSize))
+                using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(hlod, rootNode, hlod.MinObjectSize))
                 {
                     if (buildInfos.Count == 0 || buildInfos[0].WorkingObjects.Count == 0)
                     {
