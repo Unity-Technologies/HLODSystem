@@ -500,7 +500,10 @@ namespace Unity.HLODSystem
                         if (objects[oi].name == subAssetName)
                         {
                             col.sharedMesh = objects[oi] as Mesh;
-                            break;
+                            if (col.sharedMesh != null)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
