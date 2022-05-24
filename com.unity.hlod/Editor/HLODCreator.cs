@@ -25,12 +25,19 @@ namespace Unity.HLODSystem
             for (int oi = 0; oi < gameObjects.Count; ++oi)
             {
                 GameObject obj = gameObjects[oi];
+
+                if (obj.activeInHierarchy == false)
+                    continue;
+                
                 LODGroup[] lodGroups = obj.GetComponentsInChildren<LODGroup>();
                 List<MeshRenderer> allRenderers = obj.GetComponentsInChildren<MeshRenderer>().ToList();
 
                 for (int li = 0; li < lodGroups.Length; ++li)
                 {
                     LODGroup lodGroup = lodGroups[li];
+                    if (lodGroup.enabled == false)
+                        continue;
+                    
                     Renderer[] renderers = lodGroup.GetLODs().Last().renderers;
                     
                     for (int ri = 0; ri < renderers.Length; ++ri)
@@ -38,6 +45,9 @@ namespace Unity.HLODSystem
                         MeshRenderer mr = renderers[ri] as MeshRenderer;
 
                         if (mr == null)
+                            continue;
+                        
+                        if (mr.gameObject.activeInHierarchy == false || mr.enabled == false)
                             continue;
 
                         allRenderers.Remove(mr);
@@ -49,8 +59,12 @@ namespace Unity.HLODSystem
                         meshRenderers.Add(mr);
                     }
                 }
-                
-                meshRenderers.AddRange(allRenderers);
+
+                for (int ai = 0; ai < allRenderers.Count; ++ai)
+                {
+                    if ( allRenderers[ai].enabled == true)
+                        meshRenderers.Add(allRenderers[ai]);
+                }
 
             }
 
