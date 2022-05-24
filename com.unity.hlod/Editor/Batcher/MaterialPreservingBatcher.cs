@@ -59,6 +59,9 @@ namespace Unity.HLODSystem
                     combineInfo.Mesh = info.WorkingObjects[i].Mesh;
                     combineInfo.MeshIndex = m;
 
+                    if (combineInfo.Mesh == null)
+                        continue;
+
                     if (combineInfos.ContainsKey(materials[m].Identifier) == false)
                     {
                         combineInfos.Add(materials[m].Identifier, new List<MeshCombiner.CombineInfo>());
