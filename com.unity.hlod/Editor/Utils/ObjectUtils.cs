@@ -127,6 +127,34 @@ namespace Unity.HLODSystem.Utils
             }
         }
 
+        public static string ObjectToPath(Object obj)
+        {
+            string path = AssetDatabase.GetAssetPath(obj);
+            if (string.IsNullOrEmpty(path))
+                return "";
+
+            if (AssetDatabase.IsMainAsset(obj) == false)
+            {
+                path += "[" + obj.name + "]";
+            }
+
+            return path;
+        }
+
+        public static void ParseObjectPath(string path, out string mainPath, out string subAssetName)
+        {
+            string[] splittedStr = path.Split('[', ']');
+            mainPath = splittedStr[0];
+            if (splittedStr.Length > 1)
+            {
+                subAssetName = splittedStr[1];
+            }
+            else
+            {
+                subAssetName = null;
+            }
+        }
+
 
     }
 

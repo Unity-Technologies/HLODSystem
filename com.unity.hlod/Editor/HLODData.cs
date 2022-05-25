@@ -473,9 +473,12 @@ namespace Unity.HLODSystem
             private GameObject CreateMeshCollider()
             {
                 dynamic param = m_parameters;
-                Guid sharedMeshGuid = param.SharedMesh;
-                string path = AssetDatabase.GUIDToAssetPath(sharedMeshGuid.ToString("N"));
-                if (string.IsNullOrEmpty(path) == true)
+                string sharedMeshPath = param.SharedMeshPath;
+                string mainAssetPath = "";
+                string subAssetName = "";
+                ObjectUtils.ParseObjectPath(sharedMeshPath, out mainAssetPath, out subAssetName);
+                
+                if (string.IsNullOrEmpty(mainAssetPath) == true)
                     return null;
 
                 GameObject go = new GameObject("Collider");
@@ -485,8 +488,26 @@ namespace Unity.HLODSystem
                 go.transform.rotation = m_rotation.To();
                 go.transform.localScale = m_scale.To();
 
+                if (string.IsNullOrEmpty(subAssetName) == true)
+                {
+                    col.sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(mainAssetPath);
+                }
+                else
+                {
+                    UnityEngine.Object[] objects = AssetDatabase.LoadAllAssetsAtPath(mainAssetPath);
+                    for (int oi = 0; oi < objects.Length; ++oi)
+                    {
+                        if (objects[oi].name == subAssetName)
+                        {
+                            col.sharedMesh = objects[oi] as Mesh;
+                            if (col.sharedMesh != null)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
                 
-                col.sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
                 col.convex = param.Convex;
 
                 return go;
