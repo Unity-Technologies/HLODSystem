@@ -21,8 +21,33 @@ namespace Unity.HLODSystem.Utils
             {
                 GameObject go = queue.Dequeue();
                 T component = go.GetComponent<T>();
-                if (component != null)
-                    result.AddFirst(component);
+                // [JHLEE FIX]
+                //if (component != null)
+                if (go.activeInHierarchy && component != null)
+                {
+                    if (component is Renderer)
+                    {
+                        var renderer = component as Renderer;
+
+                        if (renderer.enabled)
+                        {
+                            result.AddFirst(component);        
+                        }
+                    }
+                    else if (component is LODGroup)
+                    {
+                        var lodGroup = component as LODGroup;
+
+                        if (lodGroup.enabled)
+                        {
+                            result.AddFirst(component);        
+                        }
+                    }
+                    else
+                    {
+                        result.AddFirst(component);
+                    }                    
+                }                    
 
                 foreach (Transform child in go.transform)
                 {
@@ -46,18 +71,30 @@ namespace Unity.HLODSystem.Utils
                 LOD[] lods = lodGroups[i].GetLODs();
                 targets.Add(lodGroups[i].gameObject);
 
-                var childMeshRenderers = lodGroups[i].GetComponentsInChildren<MeshRenderer>();
-                for (int ri = 0; ri < childMeshRenderers.Length; ++ri)
+                // [JHLEE FIX]
+                // var childMeshRenderers = lodGroups[i].GetComponentsInChildren<MeshRenderer>();
+                // for (int ri = 0; ri < childMeshRenderers.Length; ++ri)
+                // {
+                //     meshRenderers.Remove(childMeshRenderers[ri]);
+                // }
+                foreach (var lod in lods)
                 {
-                    meshRenderers.Remove(childMeshRenderers[ri]);
+                    foreach (var lodRenderer in lod.renderers)
+                    {
+                        if (lodRenderer is MeshRenderer)
+                        {
+                            meshRenderers.Remove(lodRenderer as MeshRenderer);
+                        }                        
+                    }
                 }
             }
 
             //Combine renderer which in the LODGroup and renderer which without the LODGroup.
             targets.AddRange(meshRenderers.Select(r => r.gameObject));
 
-
-            
+            // [JHLEE TEST]
+            return targets;
+            /*            
             //Combine several LODGroups and MeshRenderers belonging to Prefab into one.
             //Since the minimum unit of streaming is Prefab, it must be set to the minimum unit.
             HashSet<GameObject> targetsByPrefab = new HashSet<GameObject>();
@@ -68,6 +105,7 @@ namespace Unity.HLODSystem.Utils
             }
 
             return targetsByPrefab.ToList();
+            */
         }
 
         //This is finding nearest prefab root from the HLODRoot.
