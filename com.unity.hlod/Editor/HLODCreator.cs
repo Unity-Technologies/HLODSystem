@@ -79,7 +79,7 @@ namespace Unity.HLODSystem
                 resultsCandidates.Add(info);
 
                 //it should add to every parent.
-                List<MeshRenderer> meshRenderers = CreateUtils.GetMeshRenderers(node.Objects, minObjectSize);
+                List<MeshRenderer> meshRenderers = CreateUtils.GetMeshRenderers(node.Objects, minObjectSize, 0);
                 List<Collider> colliders = GetColliders(node.Objects, minObjectSize);
                 int distance = 0;
 

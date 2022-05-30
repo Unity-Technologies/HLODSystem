@@ -9,5 +9,24 @@ namespace Unity.HLODSystem
         private bool m_removeAtBuild;
         [SerializeField] 
         private List<HLODMeshSetterGroup> m_meshSettings;
+
+        public HLODMeshSetterGroup FindGroup(int level)
+        {
+            HLODMeshSetterGroup group = null;
+            for (int i = 0; i < m_meshSettings.Count; ++i)
+            {
+                if (m_meshSettings[i].TargetLevel <= level)
+                {
+                    group = m_meshSettings[i];
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return group;
+        }
+
     }
 }
