@@ -25,22 +25,44 @@ namespace Unity.HLODSystem
             for (int oi = 0; oi < gameObjects.Count; ++oi)
             {
                 GameObject obj = gameObjects[oi];
+
+                if (obj.activeInHierarchy == false)
+                    continue;
+                
                 LODGroup[] lodGroups = obj.GetComponentsInChildren<LODGroup>();
                 List<MeshRenderer> allRenderers = obj.GetComponentsInChildren<MeshRenderer>().ToList();
 
-                for (int li = 0; li < lodGroups.Length; ++li)
+                for (int gi = 0; gi < lodGroups.Length; ++gi)
                 {
-                    LODGroup lodGroup = lodGroups[li];
-                    Renderer[] renderers = lodGroup.GetLODs().Last().renderers;
+                    LODGroup lodGroup = lodGroups[gi];
+                    if (lodGroup.enabled == false || lodGroup.gameObject.activeInHierarchy == false)
+                        continue;
                     
+                    //all renderers using in LODGroup should be removed in the allRenderers
+                    LOD[] lods = lodGroup.GetLODs();
+                    for (int li = 0; li < lods.Length; ++li)
+                    {
+                        Renderer[] lodRenderers = lods[li].renderers;
+                        for (int ri = 0; ri < lodRenderers.Length; ++ri)
+                        {
+                            MeshRenderer mr = lodRenderers[ri] as MeshRenderer;
+                            if (mr == null)
+                                continue;
+                            
+                            allRenderers.Remove(mr);
+                        }
+                    }
+
+                    Renderer[] renderers = lods.Last().renderers;
                     for (int ri = 0; ri < renderers.Length; ++ri)
                     {
                         MeshRenderer mr = renderers[ri] as MeshRenderer;
 
                         if (mr == null)
                             continue;
-
-                        allRenderers.Remove(mr);
+                        
+                        if (mr.gameObject.activeInHierarchy == false || mr.enabled == false)
+                            continue;
 
                         float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
                         if (max < minObjectSize)
@@ -49,8 +71,14 @@ namespace Unity.HLODSystem
                         meshRenderers.Add(mr);
                     }
                 }
-                
-                meshRenderers.AddRange(allRenderers);
+
+                for (int ai = 0; ai < allRenderers.Count; ++ai)
+                {
+                    if ( allRenderers[ai].enabled == false || allRenderers[ai].gameObject.activeInHierarchy == false )
+                        continue;
+                    
+                    meshRenderers.Add(allRenderers[ai]);
+                }
 
             }
 
@@ -80,7 +108,7 @@ namespace Unity.HLODSystem
             return results;
         }
 
-        private static DisposableList<HLODBuildInfo> CreateBuildInfo(SpaceNode root, float minObjectSize)
+        private static DisposableList<HLODBuildInfo> CreateBuildInfo(HLOD hlod, SpaceNode root, float minObjectSize)
         {
 
             List<HLODBuildInfo> resultsCandidates = new List<HLODBuildInfo>();
@@ -135,12 +163,9 @@ namespace Unity.HLODSystem
 
                     for (int i = 0; i < colliders.Count; ++i)
                     {
-                        curInfo.Colliders.Add(colliders[i].ToWorkingCollider());
+                        curInfo.Colliders.Add(colliders[i].ToWorkingCollider(hlod));
                     }
 
-                    
-                   
-  
                     currentNodeIndex = curInfo.ParentIndex;
                     distance += 1;
                 }
@@ -199,7 +224,7 @@ namespace Unity.HLODSystem
                 }
                 
 
-                using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(rootNode, hlod.MinObjectSize))
+                using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(hlod, rootNode, hlod.MinObjectSize))
                 {
                     if (buildInfos.Count == 0 || buildInfos[0].WorkingObjects.Count == 0)
                     {

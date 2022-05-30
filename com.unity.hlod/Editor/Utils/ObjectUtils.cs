@@ -68,15 +68,13 @@ namespace Unity.HLODSystem.Utils
             
             for (int i = 0; i < lodGroups.Count; ++i)
             {
-                LOD[] lods = lodGroups[i].GetLODs();
+                if ( lodGroups[i].enabled == false )
+                    continue;
+                if (lodGroups[i].gameObject.activeInHierarchy == false)
+                    continue;
+
                 targets.Add(lodGroups[i].gameObject);
 
-                // [JHLEE FIX]
-                // var childMeshRenderers = lodGroups[i].GetComponentsInChildren<MeshRenderer>();
-                // for (int ri = 0; ri < childMeshRenderers.Length; ++ri)
-                // {
-                //     meshRenderers.Remove(childMeshRenderers[ri]);
-                // }
                 foreach (var lod in lods)
                 {
                     foreach (var lodRenderer in lod.renderers)
@@ -90,11 +88,20 @@ namespace Unity.HLODSystem.Utils
             }
 
             //Combine renderer which in the LODGroup and renderer which without the LODGroup.
-            targets.AddRange(meshRenderers.Select(r => r.gameObject));
+            for (int ri = 0; ri < meshRenderers.Count; ++ri)
+            {
+                if (meshRenderers[ri].enabled == false)
+                    continue;
 
-            // [JHLEE TEST]
-            return targets;
-            /*            
+                if (meshRenderers[ri].gameObject.activeInHierarchy == false)
+                    continue;
+
+                targets.Add(meshRenderers[ri].gameObject);
+            }
+            
+            return targets;            
+
+			/* // ***** reverted back to the old state for processing MeshRenderers and LODGroups directly instead of Prefabs!!! *****
             //Combine several LODGroups and MeshRenderers belonging to Prefab into one.
             //Since the minimum unit of streaming is Prefab, it must be set to the minimum unit.
             HashSet<GameObject> targetsByPrefab = new HashSet<GameObject>();
@@ -151,6 +158,34 @@ namespace Unity.HLODSystem.Utils
             foreach (FieldInfo field in fields)
             {
                 field.SetValue(target, field.GetValue(source));
+            }
+        }
+
+        public static string ObjectToPath(Object obj)
+        {
+            string path = AssetDatabase.GetAssetPath(obj);
+            if (string.IsNullOrEmpty(path))
+                return "";
+
+            if (AssetDatabase.IsMainAsset(obj) == false)
+            {
+                path += "[" + obj.name + "]";
+            }
+
+            return path;
+        }
+
+        public static void ParseObjectPath(string path, out string mainPath, out string subAssetName)
+        {
+            string[] splittedStr = path.Split('[', ']');
+            mainPath = splittedStr[0];
+            if (splittedStr.Length > 1)
+            {
+                subAssetName = splittedStr[1];
+            }
+            else
+            {
+                subAssetName = null;
             }
         }
 
