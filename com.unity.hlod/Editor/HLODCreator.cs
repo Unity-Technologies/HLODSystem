@@ -74,7 +74,14 @@ namespace Unity.HLODSystem
 
                 for (int ai = 0; ai < allRenderers.Count; ++ai)
                 {
-                    if ( allRenderers[ai].enabled == false || allRenderers[ai].gameObject.activeInHierarchy == false )
+                    MeshRenderer mr = allRenderers[ai] as MeshRenderer;
+                    ;
+                    
+                    if ( mr.enabled == false || mr.gameObject.activeInHierarchy == false )
+                        continue;
+                    
+                    float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
+                    if (max < minObjectSize)
                         continue;
                     
                     meshRenderers.Add(allRenderers[ai]);
