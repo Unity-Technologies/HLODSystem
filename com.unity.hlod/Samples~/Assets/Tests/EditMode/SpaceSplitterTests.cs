@@ -195,7 +195,7 @@ namespace Unity.HLODSystem.EditorTests
             ISpaceSplitter spliter = new QuadTreeSpaceSplitter(0.0f);
             SpaceNode rootNode = spliter.CreateSpaceTree(m_hlodComponent.GetBounds(), 5.0f, m_hlodComponent.transform.position, hlodTargets, null);
 
-            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { rootNode, 0.0f }))
+            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { null, rootNode, 0.0f }))
             {
                 //only exists nodes are creating info.
                 Assert.AreEqual(ret.Count, 11);
@@ -246,7 +246,7 @@ namespace Unity.HLODSystem.EditorTests
             }
 
             //exclude object smaller than 0.5.
-            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { rootNode, 0.5f }))
+            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { null, rootNode, 0.5f }))
             {
                 //only exists nodes are creating info.
                 Assert.AreEqual(ret.Count, 10);
@@ -293,7 +293,7 @@ namespace Unity.HLODSystem.EditorTests
             }
 
             //exclude object smaller than 1.
-            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { rootNode, 1.0f }))
+            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { null, rootNode, 1.0f }))
             {
                 //only exists nodes are creating info.
                 Assert.AreEqual(ret.Count, 9);

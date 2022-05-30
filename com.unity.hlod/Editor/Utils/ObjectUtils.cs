@@ -37,10 +37,24 @@ namespace Unity.HLODSystem.Utils
         {
             List<GameObject> targets = new List<GameObject>();
 
+            List<HLODMeshSetter> meshSetters = GetComponentsInChildren<HLODMeshSetter>(root);
             List<LODGroup> lodGroups = GetComponentsInChildren<LODGroup>(root);
             //This contains all of the mesh renderers, so we need to remove the duplicated mesh renderer which in the LODGroup.
-            List<MeshRenderer> meshRenderers = GetComponentsInChildren<MeshRenderer>(root).ToList();
-            
+            List<MeshRenderer> meshRenderers = GetComponentsInChildren<MeshRenderer>(root);
+
+            for (int mi = 0; mi < meshSetters.Count; ++mi)
+            {
+                if (meshSetters[mi].enabled == false)
+                    continue;
+                if (meshSetters[mi].gameObject.activeInHierarchy == false)
+                    continue;
+                
+                targets.Add(meshSetters[mi].gameObject);
+
+                lodGroups.RemoveAll(meshSetters[mi].GetComponentsInChildren<LODGroup>());
+                meshRenderers.RemoveAll(meshSetters[mi].GetComponentsInChildren<MeshRenderer>());
+            }
+
             for (int i = 0; i < lodGroups.Count; ++i)
             {
                 if ( lodGroups[i].enabled == false )
@@ -50,11 +64,7 @@ namespace Unity.HLODSystem.Utils
 
                 targets.Add(lodGroups[i].gameObject);
 
-                var childMeshRenderers = lodGroups[i].GetComponentsInChildren<MeshRenderer>();
-                for (int ri = 0; ri < childMeshRenderers.Length; ++ri)
-                {
-                    meshRenderers.Remove(childMeshRenderers[ri]);
-                }
+                meshRenderers.RemoveAll(lodGroups[i].GetComponentsInChildren<MeshRenderer>());
             }
 
             //Combine renderer which in the LODGroup and renderer which without the LODGroup.
@@ -62,7 +72,6 @@ namespace Unity.HLODSystem.Utils
             {
                 if (meshRenderers[ri].enabled == false)
                     continue;
-
                 if (meshRenderers[ri].gameObject.activeInHierarchy == false)
                     continue;
 
