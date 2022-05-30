@@ -5,7 +5,10 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 
-
+#region POC_ADDRESSABLE_SCENE_STREAMING
+using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.SceneManagement;
+#endregion
 
 namespace Unity.HLODSystem
 {
@@ -15,13 +18,19 @@ namespace Unity.HLODSystem
         public class Handle
         {
             public event Action<Handle> Completed;
-            public Handle(AddressableHLODController controller, string address, int priority, float distance)
+
+#region POC_ADDRESSABLE_SCENE_STREAMING
+            public Handle(AddressableHLODController controller, string address, int priority, float distance, bool isScene)
             {
                 m_controller = controller;
                 m_address = address;
                 m_priority = priority;
                 m_distance = distance;
+
+                // added a boolean to separate the case where the loading target is a scene
+                m_IsScene = isScene;
             }
+#endregion            
 
             public string Address => m_address;
 
@@ -48,7 +57,17 @@ namespace Unity.HLODSystem
                     {
                         return AsyncOperationStatus.None;
                     }
-                    return m_asyncHandle.Status;
+
+#region POC_ADDRESSABLE_SCENE_STREAMING
+                    if (m_IsScene)
+                    {
+                        return m_asyncSceneHandle.Status;
+                    }
+                    else
+                    {
+                        return m_asyncHandle.Status;
+                    }
+#endregion
                 }
             }
 
@@ -56,22 +75,64 @@ namespace Unity.HLODSystem
             {
                 get { return m_asyncHandle.Result; }
             }
+
+#region POC_ADDRESSABLE_SCENE_STREAMING
+            public Scene ResultScene
+            {
+                get { return m_asyncSceneHandle.Result.Scene; }
+            }
+
+            public bool IsScene
+            {
+                get { return m_IsScene; }
+            }
+#endregion            
             
             public void Start()
             {
                 m_startLoad = true;
-                m_asyncHandle = Addressables.LoadAssetAsync<GameObject>(m_address);
-                m_asyncHandle.Completed += handle =>
+
+#region POC_ADDRESSABLE_SCENE_STREAMING
+                if (m_IsScene)
                 {
-                    Completed?.Invoke(this);
-                };
+                    m_asyncSceneHandle = Addressables.LoadSceneAsync(m_address, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+                }
+                else
+                {
+                    m_asyncHandle = Addressables.LoadAssetAsync<GameObject>(m_address);
+                }
+
+                if (m_IsScene)
+                {
+                    m_asyncSceneHandle.Completed += handle =>
+                    {
+                        Completed?.Invoke(this);
+                    };
+                }
+                else
+                {
+                    m_asyncHandle.Completed += handle =>
+                    {
+                        Completed?.Invoke(this);
+                    };                    
+                }
+#endregion
             }
 
             public void Stop()
             {
                 if (m_startLoad == true)
                 {
-                    Addressables.Release(m_asyncHandle);
+#region POC_ADDRESSABLE_SCENE_STREAMING
+                    if (m_IsScene)
+                    {
+                        Addressables.Release(m_asyncSceneHandle);
+                    }
+                    else
+                    {
+                        Addressables.Release(m_asyncHandle);
+                    }
+#endregion
                 }
             }
 
@@ -81,8 +142,12 @@ namespace Unity.HLODSystem
             private int m_priority;
             private float m_distance;
             private bool m_startLoad = false;
-
             private AsyncOperationHandle<GameObject> m_asyncHandle;
+
+#region POC_ADDRESSABLE_SCENE_STREAMING
+            private bool m_IsScene = false;
+            private AsyncOperationHandle<SceneInstance> m_asyncSceneHandle;
+#endregion
         }
         #region Singleton
         private static AddressableLoadManager s_instance;
@@ -147,7 +212,10 @@ namespace Unity.HLODSystem
 
         public Handle LoadAsset(AddressableHLODController controller, string address, int priority, float distance)
         {
-            Handle handle = new Handle(controller, address, priority, distance);
+#region POC_ADDRESSABLE_SCENE_STREAMING
+            Handle handle = new Handle(controller, address, priority, distance, false);
+#endregion
+
             InsertHandle(handle);
             return handle;
         }
@@ -157,6 +225,21 @@ namespace Unity.HLODSystem
             m_loadQueue.Remove(handle);
             handle.Stop();
         }
+
+#region POC_ADDRESSABLE_SCENE_STREAMING
+        public Handle LoadScene(AddressableHLODController controller, string address, int priority, float distance)
+        {
+            Handle handle = new Handle(controller, address, priority, distance, true);
+            InsertHandle(handle);
+            return handle;
+        }        
+
+        public void UnloadScene(Handle handle)
+        {
+            m_loadQueue.Remove(handle);
+            handle.Stop();            
+        }
+#endregion
 
         private void InsertHandle(Handle handle)
         {

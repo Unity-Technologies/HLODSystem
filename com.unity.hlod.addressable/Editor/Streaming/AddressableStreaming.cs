@@ -11,6 +11,10 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using Object = UnityEngine.Object;
 
+#region POC_ADDRESSABLE_SCENE_STREAMING
+using UnityEditor.SceneManagement;
+#endregion
+
 namespace Unity.HLODSystem.Streaming
 {
     public class AddressableStreaming : IStreamingBuilder
@@ -183,59 +187,185 @@ namespace Unity.HLODSystem.Streaming
             {
                 var spaceNode = infos[i].Target;
                 var hlodTreeNode = convertedTable[infos[i].Target];
-                
+
+#region POC_ADDRESSABLE_SCENE_STREAMING
+                if (spaceNode.Objects.Count <= 0)
+                {
+                    continue;
+                }
+
+                // create a streaming scene for all space node objects
+                var newScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+
+                // remove all created objects from the scene creation callback
+                var rootGOArray = newScene.GetRootGameObjects();
+
+                foreach (var rootGO in rootGOArray)
+                {
+                    GameObject.DestroyImmediate(rootGO);
+                }
+
+                // sort input targets by transform hierarchy depth
+                var oldToNewDictionary = new Dictionary<Transform, Transform>();
+                var orderedInputDataList = new List<InputTransformData>();
+                var mustLiveTransformSet = new HashSet<Transform>();
+                var perhapsLiveTransformSet = new HashSet<Transform>();
+                Transform rootTransform = null;
+                var extractedMaterialList = new List<Material>();
+                var extractedMeshList = new List<Mesh>();
+
                 for (int oi = 0; oi < spaceNode.Objects.Count; ++oi)
                 {
-                    int highId = -1;
-                    GameObject obj = spaceNode.Objects[oi];
+                    (var otherRootTransform, InputTransformData otherInputData) = GetRootTransfrom(spaceNode.Objects[oi].transform, perhapsLiveTransformSet);
 
-                    if (PrefabUtility.IsPartOfAnyPrefab(obj) == false)
+                    if (rootTransform == null)
                     {
+                        rootTransform = otherRootTransform;
+                    }
+                    else if (rootTransform != otherRootTransform)
+                    {
+                        Debug.LogError("The function doesn't allow the case where input objects have different root transforms...", spaceNode.Objects[oi]);
 
+                        continue;
+                    }
 
-                        GameObject rootGameObject = null;
-                        
-                        if ( rootDatas.ContainsKey(i))
-                            rootGameObject = rootDatas[i].GetRootObject(obj.name);
+                    orderedInputDataList.Add(otherInputData);
+                    mustLiveTransformSet.Add(spaceNode.Objects[oi].transform);           
+                    ExtractMaterialAndMeshFromGameObject(spaceNode.Objects[oi], extractedMaterialList, extractedMeshList);
 
-                        if (rootGameObject != null)
+                    var lodGroup = spaceNode.Objects[oi].GetComponent<LODGroup>();
+
+                    if (lodGroup != null)
+                    {
+                        var lodArray = lodGroup.GetLODs();
+
+                        foreach (var lod in lodArray)
                         {
-                            GameObject go = PrefabUtility.InstantiatePrefab(rootGameObject) as GameObject;
-                            go.transform.SetParent(obj.transform.parent);
-                            go.transform.localPosition = obj.transform.localPosition;
-                            go.transform.localRotation = obj.transform.localRotation;
-                            go.transform.localScale = obj.transform.localScale;
+                            foreach (var lodRenderer in lod.renderers)
+                            {
+                                (var lodRendererRootTransform, InputTransformData lodRendererInputData) = GetRootTransfrom(lodRenderer.transform, perhapsLiveTransformSet);
 
-                            if (m_manager.IsGeneratedResource(obj))
-                                m_manager.AddGeneratedResource(go);
-                            else
-                                m_manager.AddConvertedPrefabResource(go);
+                                if (rootTransform != lodRendererRootTransform)
+                                {
+                                    Debug.LogError("The function doesn't allow the case where input objects have different root transforms...", lodRenderer);
 
-                            spaceNode.Objects.Add(go);
+                                    continue;
+                                }
 
-                            Object.DestroyImmediate(obj);
-                            continue;
+                                orderedInputDataList.Add(lodRendererInputData);
+                                mustLiveTransformSet.Add(lodRenderer.transform);
+                                ExtractMaterialAndMeshFromGameObject(lodRenderer.gameObject, extractedMaterialList, extractedMeshList);                                                                
+                            }
                         }
                     }
-
-                    var address = GetAddress(spaceNode.Objects[oi]);
-                    if (string.IsNullOrEmpty(address) && PrefabUtility.IsAnyPrefabInstanceRoot(spaceNode.Objects[oi]))
-                    {
-                        AddAddress(settings, group, spaceNode.Objects[oi]);
-                        address = GetAddress(spaceNode.Objects[oi]);
-                    }
-                    
-                    if (address != null)
-                    {
-                        highId = addressableController.AddHighObject(address, spaceNode.Objects[oi]);
-                    }
-                    else
-                    {
-                        highId = addressableController.AddHighObject(spaceNode.Objects[oi]);
-                    }
-                    
-                    hlodTreeNode.HighObjectIds.Add(highId);
                 }
+
+                orderedInputDataList.Sort();
+
+                for (int di = 0; di < orderedInputDataList.Count; ++di)
+                {
+                    var testTransformStack = new Stack<Transform>();
+                    var pushTargetTransform = orderedInputDataList[di]._Transform;
+
+                    while (true)
+                    {
+                        testTransformStack.Push(pushTargetTransform);
+
+                        if (pushTargetTransform == rootTransform)
+                        {
+                            break;
+                        }
+
+                        pushTargetTransform = pushTargetTransform.parent;
+                    }
+
+                    while (testTransformStack.Count > 0)
+                    {
+                        var currentTransform = testTransformStack.Pop();
+
+                        if (oldToNewDictionary.ContainsKey(currentTransform))
+                        {
+                            continue;
+                        }
+
+                        var currentGO = currentTransform.gameObject;
+                        var newParent = currentTransform.parent == null ? null : (oldToNewDictionary.ContainsKey(currentTransform.parent) ? oldToNewDictionary[currentTransform.parent] : null);
+                        
+                        if (!mustLiveTransformSet.Contains(currentTransform))
+                        {                            
+                            var newGO = GameObject.Instantiate<GameObject>(currentGO, newParent);
+                            var newTransform = newGO.transform;
+
+                            if (newParent == null)
+                            {
+                                EditorSceneManager.MoveGameObjectToScene(newGO, newScene);
+                            }
+
+                            OrganizeCreatedTransform(newTransform, currentTransform, mustLiveTransformSet, perhapsLiveTransformSet, oldToNewDictionary);
+                            RemoveAllComponentsExceptTransform(newGO);
+                            oldToNewDictionary.Add(currentTransform, newTransform);
+                        }
+                        else
+                        {   
+                            var newGO = GameObject.Instantiate<GameObject>(currentGO, newParent);
+                            var newTransform = newGO.transform;
+
+                            if (newParent == null)
+                            {
+                                EditorSceneManager.MoveGameObjectToScene(newGO, newScene);
+                            }                            
+
+                            OrganizeCreatedTransform(newTransform, currentTransform, mustLiveTransformSet, perhapsLiveTransformSet, oldToNewDictionary);
+                            oldToNewDictionary.Add(currentTransform, newTransform);
+                        }
+                    }            
+                }                
+
+                string newScenePath = $"{filenamePrefix}_spaceNode{i}.unity";
+                EditorSceneManager.SaveScene(newScene, newScenePath);
+
+                string newSceneGUID = AssetDatabase.GUIDFromAssetPath(newScenePath).ToString();
+                EditorSceneManager.CloseScene(newScene, true);
+                m_manager.AddGeneratedResource(AssetDatabase.LoadAssetAtPath<SceneAsset>(newScenePath));
+
+                var entryList = new List<AddressableAssetEntry>();
+                var entry = settings.CreateOrMoveEntry(newSceneGUID, group, false, false);
+                entryList.Add(entry);
+
+                // add extracted materials into the addressable group in order to avoid resource duplication
+                foreach (var extractedMaterial in extractedMaterialList)
+                {
+                    if (!EditorUtility.IsPersistent(extractedMaterial))
+                    {
+                        continue;
+                    }
+
+                    var materialGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(extractedMaterial)).ToString();
+                    var materialEntry = settings.CreateOrMoveEntry(materialGUID, group, false, false);
+                    entryList.Add(materialEntry);
+                }
+
+                // add extracted meshes into the addressable group in order to avoid resource duplication
+                foreach (var extractedMesh in extractedMeshList)
+                {
+                    if (!EditorUtility.IsPersistent(extractedMesh))
+                    {
+                        continue;
+                    }
+
+                    var meshGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(extractedMesh)).ToString();
+                    var meshEntry = settings.CreateOrMoveEntry(meshGUID, group, false, false);
+                    entryList.Add(meshEntry);
+                }                
+
+                settings.SetDirty(AddressableAssetSettings.ModificationEvent.EntryMoved, entryList, true); // is this necessary??
+
+                // add it to the controller
+                int highID = addressableController.AddHighScene(entry.address, spaceNode.Objects);
+
+                // register the ID into the tree node...
+                hlodTreeNode.HighObjectIds.Add(highID);
+#endregion
 
                 {
                     if (rootDatas[infos[i].ParentIndex].GetRootObject(infos[i].Name) != null)
@@ -632,6 +762,136 @@ namespace Unity.HLODSystem.Streaming
             AddressableAssetGroup group = settings.CreateGroup(groupName, false, false, false, schemas);
             return group;
         }
-    }
 
+#region POC_ADDRESSABLE_SCENE_STREAMING
+        private (Transform, InputTransformData) GetRootTransfrom(Transform inputTransform, HashSet<Transform> perhapsLiveTransformSet)
+        {
+            var rootTransform = inputTransform;
+            int level = 0;
+
+            while (true)
+            {
+                perhapsLiveTransformSet.Add(rootTransform);
+
+                if (rootTransform.gameObject.GetComponent<HLOD>() != null)
+                {
+                    break;
+                }
+
+                var parentTransform = rootTransform.parent;
+
+                if (parentTransform == null)
+                {
+                    break;
+                }
+
+                ++level;
+                rootTransform = parentTransform;
+            }
+
+            return (rootTransform, new InputTransformData{ _Level = level, _Transform = inputTransform });
+        }  
+
+        private void ExtractMaterialAndMeshFromGameObject(GameObject targetGO, List<Material> extractedMaterialList, List<Mesh> extractedMeshList)      
+        {
+            var meshRenderer = targetGO.GetComponent<MeshRenderer>();
+
+            if (meshRenderer != null && meshRenderer.sharedMaterials != null && meshRenderer.sharedMaterials.Length > 0)
+            {
+                foreach (var sharedMaterial in meshRenderer.sharedMaterials)
+                {
+                    if (!extractedMaterialList.Contains(sharedMaterial))
+                    {
+                        extractedMaterialList.Add(sharedMaterial);
+                    }
+                }
+            }
+
+            var meshFilter = targetGO.GetComponent<MeshFilter>();
+
+            if (meshFilter != null && meshFilter.sharedMesh != null)
+            {
+                if (!extractedMeshList.Contains(meshFilter.sharedMesh))
+                {
+                    extractedMeshList.Add(meshFilter.sharedMesh);
+                }                
+            }
+        }
+
+        private void RemoveAllComponentsExceptTransform(GameObject go)
+        {
+            var componentArray = go.GetComponents<Component>();
+
+            foreach (var component in componentArray)
+            {
+                if (component is Transform)
+                {
+                    continue;
+                }
+
+                GameObject.DestroyImmediate(component);
+            }
+        }
+
+        private void OrganizeCreatedTransform(Transform inNewTransform, Transform inOldTestTransform, HashSet<Transform> mustLiveTransformSet, HashSet<Transform> perhapsLiveTransformSet, Dictionary<Transform, Transform> oldToNewDictionary)
+        {
+            var newTransformQueue = new Queue<Transform>();
+            newTransformQueue.Enqueue(inNewTransform);
+
+            var oldTransformQueue = new Queue<Transform>();
+            oldTransformQueue.Enqueue(inOldTestTransform);
+
+            while (newTransformQueue.Count > 0)
+            {
+                var newTransform = newTransformQueue.Dequeue();
+                var oldTransform = oldTransformQueue.Dequeue();
+
+                for (int ti = newTransform.childCount - 1; ti >= 0; --ti)
+                {
+                    var newChildTransform = newTransform.GetChild(ti);
+                    var oldChildTransform = oldTransform.GetChild(ti);
+
+                    if (mustLiveTransformSet.Contains(oldChildTransform))
+                    {
+                        newTransformQueue.Enqueue(newChildTransform);
+                        oldTransformQueue.Enqueue(oldChildTransform);
+                        oldToNewDictionary.Add(oldChildTransform, newChildTransform);
+                    }
+                    else if (perhapsLiveTransformSet.Contains(oldChildTransform))
+                    {
+                        RemoveAllComponentsExceptTransform(newChildTransform.gameObject);
+                        newTransformQueue.Enqueue(newChildTransform);
+                        oldTransformQueue.Enqueue(oldChildTransform);           
+                        oldToNewDictionary.Add(oldChildTransform, newChildTransform);             
+                    }
+                    else
+                    {
+                        GameObject.DestroyImmediate(newChildTransform.gameObject);
+                    }
+                }                
+            }
+        }
+
+        private struct InputTransformData : IEquatable<InputTransformData>, IComparable<InputTransformData>
+        {
+            public int _Level;
+            public Transform _Transform;
+
+            public bool Equals(InputTransformData other)
+            {
+                return _Level == other._Level && _Transform == other._Transform;
+            }
+
+            public int CompareTo(InputTransformData other)
+            {
+                if (_Level != other._Level)
+                {
+                    return _Level.CompareTo(other._Level);
+                }
+
+                return _Transform.GetInstanceID().CompareTo(other._Transform.GetInstanceID());
+            }
+        }        
+#endregion
+    }
 }

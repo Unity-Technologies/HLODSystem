@@ -24,6 +24,18 @@ namespace Unity.HLODSystem.Streaming
             public Vector3 Scale;
         }
 
+#region POC_ADDRESSABLE_SCENE_STREAMING
+        [Serializable]
+        public class HighSceneData
+        {
+            public string _Address;
+            public List<GameObject> _InputGameObjectList = new List<GameObject>();
+        }
+
+        [SerializeField]
+        private List<HighSceneData> m_HighSceneDataList = new List<HighSceneData>();
+#endregion
+
         [SerializeField]
         private List<ChildObject> m_highObjects = new List<ChildObject>();
 
@@ -51,6 +63,26 @@ namespace Unity.HLODSystem.Streaming
         
         public override void OnStart()
         {
+#region POC_ADDRESSABLE_SCENE_STREAMING
+            // hide all input gameobjects
+            foreach (var highSceneData in m_HighSceneDataList)
+            {
+                foreach (var inputGO in highSceneData._InputGameObjectList)
+                {
+                    inputGO.SetActive(false);
+                }
+            }
+
+            // hide all input gameobjects
+            foreach (var highObject in m_highObjects)
+            {
+                if (!string.IsNullOrEmpty(highObject.Address) && highObject.GameObject != null && highObject.GameObject.scene.IsValid())
+                {
+                    highObject.GameObject.SetActive(false);                    
+                }
+            }
+#endregion
+
             m_hlodMeshesRoot = new GameObject("HLODMeshesRoot");
             m_hlodMeshesRoot.transform.SetParent(transform, false);
 
@@ -69,7 +101,26 @@ namespace Unity.HLODSystem.Streaming
 
         public override void Install()
         {
-            
+#region POC_ADDRESSABLE_SCENE_STREAMING
+            for (int i = 0; i < m_HighSceneDataList.Count; ++i)
+            {
+                if (string.IsNullOrEmpty(m_HighSceneDataList[i]._Address) == false)
+                {
+                    foreach (var go in m_HighSceneDataList[i]._InputGameObjectList)
+                    {
+                        DestoryObject(go);
+                    }
+
+                    m_HighSceneDataList[i]._InputGameObjectList.Clear();
+                    m_HighSceneDataList[i]._InputGameObjectList.Capacity = 0;
+                }
+                else
+                {
+                    Debug.LogError("???");
+                }
+            }
+#endregion
+
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
                 if (string.IsNullOrEmpty(m_highObjects[i].Address) == false)
@@ -83,6 +134,19 @@ namespace Unity.HLODSystem.Streaming
             }
         }
 
+#region POC_ADDRESSABLE_SCENE_STREAMING
+        public int AddHighScene(string address, List<GameObject> inputGameObjectList)
+        {
+            int id = m_HighSceneDataList.Count;
+            HighSceneData highSceneData = new HighSceneData();
+            highSceneData._Address = address;
+            highSceneData._InputGameObjectList.AddRange(inputGameObjectList);
+            m_HighSceneDataList.Add(highSceneData);
+            
+            return id;
+        }
+#endregion
+
         public int AddHighObject(string address, GameObject origin)
         {
             int id = m_highObjects.Count;
@@ -94,6 +158,9 @@ namespace Unity.HLODSystem.Streaming
             obj.Position = origin.transform.localPosition;
             obj.Rotation = origin.transform.localRotation;
             obj.Scale = origin.transform.localScale;
+
+#if UNITY_EDITOR
+#endif
 
             m_highObjects.Add(obj);
             return id;
@@ -140,26 +207,21 @@ namespace Unity.HLODSystem.Streaming
             }
             else
             {
-                if (m_highObjects[id].GameObject != null)
-                {
-                    LoadInfo loadInfo = new LoadInfo();
-                    loadInfo.GameObject = m_highObjects[id].GameObject;
-                    ChangeLayersRecursively(loadInfo.GameObject.transform, m_hlodLayerIndex);
-                    loadDoneCallback?.Invoke(loadInfo.GameObject);
-                    m_createdHighObjects.Add(id, loadInfo);
-                }
-                else
-                {
-                    //high object's priority is always lowest.
-                    LoadInfo loadInfo = CreateLoadInfo(m_highObjects[id].Address, m_priority, distance,
-                        m_highObjects[id].Parent, m_highObjects[id].Position, m_highObjects[id].Rotation, m_highObjects[id].Scale);
+#region POC_ADDRESSABLE_SCENE_STREAMING
+                if (!string.IsNullOrEmpty(m_HighSceneDataList[id]._Address))
+                {          
+                    LoadInfo loadInfo = CreateSceneLoadInfo(m_HighSceneDataList[id]._Address, m_priority, distance);
                     m_createdHighObjects.Add(id, loadInfo);
                     
                     loadInfo.Callbacks = new List<Action<GameObject>>();
                     loadInfo.Callbacks.Add(loadDoneCallback);
-                    loadInfo.Callbacks.Add(o => { HighObjectCreated?.Invoke(o); });
+                    loadInfo.Callbacks.Add(o => { HighObjectCreated?.Invoke(o); });                              
                 }
-                
+                else
+                {
+                    Debug.LogError("?????");
+                }
+#endregion
             }            
             
         }
@@ -197,16 +259,18 @@ namespace Unity.HLODSystem.Streaming
             if (m_createdHighObjects.ContainsKey(id) == false)
                 return;
             
-            if (string.IsNullOrEmpty(m_highObjects[id].Address) == true)
-            { 
-                m_createdHighObjects[id].GameObject.SetActive(false);
-            }
-            else
+#region POC_ADDRESSABLE_SCENE_STREAMING
+            if (!string.IsNullOrEmpty(m_HighSceneDataList[id]._Address))
             {
                 LoadInfo info = m_createdHighObjects[id];
                 DestoryObject(info.GameObject);
-                AddressableLoadManager.Instance.UnloadAsset(info.Handle);
+                AddressableLoadManager.Instance.UnloadScene(info.Handle);
             }
+            else
+            {
+                Debug.LogError("???");
+            }
+#endregion
 
             m_createdHighObjects.Remove(id);
         }
@@ -259,6 +323,36 @@ namespace Unity.HLODSystem.Streaming
             };
             return loadInfo;
         }
+
+#region POC_ADDRESSABLE_SCENE_STREAMING
+        private LoadInfo CreateSceneLoadInfo(string address, int priority, float distance)
+        {
+            LoadInfo loadInfo = new LoadInfo();
+            loadInfo.Handle = AddressableLoadManager.Instance.LoadScene(this, address, priority, distance);
+            loadInfo.Handle.Completed += handle =>
+            {
+                if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
+                {
+                    Debug.LogError("Failed to load asset: " + address);
+                    return;
+                }
+   
+                var scene = handle.ResultScene;
+                GameObject gameObject = scene.GetRootGameObjects()[0];
+                gameObject.SetActive(false);
+                ChangeLayersRecursively(gameObject.transform, m_hlodLayerIndex);
+                loadInfo.GameObject = gameObject;
+                
+                for (int i = 0; i < loadInfo.Callbacks.Count; ++i)
+                {
+                    loadInfo.Callbacks[i]?.Invoke(gameObject);
+                }
+                loadInfo.Callbacks.Clear();
+            };
+
+            return loadInfo;
+        }   
+#endregion
 
         static void ChangeLayersRecursively(Transform trans, int layer)
         {
