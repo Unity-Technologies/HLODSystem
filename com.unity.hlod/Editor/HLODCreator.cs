@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Diagnostics;
 using UnityEditor;
 using UnityEngine;
@@ -40,81 +39,100 @@ namespace Unity.HLODSystem
             return results;
         }
 
+        private struct TravelQueueItem
+        {
+            public SpaceNode Node;
+            public int Parent;
+            public string Name;
+            public int Level;
+        }
         private static DisposableList<HLODBuildInfo> CreateBuildInfo(HLOD hlod, SpaceNode root, float minObjectSize)
         {
-
-            List<HLODBuildInfo> resultsCandidates = new List<HLODBuildInfo>();
-            Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
-            Queue<int> parentQueue = new Queue<int>();
-            Queue<string> nameQueue = new Queue<string>();
-            Queue<int> levelQueue = new Queue<int>();
+            //List<HLODBuildInfo> resultsCandidates = new List<HLODBuildInfo>();
             
-            trevelQueue.Enqueue(root);
-            parentQueue.Enqueue(-1);
-            levelQueue.Enqueue(0);
-            nameQueue.Enqueue("");
+            Queue<TravelQueueItem> travelQueue = new Queue<TravelQueueItem>();
             
-
-            while (trevelQueue.Count > 0)
+            List<TravelQueueItem> candidateItems = new List<TravelQueueItem>();
+            List<HLODBuildInfo> buildInfoCandidates = new List<HLODBuildInfo>();
+            
+            int maxLevel = 0;
+            
+            travelQueue.Enqueue(new TravelQueueItem()
             {
-                int currentNodeIndex = resultsCandidates.Count;
-                string name = nameQueue.Dequeue();
-                SpaceNode node = trevelQueue.Dequeue();
-                HLODBuildInfo info = new HLODBuildInfo
-                {
-                    Name = name,
-                    ParentIndex = parentQueue.Dequeue(),
-                    Target = node
-                };
+                Node = root,
+                Parent = -1,
+                Level = 0,
+                Name = "",
+            });
 
+            while (travelQueue.Count > 0)
+            {
+                int currentNodeIndex = candidateItems.Count;
+                TravelQueueItem item = travelQueue.Dequeue();
 
-                for (int i = 0; i < node.GetChildCount(); ++i)
+                for (int i = 0; i < item.Node.GetChildCount(); ++i)
                 {
-                    trevelQueue.Enqueue(node.GetChild(i));
-                    parentQueue.Enqueue(currentNodeIndex);
-                    nameQueue.Enqueue(name + "_" + (i + 1));
+                    travelQueue.Enqueue(new TravelQueueItem()
+                    {
+                        Node = item.Node.GetChild(i),
+                        Parent = currentNodeIndex,
+                        Level = item.Level + 1,
+                        Name = item.Name + "_" + (i+1),
+                    });
                 }
 
+                maxLevel = Math.Max(maxLevel, item.Level);
+                candidateItems.Add(item);
+                buildInfoCandidates.Add(new HLODBuildInfo()
+                {
+                    Name = item.Name,
+                    Target = item.Node
+                });
+            }
 
-                resultsCandidates.Add(info);
+            for (int i = 0; i < candidateItems.Count; ++i)
+            {
+                var item = candidateItems[i];
+                var level = maxLevel - item.Level;  //< It needs to be turned upside down. The terminal node must have level 0.
+                var meshRenderers = CreateUtils.GetMeshRenderers(item.Node.Objects, minObjectSize, level);
+                var colliders = GetColliders(item.Node.Objects, minObjectSize);
 
-                //it should add to every parent.
-                List<MeshRenderer> meshRenderers = CreateUtils.GetMeshRenderers(node.Objects, minObjectSize, 0);
-                List<Collider> colliders = GetColliders(node.Objects, minObjectSize);
                 int distance = 0;
-
+                int currentNodeIndex = i;
                 while (currentNodeIndex >= 0)
                 {
-                    var curInfo = resultsCandidates[currentNodeIndex];
-
-                    for (int i = 0; i < meshRenderers.Count; ++i) 
+                    var curInfo = buildInfoCandidates[currentNodeIndex];
+                    var curItem = candidateItems[currentNodeIndex];
+                    
+                    for (int mi = 0; mi < meshRenderers.Count; ++mi)
                     {
-                        curInfo.WorkingObjects.Add(meshRenderers[i].ToWorkingObject(Allocator.Persistent));
+                        curInfo.WorkingObjects.Add(meshRenderers[mi].ToWorkingObject(Allocator.Persistent));
                         curInfo.Distances.Add(distance);
                     }
 
-                    for (int i = 0; i < colliders.Count; ++i)
+                    for (int ci = 0; ci < colliders.Count; ++ci)
                     {
-                        curInfo.Colliders.Add(colliders[i].ToWorkingCollider(hlod));
+                        curInfo.Colliders.Add(colliders[ci].ToWorkingCollider(hlod));
                     }
 
-                    currentNodeIndex = curInfo.ParentIndex;
+                    currentNodeIndex = curItem.Parent;
                     distance += 1;
                 }
-            }
 
+
+            }
             
             DisposableList<HLODBuildInfo> results = new DisposableList<HLODBuildInfo>();
             
-            for (int i = 0; i < resultsCandidates.Count; ++i)
+            for (int i = 0; i < buildInfoCandidates.Count; ++i)
             {
-                if (resultsCandidates[i].WorkingObjects.Count > 0)
+                if (buildInfoCandidates[i].WorkingObjects.Count > 0)
                 {
-                    results.Add(resultsCandidates[i]);
+                    results.Add(buildInfoCandidates[i]);
                 }
                 else
                 {
-                    resultsCandidates[i].Dispose();
+                    buildInfoCandidates[i].Dispose();
                 }
             }
             
