@@ -75,6 +75,8 @@ namespace Unity.HLODSystem.Utils
 
                 targets.Add(lodGroups[i].gameObject);
 
+                var lods = lodGroups[i].GetLODs();
+
                 foreach (var lod in lods)
                 {
                     foreach (var lodRenderer in lod.renderers)
