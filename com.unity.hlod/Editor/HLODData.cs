@@ -306,6 +306,7 @@ namespace Unity.HLODSystem
             [SerializeField] private string m_name;
             [SerializeField] private SerializableMesh m_mesh;
             [SerializeField] private List<string> m_materialIds = new List<string>();
+            [SerializeField] private List<string> m_materialNames = new List<string>();
             [SerializeField] private LightProbeUsage m_lightProbeUsage;
 
             public string Name
@@ -326,15 +327,22 @@ namespace Unity.HLODSystem
                 return m_materialIds;
             }
 
+            public List<string> GetMaterialNames()
+            {
+                return m_materialNames;
+            }
+
             public void From(WorkingObject obj)
             {
                 Name = obj.Name;
                 m_mesh.From(obj.Mesh);
                 m_materialIds = new List<string>();
+                m_materialNames = new List<string>();
                 m_lightProbeUsage = obj.LightProbeUsage;
                 for (int i = 0; i < obj.Materials.Count; ++i)
                 {
                     m_materialIds.Add(obj.Materials[i].Guid);
+                    m_materialNames.Add(obj.Materials[i].Name);
                 }
             }
         }

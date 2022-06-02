@@ -93,6 +93,7 @@ namespace Unity.HLODSystem
                             MeshFilter mf = go.AddComponent<MeshFilter>();
                             MeshRenderer mr = go.AddComponent<MeshRenderer>();
                             List<string> materialIds = so.GetMaterialIds();
+                            List<string> materialNames = so.GetMaterialNames();
                             List<Material> materials = new List<Material>();
 
                             for (int mi = 0; mi < materialIds.Count; ++mi)
@@ -107,7 +108,11 @@ namespace Unity.HLODSystem
                                     string path = AssetDatabase.GUIDToAssetPath(id);
                                     if (string.IsNullOrEmpty(path) == false)
                                     {
-                                        materials.Add(AssetDatabase.LoadAssetAtPath<Material>(path));
+                                        
+                                        var allAssets = AssetDatabase.LoadAllAssetsAtPath(path);
+                                        var material = Utils.GUIDUtils.FindObject<Material>(allAssets, materialNames[mi]);
+                                        
+                                        materials.Add(material);
                                     }
                                     else
                                     {
