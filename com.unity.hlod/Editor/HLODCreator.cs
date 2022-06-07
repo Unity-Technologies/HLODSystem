@@ -45,6 +45,24 @@ namespace Unity.HLODSystem
             public int Parent;
             public string Name;
             public int Level;
+            public List<GameObject> TargetGameObjects;
+        }
+
+        private static void CopyObjectsToParent(List<TravelQueueItem> list, int curIndex, List<GameObject> objects)
+        {
+            if (curIndex < 0)
+                return;
+
+            int parentIndex = list[curIndex].Parent;
+            
+            if (parentIndex < 0)
+                return;
+
+            var parent = list[parentIndex];
+            parent.TargetGameObjects.AddRange(objects);
+            
+            CopyObjectsToParent(list, parentIndex, objects);
+
         }
         private static DisposableList<HLODBuildInfo> CreateBuildInfo(HLOD hlod, SpaceNode root, float minObjectSize)
         {
@@ -63,6 +81,7 @@ namespace Unity.HLODSystem
                 Parent = -1,
                 Level = 0,
                 Name = "",
+                TargetGameObjects = new List<GameObject>(),
             });
 
             while (travelQueue.Count > 0)
@@ -78,6 +97,7 @@ namespace Unity.HLODSystem
                         Parent = currentNodeIndex,
                         Level = item.Level + 1,
                         Name = item.Name + "_" + (i+1),
+                        TargetGameObjects = new List<GameObject>(),
                     });
                 }
 
@@ -88,14 +108,17 @@ namespace Unity.HLODSystem
                     Name = item.Name,
                     Target = item.Node
                 });
+                item.TargetGameObjects.AddRange(item.Node.Objects);
+
+                CopyObjectsToParent(candidateItems, currentNodeIndex, item.Node.Objects);
             }
 
             for (int i = 0; i < candidateItems.Count; ++i)
             {
                 var item = candidateItems[i];
                 var level = maxLevel - item.Level;  //< It needs to be turned upside down. The terminal node must have level 0.
-                var meshRenderers = CreateUtils.GetMeshRenderers(item.Node.Objects, minObjectSize, level);
-                var colliders = GetColliders(item.Node.Objects, minObjectSize);
+                var meshRenderers = CreateUtils.GetMeshRenderers(item.TargetGameObjects, minObjectSize, level);
+                var colliders = GetColliders(item.TargetGameObjects, minObjectSize);
 
                 int distance = 0;
                 int currentNodeIndex = i;
@@ -117,6 +140,7 @@ namespace Unity.HLODSystem
 
                     currentNodeIndex = curItem.Parent;
                     distance += 1;
+                    break;
                 }
 
 
