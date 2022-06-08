@@ -180,6 +180,16 @@ namespace Unity.HLODSystem
             calculator.Calculate(minObjectSize, level);
             return calculator.ResultMeshRenderers;
         }
+        
+        public static List<MeshRenderer> GetMeshRenderers(GameObject gameObject, float minObjectSize, int level)
+        {
+            List<GameObject> tmpList = new List<GameObject>();
+            tmpList.Add(gameObject);
+            
+            MeshRendererCalculator calculator = new MeshRendererCalculator(tmpList);
+            calculator.Calculate(minObjectSize, level);
+            return calculator.ResultMeshRenderers;
+        }
 
     }
 

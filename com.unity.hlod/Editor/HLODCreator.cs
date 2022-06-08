@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using Unity.Collections;
@@ -46,9 +47,10 @@ namespace Unity.HLODSystem
             public string Name;
             public int Level;
             public List<GameObject> TargetGameObjects;
+            public List<int> Distances;
         }
 
-        private static void CopyObjectsToParent(List<TravelQueueItem> list, int curIndex, List<GameObject> objects)
+        private static void CopyObjectsToParent(List<TravelQueueItem> list, int curIndex, List<GameObject> objects, int distance)
         {
             if (curIndex < 0)
                 return;
@@ -59,9 +61,11 @@ namespace Unity.HLODSystem
                 return;
 
             var parent = list[parentIndex];
+
             parent.TargetGameObjects.AddRange(objects);
+            parent.Distances.AddRange(Enumerable.Repeat<int>(distance, objects.Count));
             
-            CopyObjectsToParent(list, parentIndex, objects);
+            CopyObjectsToParent(list, parentIndex, objects, distance + 1);
 
         }
         private static DisposableList<HLODBuildInfo> CreateBuildInfo(HLOD hlod, SpaceNode root, float minObjectSize)
@@ -82,6 +86,8 @@ namespace Unity.HLODSystem
                 Level = 0,
                 Name = "",
                 TargetGameObjects = new List<GameObject>(),
+                Distances = new List<int>(),
+                
             });
 
             while (travelQueue.Count > 0)
@@ -98,6 +104,7 @@ namespace Unity.HLODSystem
                         Level = item.Level + 1,
                         Name = item.Name + "_" + (i+1),
                         TargetGameObjects = new List<GameObject>(),
+                        Distances = new List<int>(),
                     });
                 }
 
@@ -109,41 +116,40 @@ namespace Unity.HLODSystem
                     Target = item.Node
                 });
                 item.TargetGameObjects.AddRange(item.Node.Objects);
+                item.Distances.AddRange(Enumerable.Repeat<int>(0, item.Node.Objects.Count));
 
-                CopyObjectsToParent(candidateItems, currentNodeIndex, item.Node.Objects);
+                CopyObjectsToParent(candidateItems, currentNodeIndex, item.Node.Objects, 1);
             }
 
             for (int i = 0; i < candidateItems.Count; ++i)
             {
+                var info = buildInfoCandidates[i];
                 var item = candidateItems[i];
                 var level = maxLevel - item.Level;  //< It needs to be turned upside down. The terminal node must have level 0.
-                var meshRenderers = CreateUtils.GetMeshRenderers(item.TargetGameObjects, minObjectSize, level);
+                var meshRenderers = new List<MeshRenderer>();
+                var distances = new List<int>();
                 var colliders = GetColliders(item.TargetGameObjects, minObjectSize);
 
-                int distance = 0;
-                int currentNodeIndex = i;
-                while (currentNodeIndex >= 0)
+
+                for (int ti = 0; ti < item.TargetGameObjects.Count; ++ti)
                 {
-                    var curInfo = buildInfoCandidates[currentNodeIndex];
-                    var curItem = candidateItems[currentNodeIndex];
+                    var curRenderers = CreateUtils.GetMeshRenderers(item.TargetGameObjects[ti], minObjectSize, level);
+                    var curDistance = item.Distances[ti];
                     
-                    for (int mi = 0; mi < meshRenderers.Count; ++mi)
-                    {
-                        curInfo.WorkingObjects.Add(meshRenderers[mi].ToWorkingObject(Allocator.Persistent));
-                        curInfo.Distances.Add(distance);
-                    }
-
-                    for (int ci = 0; ci < colliders.Count; ++ci)
-                    {
-                        curInfo.Colliders.Add(colliders[ci].ToWorkingCollider(hlod));
-                    }
-
-                    currentNodeIndex = curItem.Parent;
-                    distance += 1;
-                    break;
+                    meshRenderers.AddRange(curRenderers);
+                    distances.AddRange(Enumerable.Repeat<int>(curDistance, curRenderers.Count));
+                }
+                
+                for (int mi = 0; mi < meshRenderers.Count; ++mi)
+                {
+                    info.WorkingObjects.Add(meshRenderers[mi].ToWorkingObject(Allocator.Persistent));
+                    info.Distances.Add(distances[mi]);
                 }
 
-
+                for (int ci = 0; ci < colliders.Count; ++ci)
+                {
+                    info.Colliders.Add(colliders[ci].ToWorkingCollider(hlod));
+                }
             }
             
             DisposableList<HLODBuildInfo> results = new DisposableList<HLODBuildInfo>();
@@ -167,8 +173,6 @@ namespace Unity.HLODSystem
         {
             try
             {
-
-
                 Stopwatch sw = new Stopwatch();
 
                 AssetDatabase.Refresh();
