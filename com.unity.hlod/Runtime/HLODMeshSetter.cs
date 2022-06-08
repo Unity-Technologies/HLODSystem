@@ -10,6 +10,27 @@ namespace Unity.HLODSystem
         [SerializeField] 
         private List<HLODMeshSetterGroup> m_meshSettings;
 
+        public bool RemoveAtBuild
+        {
+            get
+            {
+                return m_removeAtBuild;
+            }
+        }
+
+        public int GroupCount
+        {
+            get
+            {
+                return m_meshSettings.Count;
+            }
+        }
+
+        public HLODMeshSetterGroup GetGroup(int index)
+        {
+            return m_meshSettings[index];
+        }
+
         public HLODMeshSetterGroup FindGroup(int level)
         {
             HLODMeshSetterGroup group = null;
