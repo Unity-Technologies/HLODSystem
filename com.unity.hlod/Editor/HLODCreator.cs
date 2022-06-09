@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Diagnostics;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using System.Linq;
 using Unity.Collections;
 using Unity.HLODSystem.Simplifier;
 using Unity.HLODSystem.SpaceManager;
@@ -18,73 +17,6 @@ namespace Unity.HLODSystem
 {
     public static class HLODCreator
     {
-        private static List<MeshRenderer> GetMeshRenderers(List<GameObject> gameObjects, float minObjectSize)
-        {
-            List<MeshRenderer> meshRenderers = new List<MeshRenderer>();
-
-            for (int oi = 0; oi < gameObjects.Count; ++oi)
-            {
-                GameObject obj = gameObjects[oi];
-
-                if (obj.activeInHierarchy == false)
-                    continue;
-                
-                LODGroup[] lodGroups = obj.GetComponentsInChildren<LODGroup>();
-                List<MeshRenderer> allRenderers = obj.GetComponentsInChildren<MeshRenderer>().ToList();
-
-                for (int gi = 0; gi < lodGroups.Length; ++gi)
-                {
-                    LODGroup lodGroup = lodGroups[gi];
-                    if (lodGroup.enabled == false || lodGroup.gameObject.activeInHierarchy == false)
-                        continue;
-                    
-                    //all renderers using in LODGroup should be removed in the allRenderers
-                    LOD[] lods = lodGroup.GetLODs();
-                    for (int li = 0; li < lods.Length; ++li)
-                    {
-                        Renderer[] lodRenderers = lods[li].renderers;
-                        for (int ri = 0; ri < lodRenderers.Length; ++ri)
-                        {
-                            MeshRenderer mr = lodRenderers[ri] as MeshRenderer;
-                            if (mr == null)
-                                continue;
-                            
-                            allRenderers.Remove(mr);
-                        }
-                    }
-
-                    Renderer[] renderers = lods.Last().renderers;
-                    for (int ri = 0; ri < renderers.Length; ++ri)
-                    {
-                        MeshRenderer mr = renderers[ri] as MeshRenderer;
-
-                        if (mr == null)
-                            continue;
-                        
-                        if (mr.gameObject.activeInHierarchy == false || mr.enabled == false)
-                            continue;
-
-                        float max = Mathf.Max(mr.bounds.size.x, mr.bounds.size.y, mr.bounds.size.z);
-                        if (max < minObjectSize)
-                            continue;
-
-                        meshRenderers.Add(mr);
-                    }
-                }
-
-                for (int ai = 0; ai < allRenderers.Count; ++ai)
-                {
-                    if ( allRenderers[ai].enabled == false || allRenderers[ai].gameObject.activeInHierarchy == false )
-                        continue;
-                    
-                    meshRenderers.Add(allRenderers[ai]);
-                }
-
-            }
-
-            return meshRenderers;
-        }
-
         private static List<Collider> GetColliders(List<GameObject> gameObjects, float minObjectSize)
         {
             List<Collider> results = new List<Collider>();
@@ -108,81 +40,129 @@ namespace Unity.HLODSystem
             return results;
         }
 
+        private struct TravelQueueItem
+        {
+            public SpaceNode Node;
+            public int Parent;
+            public string Name;
+            public int Level;
+            public List<GameObject> TargetGameObjects;
+            public List<int> Distances;
+        }
+
+        private static void CopyObjectsToParent(List<TravelQueueItem> list, int curIndex, List<GameObject> objects, int distance)
+        {
+            if (curIndex < 0)
+                return;
+
+            int parentIndex = list[curIndex].Parent;
+            
+            if (parentIndex < 0)
+                return;
+
+            var parent = list[parentIndex];
+
+            parent.TargetGameObjects.AddRange(objects);
+            parent.Distances.AddRange(Enumerable.Repeat<int>(distance, objects.Count));
+            
+            CopyObjectsToParent(list, parentIndex, objects, distance + 1);
+
+        }
         private static DisposableList<HLODBuildInfo> CreateBuildInfo(HLOD hlod, SpaceNode root, float minObjectSize)
         {
-
-            List<HLODBuildInfo> resultsCandidates = new List<HLODBuildInfo>();
-            Queue<SpaceNode> trevelQueue = new Queue<SpaceNode>();
-            Queue<int> parentQueue = new Queue<int>();
-            Queue<string> nameQueue = new Queue<string>();
-            Queue<int> levelQueue = new Queue<int>();
+            //List<HLODBuildInfo> resultsCandidates = new List<HLODBuildInfo>();
             
-            trevelQueue.Enqueue(root);
-            parentQueue.Enqueue(-1);
-            levelQueue.Enqueue(0);
-            nameQueue.Enqueue("");
+            Queue<TravelQueueItem> travelQueue = new Queue<TravelQueueItem>();
             
-
-            while (trevelQueue.Count > 0)
+            List<TravelQueueItem> candidateItems = new List<TravelQueueItem>();
+            List<HLODBuildInfo> buildInfoCandidates = new List<HLODBuildInfo>();
+            
+            int maxLevel = 0;
+            
+            travelQueue.Enqueue(new TravelQueueItem()
             {
-                int currentNodeIndex = resultsCandidates.Count;
-                string name = nameQueue.Dequeue();
-                SpaceNode node = trevelQueue.Dequeue();
-                HLODBuildInfo info = new HLODBuildInfo
-                {
-                    Name = name,
-                    ParentIndex = parentQueue.Dequeue(),
-                    Target = node
-                };
+                Node = root,
+                Parent = -1,
+                Level = 0,
+                Name = "",
+                TargetGameObjects = new List<GameObject>(),
+                Distances = new List<int>(),
+                
+            });
 
+            while (travelQueue.Count > 0)
+            {
+                int currentNodeIndex = candidateItems.Count;
+                TravelQueueItem item = travelQueue.Dequeue();
 
-                for (int i = 0; i < node.GetChildCount(); ++i)
+                for (int i = 0; i < item.Node.GetChildCount(); ++i)
                 {
-                    trevelQueue.Enqueue(node.GetChild(i));
-                    parentQueue.Enqueue(currentNodeIndex);
-                    nameQueue.Enqueue(name + "_" + (i + 1));
+                    travelQueue.Enqueue(new TravelQueueItem()
+                    {
+                        Node = item.Node.GetChild(i),
+                        Parent = currentNodeIndex,
+                        Level = item.Level + 1,
+                        Name = item.Name + "_" + (i+1),
+                        TargetGameObjects = new List<GameObject>(),
+                        Distances = new List<int>(),
+                    });
                 }
 
-
-                resultsCandidates.Add(info);
-
-                //it should add to every parent.
-                List<MeshRenderer> meshRenderers = GetMeshRenderers(node.Objects, minObjectSize);
-                List<Collider> colliders = GetColliders(node.Objects, minObjectSize);
-                int distance = 0;
-
-                while (currentNodeIndex >= 0)
+                maxLevel = Math.Max(maxLevel, item.Level);
+                candidateItems.Add(item);
+                buildInfoCandidates.Add(new HLODBuildInfo()
                 {
-                    var curInfo = resultsCandidates[currentNodeIndex];
+                    Name = item.Name,
+                    Target = item.Node
+                });
+                item.TargetGameObjects.AddRange(item.Node.Objects);
+                item.Distances.AddRange(Enumerable.Repeat<int>(0, item.Node.Objects.Count));
 
-                    for (int i = 0; i < meshRenderers.Count; ++i) 
-                    {
-                        curInfo.WorkingObjects.Add(meshRenderers[i].ToWorkingObject(Allocator.Persistent));
-                        curInfo.Distances.Add(distance);
-                    }
-
-                    for (int i = 0; i < colliders.Count; ++i)
-                    {
-                        curInfo.Colliders.Add(colliders[i].ToWorkingCollider(hlod));
-                    }
-
-                    currentNodeIndex = curInfo.ParentIndex;
-                    distance += 1;
-                }
+                CopyObjectsToParent(candidateItems, currentNodeIndex, item.Node.Objects, 1);
             }
 
+            for (int i = 0; i < candidateItems.Count; ++i)
+            {
+                var info = buildInfoCandidates[i];
+                var item = candidateItems[i];
+                var level = maxLevel - item.Level;  //< It needs to be turned upside down. The terminal node must have level 0.
+                var meshRenderers = new List<MeshRenderer>();
+                var distances = new List<int>();
+                var colliders = GetColliders(item.TargetGameObjects, minObjectSize);
+
+
+                for (int ti = 0; ti < item.TargetGameObjects.Count; ++ti)
+                {
+                    var curRenderers = CreateUtils.GetMeshRenderers(item.TargetGameObjects[ti], minObjectSize, level);
+                    var curDistance = item.Distances[ti];
+                    
+                    meshRenderers.AddRange(curRenderers);
+                    distances.AddRange(Enumerable.Repeat<int>(curDistance, curRenderers.Count));
+                }
+                
+                for (int mi = 0; mi < meshRenderers.Count; ++mi)
+                {
+                    info.WorkingObjects.Add(meshRenderers[mi].ToWorkingObject(Allocator.Persistent));
+                    info.Distances.Add(distances[mi]);
+                }
+
+                for (int ci = 0; ci < colliders.Count; ++ci)
+                {
+                    info.Colliders.Add(colliders[ci].ToWorkingCollider(hlod));
+                }
+            }
             
             DisposableList<HLODBuildInfo> results = new DisposableList<HLODBuildInfo>();
             
-            for (int i = 0; i < resultsCandidates.Count; ++i)
+            for (int i = 0; i < buildInfoCandidates.Count; ++i)
             {
-                if (resultsCandidates[i].WorkingObjects.Count > 0)
+                if (buildInfoCandidates[i].WorkingObjects.Count > 0)
                 {
-                    results.Add(resultsCandidates[i]);
+                    results.Add(buildInfoCandidates[i]);
                 }
                 else
                 {
-                    resultsCandidates[i].Dispose();
+                    buildInfoCandidates[i].Dispose();
                 }
             }
             
@@ -193,8 +173,6 @@ namespace Unity.HLODSystem
         {
             try
             {
-
-
                 Stopwatch sw = new Stopwatch();
 
                 AssetDatabase.Refresh();
@@ -209,7 +187,9 @@ namespace Unity.HLODSystem
                 Bounds bounds = hlod.GetBounds();
 
                 List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
-                ISpaceSplitter spliter = new QuadTreeSpaceSplitter(5.0f);
+                float looseSize = Mathf.Min(hlod.ChunkSize * 0.3f, 5.0f); //< If the chunk size is small, there is a problem that it may get caught in an infinite loop.
+                                                                          //So, the size can be determined according to the chunk size.
+                ISpaceSplitter spliter = new QuadTreeSpaceSplitter(looseSize);
                 SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlod.ChunkSize, hlod.transform.position, hlodTargets, progress =>
                 {
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);

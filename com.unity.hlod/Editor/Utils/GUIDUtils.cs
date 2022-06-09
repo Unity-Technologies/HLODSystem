@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using Object = UnityEngine.Object;
 
@@ -18,6 +19,17 @@ namespace Unity.HLODSystem.Utils
         {
             string path = AssetDatabase.GUIDToAssetPath(guid.ToString("N"));
             return AssetDatabase.LoadAssetAtPath<T>(path);
+        }
+
+        public static T FindObject<T>(Object[] objectList, string name) where T : Object
+        {
+            for (int i = 0; i < objectList.Length; ++i)
+            {
+                if (objectList[i].name == name)
+                    return objectList[i] as T;
+            }
+
+            return null;
         }
     }
 }

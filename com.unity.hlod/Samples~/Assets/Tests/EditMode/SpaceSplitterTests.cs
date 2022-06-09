@@ -195,143 +195,113 @@ namespace Unity.HLODSystem.EditorTests
             ISpaceSplitter spliter = new QuadTreeSpaceSplitter(0.0f);
             SpaceNode rootNode = spliter.CreateSpaceTree(m_hlodComponent.GetBounds(), 5.0f, m_hlodComponent.transform.position, hlodTargets, null);
 
-            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { rootNode, 0.0f }))
+            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { null, rootNode, 0.0f }))
             {
                 //only exists nodes are creating info.
                 Assert.AreEqual(ret.Count, 11);
 
                 Assert.AreEqual(ret[0].Name, "");
-                Assert.AreEqual(ret[0].ParentIndex, -1);
                 Assert.AreEqual(ret[0].WorkingObjects.Count, 9);
 
                 Assert.AreEqual(ret[1].Name, "_1");
-                Assert.AreEqual(ret[1].ParentIndex, 0);
                 Assert.AreEqual(ret[1].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[2].Name, "_2");
-                Assert.AreEqual(ret[2].ParentIndex, 0);
                 Assert.AreEqual(ret[2].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[3].Name, "_3");
-                Assert.AreEqual(ret[3].ParentIndex, 0);
                 Assert.AreEqual(ret[3].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[4].Name, "_4");
-                Assert.AreEqual(ret[4].ParentIndex, 0);
                 Assert.AreEqual(ret[4].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[5].Name, "_1_1");
-                Assert.AreEqual(ret[5].ParentIndex, 1);
                 Assert.AreEqual(ret[5].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[6].Name, "_1_4");
-                Assert.AreEqual(ret[6].ParentIndex, 1);
                 Assert.AreEqual(ret[6].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[7].Name, "_2_2");
-                Assert.AreEqual(ret[7].ParentIndex, 2);
                 Assert.AreEqual(ret[7].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[8].Name, "_2_3");
-                Assert.AreEqual(ret[8].ParentIndex, 2);
                 Assert.AreEqual(ret[8].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[9].Name, "_3_3");
-                Assert.AreEqual(ret[9].ParentIndex, 3);
                 Assert.AreEqual(ret[9].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[10].Name, "_4_4");
-                Assert.AreEqual(ret[10].ParentIndex, 4);
                 Assert.AreEqual(ret[10].WorkingObjects.Count, 1);
             }
 
             //exclude object smaller than 0.5.
-            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { rootNode, 0.5f }))
+            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { null, rootNode, 0.5f }))
             {
                 //only exists nodes are creating info.
                 Assert.AreEqual(ret.Count, 10);
 
                 Assert.AreEqual(ret[0].Name, "");
-                Assert.AreEqual(ret[0].ParentIndex, -1);
                 Assert.AreEqual(ret[0].WorkingObjects.Count, 8);
 
                 Assert.AreEqual(ret[1].Name, "_1");
-                Assert.AreEqual(ret[1].ParentIndex, 0);
                 Assert.AreEqual(ret[1].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[2].Name, "_2");
-                Assert.AreEqual(ret[2].ParentIndex, 0);
                 Assert.AreEqual(ret[2].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[3].Name, "_3");
-                Assert.AreEqual(ret[3].ParentIndex, 0);
                 Assert.AreEqual(ret[3].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[4].Name, "_4");
-                Assert.AreEqual(ret[4].ParentIndex, 0);
                 Assert.AreEqual(ret[4].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[5].Name, "_1_1");
-                Assert.AreEqual(ret[5].ParentIndex, 1);
                 Assert.AreEqual(ret[5].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[6].Name, "_2_2");
-                Assert.AreEqual(ret[6].ParentIndex, 2);
                 Assert.AreEqual(ret[6].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[7].Name, "_2_3");
-                Assert.AreEqual(ret[7].ParentIndex, 2);
                 Assert.AreEqual(ret[7].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[8].Name, "_3_3");
-                Assert.AreEqual(ret[8].ParentIndex, 3);
                 Assert.AreEqual(ret[8].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[9].Name, "_4_4");
-                Assert.AreEqual(ret[9].ParentIndex, 4);
                 Assert.AreEqual(ret[9].WorkingObjects.Count, 1);
             }
 
             //exclude object smaller than 1.
-            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { rootNode, 1.0f }))
+            using (DisposableList<HLODBuildInfo> ret = (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { null, rootNode, 1.0f }))
             {
                 //only exists nodes are creating info.
                 Assert.AreEqual(ret.Count, 9);
 
                 Assert.AreEqual(ret[0].Name, "");
-                Assert.AreEqual(ret[0].ParentIndex, -1);
                 Assert.AreEqual(ret[0].WorkingObjects.Count, 7);
 
                 Assert.AreEqual(ret[1].Name, "_1");
-                Assert.AreEqual(ret[1].ParentIndex, 0);
                 Assert.AreEqual(ret[1].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[2].Name, "_2");
-                Assert.AreEqual(ret[2].ParentIndex, 0);
                 Assert.AreEqual(ret[2].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[3].Name, "_3");
-                Assert.AreEqual(ret[3].ParentIndex, 0);
                 Assert.AreEqual(ret[3].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[4].Name, "_4");
-                Assert.AreEqual(ret[4].ParentIndex, 0);
                 Assert.AreEqual(ret[4].WorkingObjects.Count, 2);
 
                 Assert.AreEqual(ret[5].Name, "_1_1");
-                Assert.AreEqual(ret[5].ParentIndex, 1);
                 Assert.AreEqual(ret[5].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[6].Name, "_2_2");
-                Assert.AreEqual(ret[6].ParentIndex, 2);
                 Assert.AreEqual(ret[6].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[7].Name, "_3_3");
-                Assert.AreEqual(ret[7].ParentIndex, 3);
                 Assert.AreEqual(ret[7].WorkingObjects.Count, 1);
 
                 Assert.AreEqual(ret[8].Name, "_4_4");
-                Assert.AreEqual(ret[8].ParentIndex, 4);
                 Assert.AreEqual(ret[8].WorkingObjects.Count, 1);
             }
 

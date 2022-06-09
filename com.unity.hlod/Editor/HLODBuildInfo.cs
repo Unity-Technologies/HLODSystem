@@ -164,6 +164,7 @@ namespace Unity.HLODSystem
         private NativeArray<int> m_detector = new NativeArray<int>(1, Allocator.Persistent);
         
         public string Name = "";
+        //TODO: remove this.
         public int ParentIndex = -1;
         public SpaceNode Target;
 
