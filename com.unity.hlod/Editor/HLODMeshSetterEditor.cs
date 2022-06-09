@@ -61,10 +61,8 @@ namespace Unity.HLODSystem
                     var meshFilter =meshRenderer.GetComponent<MeshFilter>();
                     if (meshFilter != null)
                     {
-                        //Actually, GetTriangleCount is return the index count.
-                        //in the mesh, Index is called Triangle.
-                        //So after divided by 3, we can get a real triangle count.
-                        triCount = meshFilter.sharedMesh.GetTriangleCount() / 3;
+                        //after divided by 3, we can get a real triangle count.
+                        triCount = meshFilter.sharedMesh.triangles.Length / 3;
                         meshCount = meshFilter.sharedMesh.subMeshCount;
                         EditorGUI.LabelField(labelRect, $"{triCount} Tris {meshCount} Sub Mesh(es)");
                     }

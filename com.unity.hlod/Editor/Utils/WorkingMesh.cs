@@ -9,21 +9,10 @@ namespace Unity.HLODSystem.Utils
 {
     public static class MeshExtensions
     {
-        public static int GetTriangleCount(this Mesh mesh)
-        {
-            var triangleCount = 0;
-            for (var i = 0; i < mesh.subMeshCount; i++)
-            {
-                triangleCount += (int)mesh.GetIndexCount(i);
-            }
-
-            return triangleCount;
-        }
-
         public static WorkingMesh ToWorkingMesh(this Mesh mesh, Allocator allocator)
         {
             var bindposes = mesh.bindposes;
-            var wm = new WorkingMesh(allocator, mesh.vertexCount, mesh.GetTriangleCount(), mesh.subMeshCount, bindposes.Length);
+            var wm = new WorkingMesh(allocator, mesh.vertexCount, mesh.triangles.Length, mesh.subMeshCount, bindposes.Length);
             mesh.ApplyToWorkingMesh(ref wm, bindposes);
 
             return wm;
