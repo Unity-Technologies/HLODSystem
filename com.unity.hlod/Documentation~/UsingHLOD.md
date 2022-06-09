@@ -31,7 +31,7 @@ This is how Hierarchy Window looks like after we added our Game Objects:
 
 ![](./media/image1.png)
 
-For a detailed explanation of the settings of HLOD Component, see [HLOD](hlod.md).
+For a detailed explanation of the settings of HLOD Component, see [HLOD](HLOD.md).
 
 A Default HLOD Controller Component will be added automatically:
 
