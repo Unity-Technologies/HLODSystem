@@ -585,6 +585,7 @@ namespace Unity.HLODSystem
         [SerializeField] private TextureCompressionData m_compressionData;
 
         [SerializeField] private List<SerializableObject> m_objects = new List<SerializableObject>();
+        [SerializeField] private List<HLODUserData> m_userData = new List<HLODUserData>();
         [SerializeField] private List<SerializableMaterial> m_materials = new List<SerializableMaterial>();
         [SerializeField] private List<SerializableCollider> m_colliders = new List<SerializableCollider>();
 
