@@ -25,6 +25,11 @@ namespace Unity.HLODSystem.Utils
         {
             for (int i = 0; i < objectList.Length; ++i)
             {
+                if (objectList[i] == null)
+                    continue;
+                if (objectList[i] is not T)
+                    continue;
+                
                 if (objectList[i].name == name)
                     return objectList[i] as T;
             }
