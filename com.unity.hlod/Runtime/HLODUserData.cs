@@ -11,69 +11,63 @@ namespace Unity.HLODSystem
         [Serializable]
         public class UserDataTable<T> : ISerializationCallbackReceiver
         {
-            [NonSerialized]
-            private Dictionary<string, T> m_datas = new Dictionary<string, T>();
-            
+            private Dictionary<string, int> m_idTable = new Dictionary<string, int>();
+
             [SerializeField]
-            private List<string> m_keys;
+            private List<string> m_keys = new List<string>();
             [SerializeField]
-            private List<T> m_values;
+            private List<T> m_values = new List<T>();
 
             public bool AddData(string key, T value)
             {
-                return m_datas.TryAdd(key, value);
+                if (m_idTable.ContainsKey(key))
+                    return false;
+                
+                m_keys.Add(key);
+                m_values.Add(value);
+                m_idTable[key] = m_values.Count - 1;
+
+                return true;
             }
 
             public T GetData(string key)
             {
-                return m_datas[key];
+                int index = 0;
+                if (m_idTable.TryGetValue(key, out index) == false)
+                    throw new KeyNotFoundException("Key not found: " + key);
+                return m_values[index];
             }
 
             public bool TryGetData(string key, out T value)
             {
-                return m_datas.TryGetValue(key, out value);
+                int index = 0;
+                if (m_idTable.TryGetValue(key, out index) == false)
+                {
+                    value = default(T);
+                    return false;
+                }
+
+                value = m_values[index];
+                return true;
             }
 
             public bool HasData(string key)
             {
-                return m_datas.ContainsKey(key);
+                return m_idTable.ContainsKey(key);
             }
 
             public void OnBeforeSerialize()
             {
-                if (m_datas != null)
-                {
-                    m_keys = new List<string>(m_datas.Count);
-                    m_values = new List<T>(m_datas.Count);
-
-                    foreach (var data in m_datas)
-                    {
-                        m_keys.Add(data.Key);
-                        m_values.Add(data.Value);
-                    }
-
-                    m_datas = null;
-                }
             }
 
             public void OnAfterDeserialize()
             {
-                if (m_keys != null)
+                m_idTable.Clear();
+                
+                for (int i = 0; i < m_keys.Count; ++i)
                 {
-                    m_datas = new Dictionary<string, T>(m_keys.Count);
-                    for (int i = 0; i < m_keys.Count; ++i)
-                    {
-                        m_datas.Add(m_keys[i], m_values[i]); 
-                    }
-
-                    m_keys = null;
-                    m_values = null;
+                    m_idTable[m_keys[i]] = i;
                 }
-                else
-                {
-                    m_datas = new Dictionary<string, T>();
-                }
-
             }
         }
 
