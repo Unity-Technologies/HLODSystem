@@ -14,7 +14,9 @@ namespace Unity.HLODSystem
             [NonSerialized]
             private Dictionary<string, T> m_datas = new Dictionary<string, T>();
             
+            [SerializeField]
             private List<string> m_keys;
+            [SerializeField]
             private List<T> m_values;
 
             public bool AddData(string key, T value)
@@ -30,6 +32,11 @@ namespace Unity.HLODSystem
             public bool TryGetData(string key, out T value)
             {
                 return m_datas.TryGetValue(key, out value);
+            }
+
+            public bool HasData(string key)
+            {
+                return m_datas.ContainsKey(key);
             }
 
             public void OnBeforeSerialize()
@@ -94,9 +101,12 @@ namespace Unity.HLODSystem
             }
         }
 
-        private UserDataTable<int> m_intDatas;
-        private UserDataTable<float> m_floatDatas;
-        private UserDataTable<string> m_stringDatas;
+        [SerializeField]
+        private UserDataTable<int> m_intDatas = new UserDataTable<int>();
+        [SerializeField]
+        private UserDataTable<float> m_floatDatas = new UserDataTable<float>();
+        [SerializeField]
+        private UserDataTable<string> m_stringDatas = new UserDataTable<string>();
     
     }
 }

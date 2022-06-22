@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.HLODSystem.Serializer;
 using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
 using UnityEngine;
@@ -70,6 +71,7 @@ namespace Unity.HLODSystem
         private State m_expectedState = State.Release;
 
         private HLODControllerBase m_controller;
+        private UserDataSerializerBase m_userDataSerializer;
         private ISpaceManager m_spaceManager;
         private HLODTreeNode m_parent;
 
@@ -153,6 +155,7 @@ namespace Unity.HLODSystem
             m_fsm.RegisterExitedFunction(State.High, OnExitedHigh);
             
             m_controller = controller;
+            m_userDataSerializer = controller.GetComponent<UserDataSerializerBase>();
             m_spaceManager = spaceManager;
             m_parent = parent;
             
@@ -333,6 +336,11 @@ namespace Unity.HLODSystem
                 m_controller.GetHighObject(id, Level, m_distance, (o =>
                 {
                     o.SetActive(false);
+                    if (m_userDataSerializer != null)
+                    {
+                        m_userDataSerializer.DeserializeUserData(id, o);
+                    }
+                    
                     m_loadedHighObjects.Add(id, o);
                 }));
             }

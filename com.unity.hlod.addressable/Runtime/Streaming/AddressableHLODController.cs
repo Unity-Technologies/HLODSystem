@@ -48,6 +48,13 @@ namespace Unity.HLODSystem.Streaming
         private int m_hlodLayerIndex;
 
         public event Action<GameObject> HighObjectCreated;
+
+        #if  UNITY_EDITOR
+        public override GameObject GetHighSceneObject(int id)
+        {
+            return m_highObjects[id].GameObject;
+        }
+        #endif
         
         public override void OnStart()
         {
