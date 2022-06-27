@@ -23,10 +23,13 @@ namespace Unity.HLODSystem.Serializer
             {
                 HLODUserData userData = new HLODUserData();
                 SerializeUserData(gameObject, userData);
-                
-                m_idList.Add(id);
-                m_userDataList.Add(userData);
-                m_idTable[id] = m_userDataList.Count - 1;
+
+                if (userData.HasAnyData())
+                {
+                    m_idList.Add(id);
+                    m_userDataList.Add(userData);
+                    m_idTable[id] = m_userDataList.Count - 1;
+                }
             }
             else
             {

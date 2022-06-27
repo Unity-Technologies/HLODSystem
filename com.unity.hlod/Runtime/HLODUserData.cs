@@ -50,6 +50,11 @@ namespace Unity.HLODSystem
                 return true;
             }
 
+            public bool HasAnyData()
+            {
+                return m_idTable.Count > 0;
+            }
+
             public bool HasData(string key)
             {
                 return m_idTable.ContainsKey(key);
@@ -68,6 +73,13 @@ namespace Unity.HLODSystem
                     m_idTable[m_keys[i]] = i;
                 }
             }
+        }
+
+        public bool HasAnyData()
+        {
+            return m_intDatas.HasAnyData() ||
+                   m_floatDatas.HasAnyData() ||
+                   m_stringDatas.HasAnyData();
         }
 
         public UserDataTable<int> IntDatas
