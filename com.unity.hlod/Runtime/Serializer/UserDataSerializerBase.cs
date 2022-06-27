@@ -18,19 +18,20 @@ namespace Unity.HLODSystem.Serializer
         
         public void SerializeUserData(int id, GameObject gameObject)
         {
-            HLODUserData userData = new HLODUserData();
-            SerializeUserData(gameObject, userData);
-
             int index = 0;
             if (m_idTable.TryGetValue(id, out index) == false)
             {
+                HLODUserData userData = new HLODUserData();
+                SerializeUserData(gameObject, userData);
+                
                 m_idList.Add(id);
                 m_userDataList.Add(userData);
                 m_idTable[id] = m_userDataList.Count - 1;
             }
             else
             {
-                m_userDataList[index] = userData;
+                HLODUserData userData = m_userDataList[index];
+                SerializeUserData(gameObject, userData);
             }
         }
 
