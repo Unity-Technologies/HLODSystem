@@ -11,6 +11,7 @@ namespace Unity.HLODSystem.Streaming
         private List<GameObject> m_gameObjectList = new List<GameObject>();
         [SerializeField]
         private List<GameObject> m_lowGameObjects = new List<GameObject>();
+        
 
         public int AddHighObject(GameObject gameObject)
         {
@@ -27,6 +28,14 @@ namespace Unity.HLODSystem.Streaming
         }
         public override int HighObjectCount { get => m_gameObjectList.Count; }
         public override int LowObjectCount { get => m_lowGameObjects.Count; }
+
+        #if UNITY_EDITOR
+        public override GameObject GetHighSceneObject(int id)
+        {
+            return m_gameObjectList[id];
+        }
+        #endif
+        
         public override void GetHighObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
         {
             loadDoneCallback?.Invoke(m_gameObjectList[id]);            

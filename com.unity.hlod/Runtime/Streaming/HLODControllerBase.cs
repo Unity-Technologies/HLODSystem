@@ -11,6 +11,14 @@ namespace Unity.HLODSystem.Streaming
     public abstract class HLODControllerBase : MonoBehaviour, ISerializationCallbackReceiver
     {
         #region Interface
+
+        //This method is only used during creation.
+        //Because the GameObject may have been deleted in Runtime, it does not work.
+        //So, explicitly make it available only in the Editor.
+        #if UNITY_EDITOR
+        public abstract GameObject GetHighSceneObject(ControllerID id);
+        #endif
+        
         public abstract void Install();
 
 

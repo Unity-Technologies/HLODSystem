@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using Unity.HLODSystem.SpaceManager;
-using Unity.HLODSystem.Streaming;
 using Unity.HLODSystem.Utils;
 using UnityEditor;
 using UnityEngine;
@@ -42,10 +41,14 @@ namespace Unity.HLODSystem
         private Type[] m_StreamingTypes;
         private string[] m_StreamingNames;
 
+        private Type[] m_UserDataSerializerTypes;
+        private string[] m_UserDataSerializerNames;
+
         private bool isShowCommon = true;
         private bool isShowBatcher = true;
         private bool isShowSimplifier = true;
         private bool isShowStreaming = true;
+        private bool isShowUserDataSerializer = true;
 
         private bool isFirstOnGUI = true;
         
@@ -80,6 +83,9 @@ namespace Unity.HLODSystem
 
             m_StreamingTypes = Streaming.StreamingBuilderTypes.GetTypes();
             m_StreamingNames = m_StreamingTypes.Select(t => t.Name).ToArray();
+
+            m_UserDataSerializerTypes = Serializer.UserDataSerializerTypes.GetTypes();
+            m_UserDataSerializerNames = m_UserDataSerializerTypes.Select(t => t.Name).ToArray();
 
             isFirstOnGUI = true;
         }
@@ -124,6 +130,7 @@ namespace Unity.HLODSystem
             isShowSimplifier = EditorGUILayout.BeginFoldoutHeaderGroup(isShowSimplifier, "Simplifier");
             if (isShowSimplifier == true)
             {
+                EditorGUI.indentLevel += 1;
                 if (m_SimplifierTypes.Length > 0)
                 {
                     int simplifierIndex = Math.Max(Array.IndexOf(m_SimplifierTypes, hlod.SimplifierType), 0);
@@ -143,12 +150,14 @@ namespace Unity.HLODSystem
                 {
                     EditorGUILayout.LabelField("Cannot find Simplifiers.");
                 }
+                EditorGUI.indentLevel -= 1;
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 
             isShowBatcher = EditorGUILayout.BeginFoldoutHeaderGroup(isShowBatcher, "Batcher");
             if (isShowBatcher == true)
             {
+                EditorGUI.indentLevel += 1;
                 if (m_BatcherTypes.Length > 0)
                 {
                     int batcherIndex = Math.Max(Array.IndexOf(m_BatcherTypes, hlod.BatcherType), 0);
@@ -168,14 +177,15 @@ namespace Unity.HLODSystem
                 {
                     EditorGUILayout.LabelField("Cannot find Batchers.");
                 }
+                EditorGUI.indentLevel -= 1;
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
-
-
+            
 
             isShowStreaming = EditorGUILayout.BeginFoldoutHeaderGroup(isShowStreaming, "Streaming");
             if (isShowStreaming == true)
             {
+                EditorGUI.indentLevel += 1;
                 if (m_StreamingTypes.Length > 0)
                 {
                     int streamingIndex = Math.Max(Array.IndexOf(m_StreamingTypes, hlod.StreamingType), 0);
@@ -195,6 +205,29 @@ namespace Unity.HLODSystem
                 {
                     EditorGUILayout.LabelField("Cannot find StreamingSetters.");
                 }
+                EditorGUI.indentLevel -= 1;
+            }
+            EditorGUILayout.EndFoldoutHeaderGroup();
+            
+            
+            isShowUserDataSerializer =
+                EditorGUILayout.BeginFoldoutHeaderGroup(isShowUserDataSerializer, "UserData serializer");
+            if (isShowUserDataSerializer)
+            {
+                EditorGUI.indentLevel += 1;
+                if (m_UserDataSerializerTypes.Length > 0)
+                {
+                    int serializerIndex =
+                        Math.Max(Array.IndexOf(m_UserDataSerializerTypes, hlod.UserDataSerializerType), 0);
+                    serializerIndex =
+                        EditorGUILayout.Popup("UserDataSerializer", serializerIndex, m_UserDataSerializerNames);
+                    hlod.UserDataSerializerType = m_UserDataSerializerTypes[serializerIndex];
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("Cannot find UserDataSerializer.");
+                }
+                EditorGUI.indentLevel -= 1;
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 
@@ -202,7 +235,7 @@ namespace Unity.HLODSystem
             GUIContent generateButton = Styles.GenerateButtonEnable;
             GUIContent destroyButton = Styles.DestroyButtonNotExists;
 
-            if (hlod.GetComponent<HLODControllerBase>() != null)
+            if (hlod.GetComponent<Streaming.HLODControllerBase>() != null)
             {
                 generateButton = Styles.GenerateButtonExists;
                 destroyButton = Styles.DestroyButtonEnable;

@@ -6,6 +6,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using Unity.Collections;
+using Unity.HLODSystem.Serializer;
 using Unity.HLODSystem.Simplifier;
 using Unity.HLODSystem.SpaceManager;
 using Unity.HLODSystem.Streaming;
@@ -263,7 +264,9 @@ namespace Unity.HLODSystem
                     Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
                     sw.Reset();
                     sw.Start();
-                 
+
+                    UserDataSerialization(hlod);
+                    
                     EditorUtility.SetDirty(hlod.gameObject);
                 }
 
@@ -322,6 +325,27 @@ namespace Unity.HLODSystem
             
             EditorUtility.SetDirty(hlod.gameObject);
             EditorUtility.SetDirty(hlod);
+        }
+
+
+        private static void UserDataSerialization(HLOD hlod)
+        {
+            var serializer = hlod.gameObject.AddComponent(hlod.UserDataSerializerType) as UserDataSerializerBase;
+
+            if (serializer == null)
+                return;
+            
+            hlod.AddGeneratedResource(serializer);
+            
+            var controller = hlod.GetComponent<Streaming.HLODControllerBase>();
+            if (controller == null)
+                 return;
+
+            for (int i = 0; i < controller.HighObjectCount; ++i)
+            {
+                var obj = controller.GetHighSceneObject(i);
+                serializer.SerializeUserData(i, obj);
+            }
         }
 
     }
