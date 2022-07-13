@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Streaming
 {
-    using ControllerID = Int32;
     public abstract class HLODControllerBase : MonoBehaviour, ISerializationCallbackReceiver
     {
         #region Interface
@@ -16,7 +15,7 @@ namespace Unity.HLODSystem.Streaming
         //Because the GameObject may have been deleted in Runtime, it does not work.
         //So, explicitly make it available only in the Editor.
         #if UNITY_EDITOR
-        public abstract GameObject GetHighSceneObject(ControllerID id);
+        public abstract GameObject GetHighSceneObject(int id);
         #endif
         
         public abstract void Install();
@@ -29,11 +28,33 @@ namespace Unity.HLODSystem.Streaming
         public abstract int LowObjectCount { get; }
 
         //This should be a coroutine.
-        public abstract void GetHighObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
-        public abstract void GetLowObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
+        public LoadManager.Handle GetHighObject(int id, int level, float distance, Action<LoadManager.Handle> loadDoneCallback)
+        {
+            return LoadManager.Instance.LoadHighObject(this, id, level, distance, loadDoneCallback);
+        }
 
-        public abstract void ReleaseHighObject(ControllerID id);
-        public abstract void ReleaseLowObject(ControllerID id);
+        public LoadManager.Handle GetLowObject(int id, int level, float distance, Action<LoadManager.Handle> loadDoneCallback)
+        {
+            return LoadManager.Instance.LoadLowObject(this, id, level, distance, loadDoneCallback);
+        }
+
+        public void ReleaseHighObject(LoadManager.Handle handle)
+        {
+            LoadManager.Instance.UnloadHighObject(handle);
+        }
+
+        public void ReleaseLowObject(LoadManager.Handle handle)
+        {
+            LoadManager.Instance.UnloadLowObject(handle);
+        }
+
+
+        public abstract void LoadHighObject(int id,Action<GameObject> loadDoneCallback);
+        public abstract void LoadLowObject(int id, Action<GameObject> loadDoneCallback);
+        
+        public abstract void UnloadHighObject(int id);
+        public abstract void UnloadLowObject(int id);
+        
         #endregion
 
         #region Unity Events
@@ -45,6 +66,7 @@ namespace Unity.HLODSystem.Streaming
         public void Start()
         {
             m_root.Initialize(this, m_spaceManager, null);
+            LoadManager.Instance.RegisterController(this);
             OnStart();
         }
 
@@ -61,6 +83,7 @@ namespace Unity.HLODSystem.Streaming
         public void OnDestroy()
         {
             OnStop();
+            LoadManager.Instance.UnregisterController(this);
             HLODManager.Instance.Unregister(this);
             m_spaceManager = null;
             m_root = null;

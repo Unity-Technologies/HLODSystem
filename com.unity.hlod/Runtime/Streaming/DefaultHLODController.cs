@@ -35,17 +35,6 @@ namespace Unity.HLODSystem.Streaming
             return m_gameObjectList[id];
         }
         #endif
-        
-        public override void GetHighObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
-        {
-            loadDoneCallback?.Invoke(m_gameObjectList[id]);            
-        }
-
-        public override void GetLowObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
-        {
-            loadDoneCallback?.Invoke(m_lowGameObjects[id]);
-        }
-        
         public override void OnStart()
         {
 
@@ -56,8 +45,6 @@ namespace Unity.HLODSystem.Streaming
 
         }
 
-
-
         public override void Install()
         {
             for (int i = 0; i < m_gameObjectList.Count; ++i)
@@ -66,15 +53,26 @@ namespace Unity.HLODSystem.Streaming
             }
         }
 
-        public override void ReleaseHighObject(int id)
+        public override void LoadHighObject(int id, Action<GameObject> loadDoneCallback)
+        {
+            loadDoneCallback?.Invoke(m_gameObjectList[id]);
+        }
+
+        public override void LoadLowObject(int id, Action<GameObject> loadDoneCallback)
+        {
+            loadDoneCallback?.Invoke(m_lowGameObjects[id]);
+        }
+
+        public override void UnloadHighObject(int id)
         {
             m_gameObjectList[id].SetActive(false);
         }
 
-        public override void ReleaseLowObject(int id)
+        public override void UnloadLowObject(int id)
         {
             m_lowGameObjects[id].SetActive(false);
         }
+
     }
 
 }

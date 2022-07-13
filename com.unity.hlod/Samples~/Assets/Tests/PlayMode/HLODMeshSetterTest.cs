@@ -109,24 +109,24 @@ namespace Unity.HLODSystem.RuntimeTests
             
             m_controller.GetHighObject(0, 0, 0.0f, o =>
             {
-                Assert.AreEqual(root1, o.activeInHierarchy);
+                Assert.AreEqual(root1, o.LoadedObject.activeInHierarchy);
             });
             m_controller.GetHighObject(1, 0, 0.0f, o =>
             {
-                Assert.AreEqual(root2, o.activeInHierarchy);
+                Assert.AreEqual(root2, o.LoadedObject.activeInHierarchy);
             });
             
             m_controller.GetLowObject(0, 0, 0.0f, o =>
             {
-                Assert.AreEqual(hlod1, o.activeInHierarchy);
+                Assert.AreEqual(hlod1, o.LoadedObject.activeInHierarchy);
             });
             m_controller.GetLowObject(1, 0, 0.0f, o =>
             {
-                Assert.AreEqual(hlod2, o.activeInHierarchy);
+                Assert.AreEqual(hlod2, o.LoadedObject.activeInHierarchy);
             });
             m_controller.GetLowObject(2, 0, 0.0f, o =>
             {
-                Assert.AreEqual(hlod3, o.activeInHierarchy);
+                Assert.AreEqual(hlod3, o.LoadedObject.activeInHierarchy);
             });
 
 
