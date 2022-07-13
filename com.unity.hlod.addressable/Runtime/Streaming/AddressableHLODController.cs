@@ -29,14 +29,11 @@ namespace Unity.HLODSystem.Streaming
 
         [SerializeField]
         private List<string> m_lowObjects = new List<string>();
-
-        [SerializeField]
-        int m_priority = 0;
         
         class LoadInfo
         {
             public GameObject GameObject;
-            public AddressableLoadManager.Handle Handle;
+            public AsyncOperationHandle<GameObject> Handle;
             public List<Action<GameObject>> Callbacks;
         }
         
@@ -62,21 +59,15 @@ namespace Unity.HLODSystem.Streaming
             m_hlodMeshesRoot.transform.SetParent(transform, false);
 
             m_hlodLayerIndex = LayerMask.NameToLayer(HLOD.HLODLayerStr);
-
-            AddressableLoadManager.Instance.RegisterController(this);
-
         }
 
         public override void OnStop()
         {
-            if ( AddressableLoadManager.Instance != null)
-                AddressableLoadManager.Instance.UnregisterController(this);
         }
 
 
         public override void Install()
         {
-            
             for (int i = 0; i < m_highObjects.Count; ++i)
             {
                 if (string.IsNullOrEmpty(m_highObjects[i].Address) == false)
@@ -128,7 +119,7 @@ namespace Unity.HLODSystem.Streaming
 
         public string GetLowObjectAddr(int index) { return m_lowObjects[index]; }
 
-        public override void GetHighObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
+        public override void LoadHighObject(int id, Action<GameObject> loadDoneCallback)
         {
             //already processing object to load.
             if (m_createdHighObjects.ContainsKey(id) == true)
@@ -158,21 +149,17 @@ namespace Unity.HLODSystem.Streaming
                 else
                 {
                     //high object's priority is always lowest.
-                    LoadInfo loadInfo = CreateLoadInfo(m_highObjects[id].Address, m_priority, distance,
-                        m_highObjects[id].Parent, m_highObjects[id].Position, m_highObjects[id].Rotation, m_highObjects[id].Scale);
+                    LoadInfo loadInfo = CreateLoadInfo(m_highObjects[id].Address, m_highObjects[id].Parent, m_highObjects[id].Position, m_highObjects[id].Rotation, m_highObjects[id].Scale);
                     m_createdHighObjects.Add(id, loadInfo);
                     
                     loadInfo.Callbacks = new List<Action<GameObject>>();
                     loadInfo.Callbacks.Add(loadDoneCallback);
                     loadInfo.Callbacks.Add(o => { HighObjectCreated?.Invoke(o); });
                 }
-                
             }            
-            
         }
-
-
-        public override void GetLowObject(int id, int level, float distance, Action<GameObject> loadDoneCallback)
+        
+        public override void LoadLowObject(int id, Action<GameObject> loadDoneCallback)
         {
             //already processing object to load.
             if (m_createdLowObjects.ContainsKey(id) == true)
@@ -191,7 +178,7 @@ namespace Unity.HLODSystem.Streaming
             }
             else
             {
-                LoadInfo loadInfo = CreateLoadInfo(m_lowObjects[id], m_priority, distance, m_hlodMeshesRoot.transform, Vector3.zero, Quaternion.identity,Vector3.one);
+                LoadInfo loadInfo = CreateLoadInfo(m_lowObjects[id], m_hlodMeshesRoot.transform, Vector3.zero, Quaternion.identity,Vector3.one);
                 m_createdLowObjects.Add(id, loadInfo);
 
                 loadInfo.Callbacks = new List<Action<GameObject>>();
@@ -199,7 +186,7 @@ namespace Unity.HLODSystem.Streaming
             }
         }
 
-        public override void ReleaseHighObject(int id)
+        public override void UnloadHighObject(int id)
         {
             if (m_createdHighObjects.ContainsKey(id) == false)
                 return;
@@ -212,21 +199,23 @@ namespace Unity.HLODSystem.Streaming
             {
                 LoadInfo info = m_createdHighObjects[id];
                 DestoryObject(info.GameObject);
-                AddressableLoadManager.Instance.UnloadAsset(info.Handle);
+                Addressables.Release(info.Handle);
             }
 
             m_createdHighObjects.Remove(id);
         }
-        public override void ReleaseLowObject(int id)
+        public override void UnloadLowObject(int id)
         {
             if (m_createdLowObjects.ContainsKey(id) == false)
                 return;
             
             LoadInfo info = m_createdLowObjects[id];
+            Addressables.Release(info.Handle);
+            
             m_createdLowObjects.Remove(id);
             
             DestoryObject(info.GameObject);
-            AddressableLoadManager.Instance.UnloadAsset(info.Handle);
+            
         }
 
         private void DestoryObject(Object obj)
@@ -238,10 +227,10 @@ namespace Unity.HLODSystem.Streaming
 #endif
         }
         
-        private LoadInfo CreateLoadInfo(string address, int priority, float distance, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
+        private LoadInfo CreateLoadInfo(string address, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
         {
             LoadInfo loadInfo = new LoadInfo();
-            loadInfo.Handle = AddressableLoadManager.Instance.LoadAsset(this, address, priority, distance);
+            loadInfo.Handle = Addressables.LoadAssetAsync<GameObject>(address);
             loadInfo.Handle.Completed += handle =>
             {
                 if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
