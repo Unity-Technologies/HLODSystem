@@ -11,6 +11,12 @@ namespace Unity.HLODSystem.Streaming
 {
     public class AddressableHLODController : HLODControllerBase
     {
+        public interface ICustomLoader
+        {
+            public AsyncOperationHandle<GameObject> CustomLoad(object key);
+            public void CustomUnload(AsyncOperationHandle<GameObject> handle);
+        }
+
         [Serializable]
         public class ChildObject
         {
@@ -44,7 +50,16 @@ namespace Unity.HLODSystem.Streaming
         private GameObject m_hlodMeshesRoot;
         private int m_hlodLayerIndex;
 
+        private ICustomLoader m_customLoader;
+
         public event Action<GameObject> HighObjectCreated;
+
+        public ICustomLoader CustomLoader
+        {
+            set { m_customLoader = value;}
+            get { return m_customLoader; }
+        }
+        
 
         #if  UNITY_EDITOR
         public override GameObject GetHighSceneObject(int id)
@@ -199,7 +214,7 @@ namespace Unity.HLODSystem.Streaming
             {
                 LoadInfo info = m_createdHighObjects[id];
                 DestoryObject(info.GameObject);
-                Addressables.Release(info.Handle);
+                Unload(info.Handle);
             }
 
             m_createdHighObjects.Remove(id);
@@ -210,12 +225,9 @@ namespace Unity.HLODSystem.Streaming
                 return;
             
             LoadInfo info = m_createdLowObjects[id];
-            Addressables.Release(info.Handle);
-            
+            Unload(info.Handle);
             m_createdLowObjects.Remove(id);
-            
             DestoryObject(info.GameObject);
-            
         }
 
         private void DestoryObject(Object obj)
@@ -230,7 +242,15 @@ namespace Unity.HLODSystem.Streaming
         private LoadInfo CreateLoadInfo(string address, Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
         {
             LoadInfo loadInfo = new LoadInfo();
-            loadInfo.Handle = Addressables.LoadAssetAsync<GameObject>(address);
+            if (m_customLoader == null)
+            {
+                loadInfo.Handle = Addressables.LoadAssetAsync<GameObject>(address);
+            }
+            else
+            {
+                loadInfo.Handle = m_customLoader.CustomLoad(address);
+            }
+
             loadInfo.Handle.Completed += handle =>
             {
                 if (loadInfo.Handle.Status == AsyncOperationStatus.Failed)
@@ -254,6 +274,18 @@ namespace Unity.HLODSystem.Streaming
                 loadInfo.Callbacks.Clear();
             };
             return loadInfo;
+        }
+
+        private void Unload(AsyncOperationHandle<GameObject> handle)
+        {
+            if (m_customLoader == null)
+            {
+                Addressables.Release(handle);
+            }
+            else
+            {
+                m_customLoader.CustomUnload(handle);
+            }
         }
 
         static void ChangeLayersRecursively(Transform trans, int layer)
