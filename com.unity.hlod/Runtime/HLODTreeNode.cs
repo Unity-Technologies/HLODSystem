@@ -28,11 +28,11 @@ namespace Unity.HLODSystem
         [SerializeField]
         private List<int> m_lowObjectIds = new List<int>();
 
-        private Dictionary<int, GameObject> m_highObjects = new Dictionary<int, GameObject>();
-        private Dictionary<int, GameObject> m_lowObjects = new Dictionary<int, GameObject>();
+        private Dictionary<int, LoadManager.Handle> m_highObjects = new Dictionary<int, LoadManager.Handle>();
+        private Dictionary<int, LoadManager.Handle> m_lowObjects = new Dictionary<int, LoadManager.Handle>();
 
-        private Dictionary<int, GameObject> m_loadedHighObjects;
-        private Dictionary<int, GameObject> m_loadedLowObjects;
+        private Dictionary<int, LoadManager.Handle> m_loadedHighObjects;
+        private Dictionary<int, LoadManager.Handle> m_loadedLowObjects;
 
         public int Level
         {
@@ -264,7 +264,7 @@ namespace Unity.HLODSystem
         void OnEnteringLow()
         {
             if ( m_loadedLowObjects == null ) 
-                m_loadedLowObjects = new Dictionary<int, GameObject>();
+                m_loadedLowObjects = new Dictionary<int, LoadManager.Handle>();
             
             if (m_lowObjects.Count == m_lowObjectIds.Count)
                 return;
@@ -275,7 +275,7 @@ namespace Unity.HLODSystem
 
                 m_controller.GetLowObject(id, Level, m_distance, o =>
                 {
-                    o.SetActive(false);
+                    o.LoadedObject.SetActive(false);
                     m_loadedLowObjects.Add(id, o);
                 });
             }
@@ -306,8 +306,8 @@ namespace Unity.HLODSystem
         {
             foreach (var item in m_lowObjects)
             {
-                item.Value.SetActive(false);
-                m_controller.ReleaseLowObject(item.Key);
+                item.Value.LoadedObject.SetActive(false);
+                m_controller.ReleaseLowObject(item.Value);
             }
             m_lowObjects.Clear();
         }
@@ -323,7 +323,7 @@ namespace Unity.HLODSystem
             }
 
             if ( m_loadedHighObjects == null )
-                m_loadedHighObjects = new Dictionary<int, GameObject>();
+                m_loadedHighObjects = new Dictionary<int, LoadManager.Handle>();
             
             if (m_loadedHighObjects.Count == m_highObjectIds.Count)
                 return;
@@ -335,10 +335,10 @@ namespace Unity.HLODSystem
 
                 m_controller.GetHighObject(id, Level, m_distance, (o =>
                 {
-                    o.SetActive(false);
+                    o.LoadedObject.SetActive(false);
                     if (m_userDataSerializer != null)
                     {
-                        m_userDataSerializer.DeserializeUserData(id, o);
+                        m_userDataSerializer.DeserializeUserData(id, o.LoadedObject);
                     }
                     
                     m_loadedHighObjects.Add(id, o);
@@ -379,8 +379,8 @@ namespace Unity.HLODSystem
         {
             foreach (var item in m_highObjects)
             {
-                item.Value.SetActive(false);
-                m_controller.ReleaseHighObject(item.Key);
+                item.Value.LoadedObject.SetActive(false);
+                m_controller.ReleaseHighObject(item.Value);
             }
             m_highObjects.Clear();
             
@@ -550,12 +550,12 @@ namespace Unity.HLODSystem
 
             foreach (var item in m_highObjects)
             {
-                item.Value.SetActive(m_isVisibleHierarchy);
+                item.Value.LoadedObject.SetActive(m_isVisibleHierarchy);
             }
 
             foreach (var item in m_lowObjects)
             {
-                item.Value.SetActive(m_isVisibleHierarchy);
+                item.Value.LoadedObject.SetActive(m_isVisibleHierarchy);
             }
         }
 

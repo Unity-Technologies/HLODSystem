@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.Streaming
 {
-    using ControllerID = Int32;
     public abstract class HLODControllerBase : MonoBehaviour, ISerializationCallbackReceiver
     {
         #region Interface
@@ -16,7 +15,7 @@ namespace Unity.HLODSystem.Streaming
         //Because the GameObject may have been deleted in Runtime, it does not work.
         //So, explicitly make it available only in the Editor.
         #if UNITY_EDITOR
-        public abstract GameObject GetHighSceneObject(ControllerID id);
+        public abstract GameObject GetHighSceneObject(int id);
         #endif
         
         public abstract void Install();
@@ -28,14 +27,14 @@ namespace Unity.HLODSystem.Streaming
         public abstract int HighObjectCount { get; }
         public abstract int LowObjectCount { get; }
 
-        //This should be a coroutine.
-        public abstract void GetHighObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
-        public abstract void GetLowObject(ControllerID id, int level, float distance, Action<GameObject> loadDoneCallback);
-
-        public abstract void ReleaseHighObject(ControllerID id);
-        public abstract void ReleaseLowObject(ControllerID id);
+        public abstract void LoadHighObject(int id,Action<GameObject> loadDoneCallback);
+        public abstract void LoadLowObject(int id, Action<GameObject> loadDoneCallback);
+        
+        public abstract void UnloadHighObject(int id);
+        public abstract void UnloadLowObject(int id);
+        
         #endregion
-
+        
         #region Unity Events
         public void Awake()
         {
@@ -45,6 +44,7 @@ namespace Unity.HLODSystem.Streaming
         public void Start()
         {
             m_root.Initialize(this, m_spaceManager, null);
+            LoadManager.Instance.RegisterController(this);
             OnStart();
         }
 
@@ -61,6 +61,7 @@ namespace Unity.HLODSystem.Streaming
         public void OnDestroy()
         {
             OnStop();
+            LoadManager.Instance.UnregisterController(this);
             HLODManager.Instance.Unregister(this);
             m_spaceManager = null;
             m_root = null;
@@ -75,6 +76,102 @@ namespace Unity.HLODSystem.Streaming
         #endregion
 
         #region Method
+        class LoadInfo
+        {
+            public LoadManager.Handle Handle;
+            public List<Action<LoadManager.Handle>> Callbacks = new List<Action<LoadManager.Handle>>();
+
+            public void LoadDone(LoadManager.Handle handle)
+            {
+                foreach (var callback in Callbacks)
+                {
+                    callback?.Invoke(handle);
+                }
+                Callbacks.Clear();
+            }
+        }
+        
+        private Dictionary<int, LoadInfo> m_createdHighObjects = new Dictionary<int, LoadInfo>();
+        private Dictionary<int, LoadInfo> m_createdLowObjects = new Dictionary<int, LoadInfo>();
+
+        public LoadManager.Handle GetHighObject(int id, int level, float distance, Action<LoadManager.Handle> loadDoneCallback)
+        {
+            LoadInfo loadInfo = null;
+            //already processing object to load.
+            if (m_createdHighObjects.TryGetValue(id, out loadInfo) == true)
+            {
+                //already load done.
+                if (loadInfo.Handle.LoadedObject != null)
+                {
+                    loadDoneCallback?.Invoke(loadInfo.Handle);
+                }
+                //not finished loading yet.
+                else
+                {
+                    loadInfo.Callbacks.Add(loadDoneCallback);
+                }
+            }
+            else
+            {
+                loadInfo = new LoadInfo();
+                m_createdHighObjects[id] = loadInfo;
+                loadInfo.Callbacks.Add(loadDoneCallback);
+                loadInfo.Handle = LoadManager.Instance.LoadHighObject(this, id, level, distance, loadInfo.LoadDone);
+            }
+
+            return loadInfo.Handle;
+        }
+
+        public LoadManager.Handle GetLowObject(int id, int level, float distance, Action<LoadManager.Handle> loadDoneCallback)
+        {
+            LoadInfo loadInfo = null;
+            //already processing object to load.
+            if (m_createdLowObjects.TryGetValue(id, out loadInfo) == true)
+            {
+                //already load done.
+                if (loadInfo.Handle.LoadedObject != null)
+                {
+                    loadDoneCallback?.Invoke(loadInfo.Handle);
+                }
+                //not finished loading yet.
+                else
+                {
+                    loadInfo.Callbacks.Add(loadDoneCallback);
+                }
+            }
+            else
+            {
+                loadInfo = new LoadInfo();
+                m_createdLowObjects[id] = loadInfo;
+                loadInfo.Callbacks.Add(loadDoneCallback);
+                loadInfo.Handle = LoadManager.Instance.LoadLowObject(this, id, level, distance, loadInfo.LoadDone);
+            }
+
+            return loadInfo.Handle;
+        }
+
+        public void ReleaseHighObject(LoadManager.Handle handle)
+        {
+            if (m_createdHighObjects.ContainsKey(handle.Id) == false)
+            {
+                return;
+            }
+
+            m_createdHighObjects.Remove(handle.Id);
+            LoadManager.Instance.UnloadHighObject(handle);
+        }
+
+        public void ReleaseLowObject(LoadManager.Handle handle)
+        {
+            if (m_createdLowObjects.ContainsKey(handle.Id) == false)
+            {
+                return;
+            }
+
+            m_createdLowObjects.Remove(handle.Id);
+            LoadManager.Instance.UnloadLowObject(handle);
+        }
+        
         public void UpdateCull(Camera camera)
         {
             if (m_spaceManager == null)

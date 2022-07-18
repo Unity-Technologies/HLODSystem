@@ -114,6 +114,7 @@ namespace Unity.HLODSystem
                 buildInfoCandidates.Add(new HLODBuildInfo()
                 {
                     Name = item.Name,
+                    ParentIndex = item.Parent,
                     Target = item.Node
                 });
                 item.TargetGameObjects.AddRange(item.Node.Objects);

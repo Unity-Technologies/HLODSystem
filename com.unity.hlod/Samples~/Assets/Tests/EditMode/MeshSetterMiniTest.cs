@@ -46,7 +46,7 @@ namespace Unity.HLODSystem.EditorTests
             
             controller.GetLowObject(0, 0, 0.0f, o =>
             {
-                var meshFilters = o.GetComponentsInChildren<MeshFilter>();
+                var meshFilters = o.LoadedObject.GetComponentsInChildren<MeshFilter>();
                 Assert.AreEqual(2, meshFilters.Length);
                 
                 Assert.AreEqual(1252, meshFilters[0].sharedMesh.vertexCount);
@@ -55,7 +55,7 @@ namespace Unity.HLODSystem.EditorTests
             
             controller.GetLowObject(1, 0, 0.0f, o =>
             {
-                var meshFilters = o.GetComponentsInChildren<MeshFilter>();
+                var meshFilters = o.LoadedObject.GetComponentsInChildren<MeshFilter>();
                 Assert.AreEqual(2, meshFilters.Length);
                 
                 Assert.AreEqual(1252, meshFilters[0].sharedMesh.vertexCount);
@@ -64,7 +64,7 @@ namespace Unity.HLODSystem.EditorTests
             
             controller.GetLowObject(2, 0, 0.0f, o =>
             {
-                var meshFilters = o.GetComponentsInChildren<MeshFilter>();
+                var meshFilters = o.LoadedObject.GetComponentsInChildren<MeshFilter>();
                 Assert.AreEqual(1, meshFilters.Length);
                 
                 Assert.AreEqual(1252, meshFilters[0].sharedMesh.vertexCount);
