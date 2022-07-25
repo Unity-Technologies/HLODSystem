@@ -205,6 +205,8 @@ namespace Unity.HLODSystem.Streaming
                 DestoryObject(loadInfo.Instance);
                 Unload(loadInfo.Handle);
                 
+                m_lowObjectLoadInfos.Remove(id);
+                
             }
             else
             {
