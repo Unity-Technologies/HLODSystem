@@ -27,11 +27,11 @@ namespace Unity.HLODSystem
         {
         }
 
-        public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
+        public void Batch(Transform rootTransform, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
         {
             for (int i = 0; i < targets.Count; ++i)
             {
-                Combine(rootPosition, targets[i]);
+                Combine(rootTransform, targets[i]);
 
                 if (onProgress != null)
                     onProgress((float) i / (float)targets.Count);
@@ -39,11 +39,14 @@ namespace Unity.HLODSystem
 
         }
 
-        private void Combine(Vector3 rootPosition, HLODBuildInfo info)
+        private void Combine(Transform rootTransform, HLODBuildInfo info)
         {
             var materialTable = new Dictionary<string, WorkingMaterial>();
             var combineInfos = new Dictionary<string, List<MeshCombiner.CombineInfo>>();           
 
+            var hlodWorldToLocal = rootTransform.worldToLocalMatrix;
+            
+            
             for (int i = 0; i < info.WorkingObjects.Count; ++i)
             {
                 var materials = info.WorkingObjects[i].Materials;
@@ -52,10 +55,10 @@ namespace Unity.HLODSystem
                     //var mat = materials[m];
                     MeshCombiner.CombineInfo combineInfo = new MeshCombiner.CombineInfo();
 
-                    combineInfo.Transform = info.WorkingObjects[i].LocalToWorld;
-                    combineInfo.Transform.m03 -= rootPosition.x;
-                    combineInfo.Transform.m13 -= rootPosition.y;
-                    combineInfo.Transform.m23 -= rootPosition.z;
+                    var colliderLocalToWorld = info.WorkingObjects[i].LocalToWorld;
+                    var matrix = hlodWorldToLocal * colliderLocalToWorld;
+                    
+                    combineInfo.Transform = matrix;
                     combineInfo.Mesh = info.WorkingObjects[i].Mesh;
                     combineInfo.MeshIndex = m;
 
