@@ -46,7 +46,7 @@ namespace Unity.HLODSystem
             m_createdMaterials.Dispose();
         }
 
-        public void Batch(Vector3 rootPosition, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
+        public void Batch(Transform rootTransform, DisposableList<HLODBuildInfo> targets, Action<float> onProgress)
         {
             dynamic options = m_batcherOptions;
             if (onProgress != null)
@@ -58,7 +58,7 @@ namespace Unity.HLODSystem
 
                 for (int i = 0; i < targets.Count; ++i)
                 {
-                    Combine(rootPosition, packer, targets[i], options);
+                    Combine(rootTransform, packer, targets[i], options);
                     if (onProgress != null)
                         onProgress(0.5f + ((float)i / (float)targets.Count) * 0.5f);
                 }
@@ -274,7 +274,7 @@ namespace Unity.HLODSystem
             return material;
         }
 
-        private void Combine(Vector3 rootPosition, TexturePacker packer, HLODBuildInfo info, dynamic options)
+        private void Combine(Transform rootTransform, TexturePacker packer, HLODBuildInfo info, dynamic options)
         {
             var atlas = packer.GetAtlas(info);
             if (atlas == null)
@@ -282,6 +282,7 @@ namespace Unity.HLODSystem
 
             List<TextureInfo> textureInfoList = options.TextureInfoList;
             List<MeshCombiner.CombineInfo> combineInfos = new List<MeshCombiner.CombineInfo>();
+            var hlodWorldToLocal = rootTransform.worldToLocalMatrix;
 
             for (int i = 0; i < info.WorkingObjects.Count; ++i)
             {
@@ -291,13 +292,13 @@ namespace Unity.HLODSystem
                 for (int si = 0; si < obj.Mesh.subMeshCount; ++si)
                 {
                     var ci = new MeshCombiner.CombineInfo();
+                    var colliderLocalToWorld = obj.LocalToWorld;
+                    var matrix = hlodWorldToLocal * colliderLocalToWorld;
+                    
                     ci.Mesh = obj.Mesh;
                     ci.MeshIndex = si;
                     
-                    ci.Transform = obj.LocalToWorld;
-                    ci.Transform.m03 -= rootPosition.x;
-                    ci.Transform.m13 -= rootPosition.y;
-                    ci.Transform.m23 -= rootPosition.z;
+                    ci.Transform = matrix;
 
                     if (ci.Mesh == null)
                         continue;
