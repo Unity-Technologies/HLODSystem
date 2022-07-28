@@ -13,8 +13,8 @@ namespace Unity.HLODSystem.Streaming
     {
         public interface ICustomLoader
         {
-            public AsyncOperationHandle<GameObject> CustomLoad(object key);
-            public void CustomUnload(AsyncOperationHandle<GameObject> handle);
+            public void CustomLoad(string key, Action<GameObject> loadDoneAction);
+            public void CustomUnload(string key);
         }
 
         [Serializable]
@@ -36,9 +36,12 @@ namespace Unity.HLODSystem.Streaming
 
         class LoadInfo
         {
+            public string Key;
+            public bool LoadFromCustom;
             public AsyncOperationHandle<GameObject> Handle;
             public GameObject Instance;
         }
+
         private Dictionary<int, LoadInfo> m_highObjectLoadInfos = new Dictionary<int, LoadInfo>();
         private Dictionary<int, LoadInfo> m_lowObjectLoadInfos = new Dictionary<int, LoadInfo>();
 
@@ -184,7 +187,7 @@ namespace Unity.HLODSystem.Streaming
                 if (m_highObjectLoadInfos.TryGetValue(id, out var loadInfo))
                 {
                     DestoryObject(loadInfo.Instance);
-                    Unload(loadInfo.Handle);
+                    Unload(loadInfo);
 
                     m_highObjectLoadInfos.Remove(id);
                 }
@@ -203,7 +206,7 @@ namespace Unity.HLODSystem.Streaming
             if (m_lowObjectLoadInfos.TryGetValue(id, out var loadInfo))
             {
                 DestoryObject(loadInfo.Instance);
-                Unload(loadInfo.Handle);
+                Unload(loadInfo);
                 
                 m_lowObjectLoadInfos.Remove(id);
                 
@@ -227,24 +230,10 @@ namespace Unity.HLODSystem.Streaming
             Vector3 localScale, List<Action<GameObject>> callbacks)
         {
             LoadInfo loadInfo = new LoadInfo();
-            if (m_customLoader == null)
-            {
-                loadInfo.Handle = Addressables.LoadAssetAsync<GameObject>(address);
-            }
-            else
-            {
-                loadInfo.Handle = m_customLoader.CustomLoad(address);
-            }
+            loadInfo.Key = address;
 
-            loadInfo.Handle.Completed += handle =>
-            {
-                if (handle.Status == AsyncOperationStatus.Failed)
-                {
-                    Debug.LogError("Failed to load asset: " + address);
-                    return;
-                }
-
-                GameObject gameObject = Instantiate(handle.Result, parent, false);
+            Action<GameObject> loadDoneAction = (obj) => {
+                GameObject gameObject = Instantiate(obj, parent, false);
                 gameObject.transform.localPosition = localPosition;
                 gameObject.transform.localRotation = localRotation;
                 gameObject.transform.localScale = localScale;
@@ -258,18 +247,39 @@ namespace Unity.HLODSystem.Streaming
                 }
             };
 
-            return loadInfo;
-        }
-
-        private void Unload(AsyncOperationHandle<GameObject> handle)
-        {
             if (m_customLoader == null)
             {
-                Addressables.Release(handle);
+                loadInfo.LoadFromCustom = false;
+                loadInfo.Handle = Addressables.LoadAssetAsync<GameObject>(address);
+                loadInfo.Handle.Completed += handle =>
+                {
+                    if (handle.Status == AsyncOperationStatus.Failed)
+                    {
+                        Debug.LogError("Failed to load asset: " + address);
+                        return;
+                    }
+
+                    loadDoneAction(loadInfo.Handle.Result);
+                };
             }
             else
             {
-                m_customLoader.CustomUnload(handle);
+                loadInfo.LoadFromCustom = true;
+                m_customLoader.CustomLoad(address, loadDoneAction);
+            }            
+
+            return loadInfo;
+        }
+
+        private void Unload(LoadInfo info)
+        {
+            if (info.LoadFromCustom == false)
+            {
+                Addressables.Release(info.Handle);
+            }
+            else
+            {
+                m_customLoader.CustomUnload(info.Key);
             }
         }
 
