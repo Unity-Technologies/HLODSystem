@@ -125,14 +125,6 @@ namespace Unity.HLODSystem
             get { return m_convertedPrefabObjects; }
         }
 #endif
-
-        Bounds CalcLocalBounds(Renderer renderer)
-        {
-            Bounds bounds = renderer.bounds;
-            bounds.center -= transform.position;
-
-            return bounds;
-        }
         public Bounds GetBounds()
         {
             Bounds ret = new Bounds();
@@ -144,10 +136,10 @@ namespace Unity.HLODSystem
                 return ret;
             }
 
-            Bounds bounds = CalcLocalBounds(renderers[0]);
+            Bounds bounds = Utils.BoundsUtils.CalcLocalBounds(renderers[0], transform);
             for (int i = 1; i < renderers.Length; ++i)
             {
-                bounds.Encapsulate(CalcLocalBounds(renderers[i]));
+                bounds.Encapsulate(Utils.BoundsUtils.CalcLocalBounds(renderers[i], transform));
             }
 
             ret.center = bounds.center;

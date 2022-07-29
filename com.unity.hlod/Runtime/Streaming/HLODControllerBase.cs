@@ -71,7 +71,7 @@ namespace Unity.HLODSystem.Streaming
             if (m_runtimeDebug == false)
                 return;
 
-            m_root.RenderBounds();
+            m_root.RenderBounds(transform);
         }
         #endregion
 

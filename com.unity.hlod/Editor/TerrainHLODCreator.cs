@@ -1099,7 +1099,7 @@ namespace Unity.HLODSystem
                             new QuadTreeSpaceSplitter(0.0f);
 
                         SpaceNode rootNode = splitter.CreateSpaceTree(m_hlod.GetBounds(), m_hlod.ChunkSize * 2.0f,
-                        m_hlod.transform.position, null, progress => { });
+                        m_hlod.transform, null, progress => { });
 
                         EditorUtility.DisplayProgressBar("Bake HLOD", "Create mesh", 0.0f);
 

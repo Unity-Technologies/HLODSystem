@@ -471,14 +471,14 @@ namespace Unity.HLODSystem
 
 
 
-        public void RenderBounds()
+        public void RenderBounds(Transform transform)
         {
             if (m_fsm.CurrentState == State.Release)
                 return;
 
             for ( int i = 0; i < m_childTreeNodeIds.Count; ++i )
             {
-                m_container.Get(m_childTreeNodeIds[i]).RenderBounds();
+                m_container.Get(m_childTreeNodeIds[i]).RenderBounds(transform);
             }
 
             //if this node has a child node, skipping render.
@@ -505,6 +505,11 @@ namespace Unity.HLODSystem
             vertices[5] = new Vector3(min.x, max.y, max.z);
             vertices[6] = new Vector3(max.x, max.y, max.z);
             vertices[7] = new Vector3(max.x, max.y, min.z);
+
+            for (int i = 0; i < vertices.Length; ++i)
+            {
+                vertices[i] = transform.localToWorldMatrix.MultiplyPoint(vertices[i]);
+            }
 
             CreateLineMaterial();
             // Apply the line material
