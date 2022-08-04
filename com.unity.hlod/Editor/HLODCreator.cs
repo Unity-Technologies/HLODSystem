@@ -192,7 +192,7 @@ namespace Unity.HLODSystem
                 float looseSize = Mathf.Min(hlod.ChunkSize * 0.3f, 5.0f); //< If the chunk size is small, there is a problem that it may get caught in an infinite loop.
                                                                           //So, the size can be determined according to the chunk size.
                 ISpaceSplitter spliter = new QuadTreeSpaceSplitter(looseSize);
-                SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlod.ChunkSize, hlod.transform.position, hlodTargets, progress =>
+                SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlod.ChunkSize, hlod.transform, hlodTargets, progress =>
                 {
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);
                 });

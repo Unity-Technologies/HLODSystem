@@ -38,7 +38,7 @@ namespace Unity.HLODSystem.SpaceManager
 
             return depth;
         }
-        public SpaceNode CreateSpaceTree(Bounds initBounds, float chunkSize, Vector3 rootPosition, List<GameObject> targetObjects, Action<float> onProgress)
+        public SpaceNode CreateSpaceTree(Bounds initBounds, float chunkSize, Transform transform, List<GameObject> targetObjects, Action<float> onProgress)
         {
             SpaceNode rootNode = new SpaceNode();
             rootNode.Bounds = initBounds;
@@ -71,7 +71,7 @@ namespace Unity.HLODSystem.SpaceManager
 
             for (int oi = 0; oi < targetObjects.Count; ++oi)
             {
-                Bounds? objectBounds = CalculateBounds(targetObjects[oi], rootPosition);
+                Bounds? objectBounds = CalculateBounds(targetObjects[oi], transform);
                 if (objectBounds == null)
                     continue;
 
@@ -120,24 +120,16 @@ namespace Unity.HLODSystem.SpaceManager
             return rootNode;
         }
 
-
-        private Bounds CalcBounds(Renderer renderer, Vector3 rootPosition)
-        {
-            Bounds bounds = renderer.bounds;
-            bounds.center -= rootPosition;
-
-            return bounds;
-        }
-        private Bounds? CalculateBounds(GameObject obj, Vector3 rootPosition)
+        private Bounds? CalculateBounds(GameObject obj, Transform transform)
         {
             MeshRenderer[] renderers = obj.GetComponentsInChildren<MeshRenderer>();
             if (renderers.Length == 0)
                 return null;
 
-            Bounds result = CalcBounds(renderers[0], rootPosition);
+            Bounds result = Utils.BoundsUtils.CalcLocalBounds(renderers[0], transform);
             for (int i = 1; i < renderers.Length; ++i)
             {
-                result.Encapsulate(CalcBounds(renderers[i], rootPosition));
+                result.Encapsulate(Utils.BoundsUtils.CalcLocalBounds(renderers[i], transform));
             }
 
             return result;
