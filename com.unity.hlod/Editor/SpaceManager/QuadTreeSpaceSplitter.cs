@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace Unity.HLODSystem.SpaceManager
@@ -18,11 +19,31 @@ namespace Unity.HLODSystem.SpaceManager
     }
     public class QuadTreeSpaceSplitter : ISpaceSplitter
     {
-        private float m_looseSize;
-
-        public QuadTreeSpaceSplitter(float looseSize)
+        
+        [InitializeOnLoadMethod]
+        static void RegisterType()
         {
-            m_looseSize = looseSize;
+            SpaceSplitterTypes.RegisterSpaceSplitterType(typeof(QuadTreeSpaceSplitter));
+        }
+
+        private bool m_autoCaclLooseSize;
+        private float m_looseSizeFromOptions;
+        
+
+        public QuadTreeSpaceSplitter(SerializableDynamicObject spaceSplitterOptions)
+        {
+            if (spaceSplitterOptions == null)
+            {
+                m_autoCaclLooseSize = false;
+                m_looseSizeFromOptions = 0.0f;
+                return;
+            }
+            
+            dynamic options = spaceSplitterOptions;
+            m_autoCaclLooseSize = options.AutoCalcLooseSize;
+            m_looseSizeFromOptions = options.LooseSize;
+            
+            
         }
 
         public int CalculateTreeDepth(Bounds bounds, float chunkSize)
@@ -40,6 +61,7 @@ namespace Unity.HLODSystem.SpaceManager
         }
         public SpaceNode CreateSpaceTree(Bounds initBounds, float chunkSize, Transform transform, List<GameObject> targetObjects, Action<float> onProgress)
         {
+            float looseSize = CalcLooseSize(chunkSize);
             SpaceNode rootNode = new SpaceNode();
             rootNode.Bounds = initBounds;
 
@@ -55,7 +77,7 @@ namespace Unity.HLODSystem.SpaceManager
 				SpaceNode node = nodeStack.Pop();
 				if ( node.Bounds.size.x > chunkSize )
 				{
-                    List<SpaceNode> childNodes = CreateChildSpaceNodes(node);
+                    List<SpaceNode> childNodes = CreateChildSpaceNodes(node, looseSize);
 					
 					for ( int i = 0; i < childNodes.Count; ++i )
                     {
@@ -135,9 +157,23 @@ namespace Unity.HLODSystem.SpaceManager
             return result;
         }
 
+        private float CalcLooseSize(float chunkSize)
+        {
+            if (m_autoCaclLooseSize == true)
+            {
+                //If the chunk size is small, there is a problem that it may get caught in an infinite loop.
+                //So, the size can be determined according to the chunk size.
+                return Mathf.Min(chunkSize * 0.3f, 5.0f);
+            }
+            else
+            {
+                return m_looseSizeFromOptions;
+            }
+        }
+
         
 
-        private List<SpaceNode> CreateChildSpaceNodes(SpaceNode parentNode)
+        private List<SpaceNode> CreateChildSpaceNodes(SpaceNode parentNode, float looseSize)
         {
             List<SpaceNode> childSpaceNodes = new List<SpaceNode>(4);
             
@@ -146,7 +182,7 @@ namespace Unity.HLODSystem.SpaceManager
             float offset = extend * 0.5f;
 
             Vector3 center = parentNode.Bounds.center;
-            Vector3 looseBoundsSize = new Vector3(extend + m_looseSize, size, extend + m_looseSize);
+            Vector3 looseBoundsSize = new Vector3(extend + looseSize, size, extend + looseSize);
 
             childSpaceNodes.Add(
                 SpaceNode.CreateSpaceNodeWithBounds(
@@ -169,6 +205,38 @@ namespace Unity.HLODSystem.SpaceManager
         }
 
 
+        public static void OnGUI(SerializableDynamicObject spaceSplitterOptions)
+        {
+            dynamic options = spaceSplitterOptions;
+
+            //initialize values
+            if (options.AutoCalcLooseSize == null)
+                options.AutoCalcLooseSize = true;
+            if (options.LooseSize == null)
+                options.LooseSize = 5.0f;
+            if (options.UseSubHLODTree == null)
+                options.UseSubHLODTree = false;
+            if (options.SubHLODTreeSize == null)
+                options.SubHLODTreeSize = 100.0f;
+            
+            //Draw UI
+            options.AutoCalcLooseSize = EditorGUILayout.ToggleLeft("Auto calculate loose size", options.AutoCalcLooseSize);
+            if (options.AutoCalcLooseSize == false )
+            {
+                EditorGUI.indentLevel += 1;
+                options.LooseSize = EditorGUILayout.FloatField("Loose size", options.LooseSize);
+                EditorGUI.indentLevel -= 1;
+            }
+
+            options.UseSubHLODTree = EditorGUILayout.ToggleLeft("Use sub HLOD tree", options.UseSubHLODTree);
+            if (options.UseSubHLODTree == true)
+            {
+                EditorGUI.indentLevel += 1;
+                options.SubHLODTreeSize = EditorGUILayout.FloatField("Sub tree size", options.SubHLODTreeSize);
+                EditorGUI.indentLevel -= 1;
+            }
+
+        }
 
         
     }

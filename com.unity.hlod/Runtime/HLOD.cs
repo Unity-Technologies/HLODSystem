@@ -22,13 +22,15 @@ namespace Unity.HLODSystem
         [SerializeField]
         private float m_MinObjectSize = 0.0f;
 
+        private Type m_SpaceSplitterType;
         private Type m_BatcherType;
-        
         private Type m_SimplifierType;
         private Type m_StreamingType;
         private Type m_UserDataSerializerType;
 
 
+        [SerializeField] 
+        private string m_SpaceSplitterTypeStr;
         [SerializeField]
         private string m_BatcherTypeStr;        //< unity serializer is not support serialization with System.Type
                                                 //< So, we should convert to string to store value.
@@ -39,7 +41,8 @@ namespace Unity.HLODSystem
         [SerializeField]
         private string m_UserDataSerializerTypeStr;
 
-        
+        [SerializeField]
+        private SerializableDynamicObject m_SpaceSplitterOptions = new SerializableDynamicObject();
         [SerializeField]
         private SerializableDynamicObject m_SimplifierOptions = new SerializableDynamicObject();
         [SerializeField]
@@ -68,6 +71,12 @@ namespace Unity.HLODSystem
             get { return m_CullDistance; }
         }
 
+        public Type SpaceSplitterType
+        {
+            set { m_SpaceSplitterType = value; }
+            get { return m_SpaceSplitterType; }
+        }
+
         public Type BatcherType
         {
             set { m_BatcherType = value; }
@@ -92,6 +101,10 @@ namespace Unity.HLODSystem
             get { return m_UserDataSerializerType; }
         }
 
+        public SerializableDynamicObject SpaceSplitterOptions
+        {
+            get { return m_SpaceSplitterOptions; }
+        }
         public SerializableDynamicObject BatcherOptions
         {
             get { return m_BatcherOptions; }
@@ -153,6 +166,8 @@ namespace Unity.HLODSystem
 
         public void OnBeforeSerialize()
         {
+            if (m_SpaceSplitterType != null)
+                m_SpaceSplitterTypeStr = m_SpaceSplitterType.AssemblyQualifiedName;
             if ( m_BatcherType != null )
                 m_BatcherTypeStr = m_BatcherType.AssemblyQualifiedName;
             if (m_SimplifierType != null)
@@ -165,6 +180,15 @@ namespace Unity.HLODSystem
 
         public void OnAfterDeserialize()
         {
+            if (string.IsNullOrEmpty(m_SpaceSplitterTypeStr))
+            {
+                m_SpaceSplitterType = null;
+            }
+            else
+            {
+                m_SpaceSplitterType = Type.GetType(m_SpaceSplitterTypeStr);
+            }
+            
             if (string.IsNullOrEmpty(m_BatcherTypeStr))
             {
                 m_BatcherType = null;

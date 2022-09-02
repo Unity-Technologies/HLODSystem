@@ -64,10 +64,8 @@ namespace Unity.HLODSystem
         private bool isShowStreaming = true;
 
         private bool isShowTexturePropertices = true;
-        
-        private ISpaceSplitter m_splitter = new QuadTreeSpaceSplitter(0.0f);
-        
-        
+
+        private ISpaceSplitter m_splitter = new QuadTreeSpaceSplitter(null);
         
         void OnEnable()
         {
