@@ -10,7 +10,7 @@ namespace Unity.HLODSystem.SpaceManager
         /**
          * @return created root space tree
          */
-        SpaceNode CreateSpaceTree(Bounds initBounds, float chunkSize, Transform transform, List<GameObject> targetObjects, Action<float> onProgress);
+        List<SpaceNode> CreateSpaceTree(Bounds initBounds, float chunkSize, Transform transform, List<GameObject> targetObjects, Action<float> onProgress);
     }
 
 }

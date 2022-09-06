@@ -198,7 +198,7 @@ namespace Unity.HLODSystem
                     yield break;
                     
                 }
-                SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlod.ChunkSize, hlod.transform, hlodTargets, progress =>
+                List<SpaceNode> rootNodeList = spliter.CreateSpaceTree(bounds, hlod.ChunkSize, hlod.transform, hlodTargets, progress =>
                 {
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);
                 });
@@ -210,72 +210,80 @@ namespace Unity.HLODSystem
                         "Ok");
                     yield break;
                 }
-                
 
-                using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(hlod, rootNode, hlod.MinObjectSize))
+                foreach (var rootNode in rootNodeList)
                 {
-                    if (buildInfos.Count == 0 || buildInfos[0].WorkingObjects.Count == 0)
-                    {
-                        EditorUtility.DisplayDialog("Empty HLOD sources.",
-                            "There are no objects to be included in the HLOD.",
-                            "Ok");
-                        yield break;
-                    }
-                  
+                    if ( rootNode.Objects.Count == 0 )
+                        continue;
                     
-                    Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
-
-                    ISimplifier simplifier = (ISimplifier) Activator.CreateInstance(hlod.SimplifierType,
-                        new object[] {hlod.SimplifierOptions});
-                    for (int i = 0; i < buildInfos.Count; ++i)
+                    using (DisposableList<HLODBuildInfo> buildInfos =
+                           CreateBuildInfo(hlod, rootNode, hlod.MinObjectSize))
                     {
-                        yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
-                    }
-
-                    yield return new WaitForBranches(progress =>
-                    {
-                        EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes",
-                            0.25f + progress * 0.25f);
-                    });
-                    Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
+                        if (buildInfos.Count == 0 || buildInfos[0].WorkingObjects.Count == 0)
+                        {
+                            EditorUtility.DisplayDialog("Empty HLOD sources.",
+                                "There are no objects to be included in the HLOD.",
+                                "Ok");
+                            yield break;
+                        }
 
 
-                    using (IBatcher batcher =
-                        (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[] { hlod.BatcherOptions }))
-                    {
-                        batcher.Batch(hlod.transform, buildInfos,
+                        Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
+                        sw.Reset();
+                        sw.Start();
+
+                        ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType,
+                            new object[] { hlod.SimplifierOptions });
+                        for (int i = 0; i < buildInfos.Count; ++i)
+                        {
+                            yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
+                        }
+
+                        yield return new WaitForBranches(progress =>
+                        {
+                            EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes",
+                                0.25f + progress * 0.25f);
+                        });
+                        Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
+                        sw.Reset();
+                        sw.Start();
+
+
+                        using (IBatcher batcher =
+                               (IBatcher)Activator.CreateInstance(hlod.BatcherType,
+                                   new object[] { hlod.BatcherOptions }))
+                        {
+                            batcher.Batch(hlod.transform, buildInfos,
+                                progress =>
+                                {
+                                    EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
+                                        0.5f + progress * 0.25f);
+                                });
+                        }
+
+                        Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
+                        sw.Reset();
+                        sw.Start();
+
+
+                        IStreamingBuilder builder =
+                            (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType,
+                                new object[] { hlod, hlod.StreamingOptions });
+                        builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, false,
+                            true,
                             progress =>
                             {
-                                EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
-                                    0.5f + progress * 0.25f);
+                                EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
+                                    0.75f + progress * 0.25f);
                             });
+                        Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+                        sw.Reset();
+                        sw.Start();
                     }
-                    Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
-
-
-                    IStreamingBuilder builder =
-                        (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType,
-                            new object[] {hlod, hlod.StreamingOptions});
-                    builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, false, true,
-                        progress =>
-                        {
-                            EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
-                                0.75f + progress * 0.25f);
-                        });
-                    Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
-
-                    UserDataSerialization(hlod);
-                    
-                    EditorUtility.SetDirty(hlod.gameObject);
                 }
+                
+                UserDataSerialization(hlod);
+                EditorUtility.SetDirty(hlod.gameObject);
 
             }
             finally
@@ -283,6 +291,7 @@ namespace Unity.HLODSystem
                 EditorUtility.ClearProgressBar();
                 
             }
+            
         }
 
         public static IEnumerator Destroy(HLOD hlod)
