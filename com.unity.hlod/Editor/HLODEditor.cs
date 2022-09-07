@@ -278,7 +278,7 @@ namespace Unity.HLODSystem
             GUIContent generateButton = Styles.GenerateButtonEnable;
             GUIContent destroyButton = Styles.DestroyButtonNotExists;
 
-            if (hlod.GetComponent<Streaming.HLODControllerBase>() != null)
+            if (hlod.GeneratedObjects.Count > 0 )
             {
                 generateButton = Styles.GenerateButtonExists;
                 destroyButton = Styles.DestroyButtonEnable;

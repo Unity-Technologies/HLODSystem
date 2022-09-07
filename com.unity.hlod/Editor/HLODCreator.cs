@@ -211,8 +211,9 @@ namespace Unity.HLODSystem
                     yield break;
                 }
 
-                foreach (var rootNode in rootNodeList)
+                for ( int ri = 0; ri < rootNodeList.Count; ++ ri)
                 {
+                    var rootNode = rootNodeList[ri];
                     if ( rootNode.Objects.Count == 0 )
                         continue;
                     
@@ -265,11 +266,22 @@ namespace Unity.HLODSystem
                         sw.Reset();
                         sw.Start();
 
+                        GameObject targetGameObject = hlod.gameObject;
+                        //If there are more than 1 rootNode, the HLOD use sub tree.
+                        //So we should separate GameObject to generate Streaming component.
+                        if (rootNodeList.Count > 1)
+                        {
+                            GameObject newTargetGameObject = new GameObject($"{targetGameObject.name}_SubTree{ri}");
+                            newTargetGameObject.transform.SetParent(targetGameObject.transform, false);
+                            hlod.AddGeneratedResource(newTargetGameObject);
+
+                            targetGameObject = newTargetGameObject;
+                        }
 
                         IStreamingBuilder builder =
                             (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType,
                                 new object[] { hlod, hlod.StreamingOptions });
-                        builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, false,
+                        builder.Build(rootNode, buildInfos, targetGameObject, hlod.CullDistance, hlod.LODDistance, false,
                             true,
                             progress =>
                             {
@@ -297,8 +309,7 @@ namespace Unity.HLODSystem
         public static IEnumerator Destroy(HLOD hlod)
         {
 
-            var controller = hlod.GetComponent<HLODControllerBase>();
-            if (controller == null)
+            if (hlod.GeneratedObjects.Count == 0)
                 yield break;
 
             try
@@ -331,8 +342,6 @@ namespace Unity.HLODSystem
                     EditorUtility.DisplayProgressBar("Destroy HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
                 }
                 generatedObjects.Clear();
-
-                Object.DestroyImmediate(controller);
             }
             finally
             {
