@@ -338,7 +338,7 @@ namespace Unity.HLODSystem
                     o.LoadedObject.SetActive(false);
                     if (m_userDataSerializer != null)
                     {
-                        m_userDataSerializer.DeserializeUserData(id, o.LoadedObject);
+                        m_userDataSerializer.DeserializeUserData(m_controller, id, o.LoadedObject);
                     }
                     
                     m_loadedHighObjects.Add(id, o);

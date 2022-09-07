@@ -137,6 +137,19 @@ namespace Unity.HLODSystem
         {
             get { return m_convertedPrefabObjects; }
         }
+
+        public List<HLODControllerBase> GetHLODControllerBases()
+        {
+            List<HLODControllerBase> controllerBases = new List<HLODControllerBase>();
+
+            foreach (Object obj in m_generatedObjects)
+            {
+                var controllerBase = obj as HLODControllerBase;
+                if ( controllerBase != null )
+                    controllerBases.Add(controllerBase);
+            }
+            return controllerBases;
+        }
 #endif
         public Bounds GetBounds()
         {

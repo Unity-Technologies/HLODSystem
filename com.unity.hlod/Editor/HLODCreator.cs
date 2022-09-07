@@ -280,7 +280,7 @@ namespace Unity.HLODSystem
 
                         IStreamingBuilder builder =
                             (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType,
-                                new object[] { hlod, hlod.StreamingOptions });
+                                new object[] { hlod, ri, hlod.StreamingOptions });
                         builder.Build(rootNode, buildInfos, targetGameObject, hlod.CullDistance, hlod.LODDistance, false,
                             true,
                             progress =>
@@ -361,15 +361,18 @@ namespace Unity.HLODSystem
                 return;
             
             hlod.AddGeneratedResource(serializer);
-            
-            var controller = hlod.GetComponent<Streaming.HLODControllerBase>();
-            if (controller == null)
+
+            var controllers = hlod.GetHLODControllerBases();
+            if (controllers.Count == 0)
                  return;
 
-            for (int i = 0; i < controller.HighObjectCount; ++i)
+            foreach (var controller in controllers)
             {
-                var obj = controller.GetHighSceneObject(i);
-                serializer.SerializeUserData(i, obj);
+                for (int i = 0; i < controller.HighObjectCount; ++i)
+                {
+                    var obj = controller.GetHighSceneObject(i);
+                    serializer.SerializeUserData(controller, i, obj);
+                }
             }
         }
 

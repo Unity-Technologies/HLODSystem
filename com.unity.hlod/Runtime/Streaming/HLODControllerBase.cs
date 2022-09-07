@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using Unity.HLODSystem.SpaceManager;
 using UnityEngine;
@@ -218,6 +217,9 @@ namespace Unity.HLODSystem.Streaming
 
         [SerializeField] private bool m_runtimeDebug = false;
 
+        [SerializeField]
+        private int m_controllerID;
+
         public HLODTreeNodeContainer Container
         {
             set
@@ -227,6 +229,13 @@ namespace Unity.HLODSystem.Streaming
             }
             get { return m_treeNodeContainer; }
         }
+
+        public int ControllerID
+        {
+            set { m_controllerID = value;}
+            get { return m_controllerID; }
+        }
+
         public HLODTreeNode Root
         {
             set
