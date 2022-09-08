@@ -155,7 +155,7 @@ namespace Unity.HLODSystem
             m_fsm.RegisterExitedFunction(State.High, OnExitedHigh);
             
             m_controller = controller;
-            m_userDataSerializer = controller.GetComponent<UserDataSerializerBase>();
+            m_userDataSerializer = controller.UserDataserializer;
             m_spaceManager = spaceManager;
             m_parent = parent;
             

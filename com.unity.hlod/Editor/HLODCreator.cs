@@ -368,6 +368,7 @@ namespace Unity.HLODSystem
 
             foreach (var controller in controllers)
             {
+                controller.UserDataserializer = serializer;
                 for (int i = 0; i < controller.HighObjectCount; ++i)
                 {
                     var obj = controller.GetHighSceneObject(i);

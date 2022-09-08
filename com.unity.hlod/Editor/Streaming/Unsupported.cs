@@ -137,6 +137,8 @@ namespace Unity.HLODSystem.Streaming
        
             var defaultController = root.AddComponent<DefaultHLODController>();
             defaultController.ControllerID = m_controllerID;
+            m_manager.AddGeneratedResource(defaultController);
+            
             GameObject hlodRoot = new GameObject("HLODRoot");
             hlodRoot.transform.SetParent(root.transform, false);
             m_manager.AddGeneratedResource(hlodRoot);

@@ -181,6 +181,7 @@ namespace Unity.HLODSystem.Streaming
 
             var addressableController = root.AddComponent<AddressableHLODController>();
             addressableController.ControllerID = m_controllerID;
+            m_manager.AddGeneratedResource(addressableController);
 
             for (int i = 0; i < infos.Count; ++i)
             {
