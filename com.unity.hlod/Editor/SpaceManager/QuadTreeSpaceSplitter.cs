@@ -251,7 +251,10 @@ namespace Unity.HLODSystem.SpaceManager
         private List<List<TargetInfo>> SplitTargetObjects(List<TargetInfo> targetInfoList, List<Bounds> targetBoundList)
         {
             List<List<TargetInfo>> targetObjectsList = new List<List<TargetInfo>>();
-            targetObjectsList.AddRange(Enumerable.Repeat(new List<TargetInfo>(), targetBoundList.Count));
+            for (int i = 0; i < targetBoundList.Count; ++i)
+            {
+                targetObjectsList.Add(new List<TargetInfo>());
+            }
 
             foreach (var targetInfo in targetInfoList)
             {
