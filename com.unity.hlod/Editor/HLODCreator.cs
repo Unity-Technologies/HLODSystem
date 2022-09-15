@@ -214,18 +214,13 @@ namespace Unity.HLODSystem
                 for ( int ri = 0; ri < rootNodeList.Count; ++ ri)
                 {
                     var rootNode = rootNodeList[ri];
-                    if ( rootNode.Objects.Count == 0 )
-                        continue;
                     
                     using (DisposableList<HLODBuildInfo> buildInfos =
                            CreateBuildInfo(hlod, rootNode, hlod.MinObjectSize))
                     {
                         if (buildInfos.Count == 0 || buildInfos[0].WorkingObjects.Count == 0)
                         {
-                            EditorUtility.DisplayDialog("Empty HLOD sources.",
-                                "There are no objects to be included in the HLOD.",
-                                "Ok");
-                            yield break;
+                            continue;
                         }
 
 
