@@ -299,9 +299,15 @@ namespace Unity.HLODSystem
             {
                 CoroutineRunner.RunCoroutine(HLODCreator.Destroy(hlod));
             }
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorUtility.SetDirty(hlod);
+            }
 
             GUI.enabled = true;
 
+            
             serializedObject.ApplyModifiedProperties();
             isFirstOnGUI = false;
         }
