@@ -290,6 +290,7 @@ namespace Unity.HLODSystem
                 }
                 
                 UserDataSerialization(hlod);
+                EditorUtility.SetDirty(hlod);
                 EditorUtility.SetDirty(hlod.gameObject);
 
             }
