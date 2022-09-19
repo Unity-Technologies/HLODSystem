@@ -99,9 +99,10 @@ namespace Unity.HLODSystem.Utils
             GameObject candidate = target;
             GameObject outermost = PrefabUtility.GetOutermostPrefabInstanceRoot(target);
 
-            while (Equals(target,outermost) == false && Equals(target, hlodRoot) == false)
+            while (Equals(target,outermost) == false && 
+                   Equals(GetParent(target), hlodRoot) == false)    //< HLOD root should not be included.
             {
-                target = target.transform.parent.gameObject;
+                target = GetParent(target);
                 if (PrefabUtility.IsAnyPrefabInstanceRoot(target))
                 {
                     candidate = target;
@@ -110,6 +111,12 @@ namespace Unity.HLODSystem.Utils
 
             return candidate;
         }
+
+        private static GameObject GetParent(GameObject go)
+        {
+            return go.transform.parent.gameObject;
+        }
+        
         
         
         
