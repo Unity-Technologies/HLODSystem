@@ -18,10 +18,12 @@ namespace Unity.HLODSystem
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "HLOD must be created before the destroying.");
 
             public static GUIStyle RedTextColor = new GUIStyle();
+            public static GUIStyle BlueTextColor = new GUIStyle();
 
             static Styles()
             {
                 RedTextColor.normal.textColor = Color.red;
+                BlueTextColor.normal.textColor = new Color(0.4f, 0.5f, 1.0f);
             }
 
         }        
@@ -121,7 +123,7 @@ namespace Unity.HLODSystem
                     var bounds = hlod.GetBounds();
                     int depth = m_splitter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
 
-                    EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
+                    EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.", Styles.BlueTextColor);
                     if (depth > 5)
                     {
                         EditorGUILayout.LabelField($"Node Level Count greater than 5 may cause a frozen Editor.",
@@ -161,6 +163,14 @@ namespace Unity.HLODSystem
                     {
                         m_splitter = SpaceSplitterTypes.CreateInstance(hlod);
                     }
+
+                    if (m_splitter != null)
+                    {
+                        int subTreeCount = m_splitter.CalculateSubTreeCount(hlod.GetBounds());
+                        EditorGUILayout.LabelField($"The HLOD tree will be created with {subTreeCount} sub trees.",
+                            Styles.BlueTextColor);
+                    }
+
                 }
                 else
                 {

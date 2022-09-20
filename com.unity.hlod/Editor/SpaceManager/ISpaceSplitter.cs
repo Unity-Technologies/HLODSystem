@@ -6,6 +6,7 @@ namespace Unity.HLODSystem.SpaceManager
 {
     public interface ISpaceSplitter
     {
+        int CalculateSubTreeCount(Bounds bounds);
         int CalculateTreeDepth(Bounds bounds, float chunkSize);
         /**
          * @return created root space tree

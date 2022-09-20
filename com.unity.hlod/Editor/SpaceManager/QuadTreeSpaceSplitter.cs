@@ -59,9 +59,35 @@ namespace Unity.HLODSystem.SpaceManager
             
         }
 
+        public int CalculateSubTreeCount(Bounds bounds)
+        {
+            if (m_useSubHLODTree == false)
+                return 1;
+            
+            List<Bounds> splittedBounds = SplitBounds(bounds, m_subHLODTreeSize);
+            return splittedBounds.Count;
+        }
+
         public int CalculateTreeDepth(Bounds bounds, float chunkSize)
         {
-            float maxLength = Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z);
+            float maxLength = 0.0f;
+            if (m_useSubHLODTree)
+            {
+                List<Bounds> splittedBounds = SplitBounds(bounds, m_subHLODTreeSize);
+                if (splittedBounds.Count > 0)
+                {
+                    maxLength = Mathf.Max(splittedBounds[0].extents.x, splittedBounds[0].extents.z);
+                }
+                else
+                {
+                    maxLength = Mathf.Max(bounds.extents.x, bounds.extents.z);    
+                }
+            }
+            else
+            {
+                maxLength = Mathf.Max(bounds.extents.x, bounds.extents.z);
+            }
+
             int depth = 1;
 
             while (maxLength > chunkSize)
