@@ -568,7 +568,7 @@ namespace Unity.HLODSystem.Streaming
                 string address = entry.address;
                 if (string.IsNullOrEmpty(AssetDatabase.GetAssetPath(obj)))
                 {
-                    Object prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+                    Object prefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(obj);
                     if (AssetDatabase.IsMainAsset(prefab) == false)
                     {
                         address = address + "[" + prefab.name + "]";
@@ -588,7 +588,7 @@ namespace Unity.HLODSystem.Streaming
 
             if (string.IsNullOrEmpty(path) && PrefabUtility.GetPrefabInstanceStatus(obj) == PrefabInstanceStatus.Connected)
             {
-                Object prefab = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+                Object prefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(obj);
                 path = AssetDatabase.GetAssetPath(prefab);   
             }
 
