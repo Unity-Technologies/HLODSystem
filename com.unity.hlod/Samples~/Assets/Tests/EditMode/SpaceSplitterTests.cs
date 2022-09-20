@@ -189,6 +189,54 @@ namespace Unity.HLODSystem.EditorTests
             Assert.AreEqual(GetTargetCount(rootNodes[0]), 9);
         }
 
+         [Test]
+        public void SpaceSplitSubTreeTestSize5()
+        {
+            List<GameObject> hlodTargets = ObjectUtils.HLODTargets(m_hlodComponent.gameObject);
+
+            var options = QuadTreeSpaceSplitter.CreateOptions(true, 5.0f, true, 20);
+            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(options);
+            List<SpaceNode> rootNodes = spliter.CreateSpaceTree(m_hlodComponent.GetBounds(), 5.0f, m_hlodComponent.transform, hlodTargets, null);
+
+            Assert.AreEqual(4, rootNodes.Count);
+            Assert.AreEqual(3, CalcLevel(rootNodes[0]));
+            Assert.AreEqual(3, GetTargetCount(rootNodes[0]));
+            
+            Assert.AreEqual(3, CalcLevel(rootNodes[1]));
+            Assert.AreEqual(2, GetTargetCount(rootNodes[1]));
+            
+            Assert.AreEqual(3, CalcLevel(rootNodes[2]));
+            Assert.AreEqual(2, GetTargetCount(rootNodes[2]));
+            
+            Assert.AreEqual(3, CalcLevel(rootNodes[3]));
+            Assert.AreEqual(2, GetTargetCount(rootNodes[3]));
+            
+        }
+        [Test]
+        public void SpaceSplitSubTreeTestSize10()
+        {
+            List<GameObject> hlodTargets = ObjectUtils.HLODTargets(m_hlodComponent.gameObject);
+            
+            var options = QuadTreeSpaceSplitter.CreateOptions(true, 5.0f, true, 20);
+            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(options);
+            List<SpaceNode> rootNodes = spliter.CreateSpaceTree(m_hlodComponent.GetBounds(), 10.0f, m_hlodComponent.transform, hlodTargets, null);
+
+            Assert.AreEqual(4, rootNodes.Count);
+            Assert.AreEqual(2, CalcLevel(rootNodes[0]));
+            Assert.AreEqual(3, GetTargetCount(rootNodes[0]));
+            
+            Assert.AreEqual(2, CalcLevel(rootNodes[1]));
+            Assert.AreEqual(2, GetTargetCount(rootNodes[1]));
+            
+            Assert.AreEqual(2, CalcLevel(rootNodes[2]));
+            Assert.AreEqual(2, GetTargetCount(rootNodes[2]));
+            
+            Assert.AreEqual(2, CalcLevel(rootNodes[3]));
+            Assert.AreEqual(2, GetTargetCount(rootNodes[3]));
+            
+        }
+
+        
         [Test]
         public void CreateBuildInfoTest()
         {
