@@ -318,6 +318,22 @@ namespace Unity.HLODSystem.SpaceManager
             return childSpaceNodes;
         }
 
+        public static SerializableDynamicObject CreateOptions(
+            bool autoCalcLooseSize = true,
+            float looseSize = 5.0f,
+            bool useSubHLODTree = false,
+            float subHLODTreeSize = 100.0f)
+        {
+            var dynamicObject = new SerializableDynamicObject();
+            dynamic options = dynamicObject;
+
+            options.AutoCalcLooseSize = autoCalcLooseSize;
+            options.LooseSize = looseSize;
+            options.UseSubHLODTree = useSubHLODTree;
+            options.SubHLODTreeSize = subHLODTreeSize;
+
+            return dynamicObject;
+        }
 
         public static void OnGUI(SerializableDynamicObject spaceSplitterOptions)
         {
