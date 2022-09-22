@@ -110,6 +110,10 @@ namespace Unity.HLODSystem
                 EditorGUILayout.LabelField("HLOD is null.");
                 return;
             }
+            if (m_splitter == null)
+            {
+                m_splitter = SpaceSplitterTypes.CreateInstance(hlod);
+            }
 
             isShowCommon = EditorGUILayout.BeginFoldoutHeaderGroup(isShowCommon, "Common");
             if (isShowCommon == true)
