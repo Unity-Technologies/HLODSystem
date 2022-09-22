@@ -27,7 +27,6 @@ namespace Unity.HLODSystem.SpaceManager
             SpaceSplitterTypes.RegisterSpaceSplitterType(typeof(QuadTreeSpaceSplitter));
         }
 
-        private bool m_autoCaclLooseSize;
         private float m_looseSizeFromOptions;
 
         private bool m_useSubHLODTree;
@@ -36,7 +35,6 @@ namespace Unity.HLODSystem.SpaceManager
 
         public QuadTreeSpaceSplitter(SerializableDynamicObject spaceSplitterOptions)
         {
-            m_autoCaclLooseSize = false;
             m_looseSizeFromOptions = 0.0f;
 
             m_useSubHLODTree = false;
@@ -48,8 +46,6 @@ namespace Unity.HLODSystem.SpaceManager
             }
             
             dynamic options = spaceSplitterOptions;
-            if(options.AutoCalcLooseSize != null)
-                    m_autoCaclLooseSize = options.AutoCalcLooseSize;
             if(options.LooseSize1 != null)
                 m_looseSizeFromOptions = options.LooseSize;
             if(options.UseSubHLODTree != null)
@@ -299,16 +295,10 @@ namespace Unity.HLODSystem.SpaceManager
 
         private float CalcLooseSize(float chunkSize)
         {
-            if (m_autoCaclLooseSize == true)
-            {
-                //If the chunk size is small, there is a problem that it may get caught in an infinite loop.
-                //So, the size can be determined according to the chunk size.
-                return Mathf.Min(chunkSize * 0.3f, 5.0f);
-            }
-            else
-            {
-                return m_looseSizeFromOptions;
-            }
+            //If the chunk size is small, there is a problem that it may get caught in an infinite loop.
+            //So, the size can be determined according to the chunk size.
+            return Mathf.Min(chunkSize * 0.3f, m_looseSizeFromOptions);
+            
         }
 
         
@@ -366,23 +356,15 @@ namespace Unity.HLODSystem.SpaceManager
             dynamic options = spaceSplitterOptions;
 
             //initialize values
-            if (options.AutoCalcLooseSize == null)
-                options.AutoCalcLooseSize = true;
             if (options.LooseSize == null)
                 options.LooseSize = 5.0f;
             if (options.UseSubHLODTree == null)
                 options.UseSubHLODTree = false;
             if (options.SubHLODTreeSize == null)
                 options.SubHLODTreeSize = 100.0f;
-            
+
             //Draw UI
-            options.AutoCalcLooseSize = EditorGUILayout.ToggleLeft("Auto calculate loose size", options.AutoCalcLooseSize);
-            if (options.AutoCalcLooseSize == false )
-            {
-                EditorGUI.indentLevel += 1;
-                options.LooseSize = EditorGUILayout.FloatField("Loose size", options.LooseSize);
-                EditorGUI.indentLevel -= 1;
-            }
+            options.LooseSize = EditorGUILayout.FloatField("Loose size", options.LooseSize);
 
             options.UseSubHLODTree = EditorGUILayout.ToggleLeft("Use sub HLOD tree", options.UseSubHLODTree);
             if (options.UseSubHLODTree == true)
