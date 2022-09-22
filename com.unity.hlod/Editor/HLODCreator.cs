@@ -211,6 +211,14 @@ namespace Unity.HLODSystem
                     yield break;
                 }
 
+                if (rootNodeList.Count >= 256)
+                {
+                    EditorUtility.DisplayDialog("Too many SubHLODTrees.",
+                        "There are too many SubHLODTrees. SubHLODtree is supported less than 256.",
+                        "Ok");
+                    yield break;
+                }
+
                 for ( int ri = 0; ri < rootNodeList.Count; ++ ri)
                 {
                     var rootNode = rootNodeList[ri];
