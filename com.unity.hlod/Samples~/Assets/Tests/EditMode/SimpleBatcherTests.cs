@@ -76,7 +76,7 @@ namespace Unity.HLODSystem.EditorTests
             using (var buildInfo = CreateBuildInfo(hlodComponent))
             using (SimpleBatcher batcher = new SimpleBatcher(batcherOptions))
             {
-                batcher.Batch(hlodGameObject.transform.position, buildInfo, null);
+                batcher.Batch(hlodGameObject.transform, buildInfo, null);
 
                 Assert.AreEqual(buildInfo.Count, 1);
                 Assert.AreEqual(buildInfo[0].WorkingObjects.Count, 1);
@@ -100,7 +100,7 @@ namespace Unity.HLODSystem.EditorTests
             using (var buildInfo = CreateBuildInfo(hlodComponent))
             using (SimpleBatcher batcher = new SimpleBatcher(batcherOptions))
             {
-                batcher.Batch(hlodGameObject.transform.position, buildInfo, null);
+                batcher.Batch(hlodGameObject.transform, buildInfo, null);
 
                 Assert.AreEqual(buildInfo.Count, 1);
                 Assert.AreEqual(buildInfo[0].WorkingObjects.Count, 1);
@@ -134,7 +134,7 @@ namespace Unity.HLODSystem.EditorTests
             using (var buildInfo = CreateBuildInfo(hlodComponent))
             using (SimpleBatcher batcher = new SimpleBatcher(batcherOptions))
             {
-                batcher.Batch(hlodGameObject.transform.position, buildInfo, null);
+                batcher.Batch(hlodGameObject.transform, buildInfo, null);
 
                 Assert.AreEqual(buildInfo.Count, 1);
                 Assert.AreEqual(buildInfo[0].WorkingObjects.Count, 1);
@@ -167,7 +167,7 @@ namespace Unity.HLODSystem.EditorTests
             using (var buildInfo = CreateBuildInfo(hlodComponent))
             using (SimpleBatcher batcher = new SimpleBatcher(batcherOptions))
             {
-                batcher.Batch(hlodGameObject.transform.position, buildInfo, null);
+                batcher.Batch(hlodGameObject.transform, buildInfo, null);
 
                 Assert.AreEqual(buildInfo.Count, 1);
                 Assert.AreEqual(buildInfo[0].WorkingObjects.Count, 1);
@@ -201,7 +201,7 @@ namespace Unity.HLODSystem.EditorTests
             using (var buildInfo = CreateBuildInfo(hlodComponent))
             using (SimpleBatcher batcher = new SimpleBatcher(batcherOptions))
             {                
-                batcher.Batch(hlodGameObject.transform.position, buildInfo, null);
+                batcher.Batch(hlodGameObject.transform, buildInfo, null);
 
                 Assert.AreEqual(buildInfo.Count, 1);
                 Assert.AreEqual(buildInfo[0].WorkingObjects.Count, 1);
@@ -235,7 +235,7 @@ namespace Unity.HLODSystem.EditorTests
             using (var buildInfo = CreateBuildInfo(hlodComponent))
             using (SimpleBatcher batcher = new SimpleBatcher(batcherOptions))
             {
-                batcher.Batch(hlodGameObject.transform.position, buildInfo, null);
+                batcher.Batch(hlodGameObject.transform, buildInfo, null);
 
                 Assert.AreEqual(buildInfo.Count, 1);
                 Assert.AreEqual(buildInfo[0].WorkingObjects.Count, 1);
@@ -273,7 +273,7 @@ namespace Unity.HLODSystem.EditorTests
             using (var buildInfo = CreateBuildInfo(hlodComponent))
             using (SimpleBatcher batcher = new SimpleBatcher(batcherOptions))
             {
-                batcher.Batch(hlodGameObject.transform.position, buildInfo, null);
+                batcher.Batch(hlodGameObject.transform, buildInfo, null);
 
                 Assert.AreEqual(buildInfo.Count, 1);
                 Assert.AreEqual(buildInfo[0].WorkingObjects.Count, 1);
@@ -310,7 +310,7 @@ namespace Unity.HLODSystem.EditorTests
             using (var buildInfo = CreateBuildInfo(hlodComponent))
             using (SimpleBatcher batcher = new SimpleBatcher(batcherOptions))
             {                
-                batcher.Batch(hlodGameObject.transform.position, buildInfo, null);
+                batcher.Batch(hlodGameObject.transform, buildInfo, null);
 
                 Assert.AreEqual(buildInfo.Count, 1);
                 Assert.AreEqual(buildInfo[0].WorkingObjects.Count, 1);
@@ -509,9 +509,10 @@ namespace Unity.HLODSystem.EditorTests
             
             List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
 
-            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(0.0f);
-            SpaceNode rootNode = spliter.CreateSpaceTree(hlod.GetBounds(), 5.0f, hlod.transform.position, hlodTargets, null);
-            return (DisposableList<HLODBuildInfo>)buildInfoFunc.Invoke(null, new object[] { null, rootNode, 0.0f });
+            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(null);
+            List<SpaceNode> rootNodes = spliter.CreateSpaceTree(hlod.GetBounds(), 5.0f, hlod.transform, hlodTargets, null);
+            Assert.AreEqual(1, rootNodes.Count);
+            return (DisposableList<HLODBuildInfo>)buildInfoFunc.Invoke(null, new object[] { null, rootNodes[0], 0.0f });
         }
 
     }

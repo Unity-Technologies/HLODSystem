@@ -189,10 +189,16 @@ namespace Unity.HLODSystem
                 Bounds bounds = hlod.GetBounds();
 
                 List<GameObject> hlodTargets = ObjectUtils.HLODTargets(hlod.gameObject);
-                float looseSize = Mathf.Min(hlod.ChunkSize * 0.3f, 5.0f); //< If the chunk size is small, there is a problem that it may get caught in an infinite loop.
-                                                                          //So, the size can be determined according to the chunk size.
-                ISpaceSplitter spliter = new QuadTreeSpaceSplitter(looseSize);
-                SpaceNode rootNode = spliter.CreateSpaceTree(bounds, hlod.ChunkSize, hlod.transform, hlodTargets, progress =>
+                ISpaceSplitter spliter = SpaceSplitterTypes.CreateInstance(hlod);
+                if (spliter == null)
+                {
+                    EditorUtility.DisplayDialog("SpaceSplitter not found",
+                        "There is no SpaceSplitter. Please set the SpaceSplitter.",
+                        "OK");
+                    yield break;
+                    
+                }
+                List<SpaceNode> rootNodeList = spliter.CreateSpaceTree(bounds, hlod.ChunkSize, hlod.transform, hlodTargets, progress =>
                 {
                     EditorUtility.DisplayProgressBar("Bake HLOD", "Splitting space", progress * 0.25f);
                 });
@@ -204,72 +210,96 @@ namespace Unity.HLODSystem
                         "Ok");
                     yield break;
                 }
-                
 
-                using (DisposableList<HLODBuildInfo> buildInfos = CreateBuildInfo(hlod, rootNode, hlod.MinObjectSize))
+                if (rootNodeList.Count >= 256)
                 {
-                    if (buildInfos.Count == 0 || buildInfos[0].WorkingObjects.Count == 0)
-                    {
-                        EditorUtility.DisplayDialog("Empty HLOD sources.",
-                            "There are no objects to be included in the HLOD.",
-                            "Ok");
-                        yield break;
-                    }
-                  
+                    EditorUtility.DisplayDialog("Too many SubHLODTrees.",
+                        "There are too many SubHLODTrees. SubHLODtree is supported less than 256.",
+                        "Ok");
+                    yield break;
+                }
+
+                for ( int ri = 0; ri < rootNodeList.Count; ++ ri)
+                {
+                    var rootNode = rootNodeList[ri];
                     
-                    Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
-
-                    ISimplifier simplifier = (ISimplifier) Activator.CreateInstance(hlod.SimplifierType,
-                        new object[] {hlod.SimplifierOptions});
-                    for (int i = 0; i < buildInfos.Count; ++i)
+                    using (DisposableList<HLODBuildInfo> buildInfos =
+                           CreateBuildInfo(hlod, rootNode, hlod.MinObjectSize))
                     {
-                        yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
-                    }
-
-                    yield return new WaitForBranches(progress =>
-                    {
-                        EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes",
-                            0.25f + progress * 0.25f);
-                    });
-                    Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
+                        if (buildInfos.Count == 0 || buildInfos[0].WorkingObjects.Count == 0)
+                        {
+                            continue;
+                        }
 
 
-                    using (IBatcher batcher =
-                        (IBatcher)Activator.CreateInstance(hlod.BatcherType, new object[] { hlod.BatcherOptions }))
-                    {
-                        batcher.Batch(hlod.transform, buildInfos,
+                        Debug.Log("[HLOD] Splite space: " + sw.Elapsed.ToString("g"));
+                        sw.Reset();
+                        sw.Start();
+
+                        ISimplifier simplifier = (ISimplifier)Activator.CreateInstance(hlod.SimplifierType,
+                            new object[] { hlod.SimplifierOptions });
+                        for (int i = 0; i < buildInfos.Count; ++i)
+                        {
+                            yield return new BranchCoroutine(simplifier.Simplify(buildInfos[i]));
+                        }
+
+                        yield return new WaitForBranches(progress =>
+                        {
+                            EditorUtility.DisplayProgressBar("Bake HLOD", "Simplify meshes",
+                                0.25f + progress * 0.25f);
+                        });
+                        Debug.Log("[HLOD] Simplify: " + sw.Elapsed.ToString("g"));
+                        sw.Reset();
+                        sw.Start();
+
+
+                        using (IBatcher batcher =
+                               (IBatcher)Activator.CreateInstance(hlod.BatcherType,
+                                   new object[] { hlod.BatcherOptions }))
+                        {
+                            batcher.Batch(hlod.transform, buildInfos,
+                                progress =>
+                                {
+                                    EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
+                                        0.5f + progress * 0.25f);
+                                });
+                        }
+
+                        Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
+                        sw.Reset();
+                        sw.Start();
+
+                        GameObject targetGameObject = hlod.gameObject;
+                        //If there are more than 1 rootNode, the HLOD use sub tree.
+                        //So we should separate GameObject to generate Streaming component.
+                        if (rootNodeList.Count > 1)
+                        {
+                            GameObject newTargetGameObject = new GameObject($"{targetGameObject.name}_SubTree{ri}");
+                            newTargetGameObject.transform.SetParent(targetGameObject.transform, false);
+                            hlod.AddGeneratedResource(newTargetGameObject);
+
+                            targetGameObject = newTargetGameObject;
+                        }
+
+                        IStreamingBuilder builder =
+                            (IStreamingBuilder)Activator.CreateInstance(hlod.StreamingType,
+                                new object[] { hlod, ri, hlod.StreamingOptions });
+                        builder.Build(rootNode, buildInfos, targetGameObject, hlod.CullDistance, hlod.LODDistance, false,
+                            true,
                             progress =>
                             {
-                                EditorUtility.DisplayProgressBar("Bake HLOD", "Generating combined static meshes.",
-                                    0.5f + progress * 0.25f);
+                                EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
+                                    0.75f + progress * 0.25f);
                             });
+                        Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
+                        sw.Reset();
+                        sw.Start();
                     }
-                    Debug.Log("[HLOD] Batch: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
-
-
-                    IStreamingBuilder builder =
-                        (IStreamingBuilder) Activator.CreateInstance(hlod.StreamingType,
-                            new object[] {hlod, hlod.StreamingOptions});
-                    builder.Build(rootNode, buildInfos, hlod.gameObject, hlod.CullDistance, hlod.LODDistance, false, true,
-                        progress =>
-                        {
-                            EditorUtility.DisplayProgressBar("Bake HLOD", "Storing results.",
-                                0.75f + progress * 0.25f);
-                        });
-                    Debug.Log("[HLOD] Build: " + sw.Elapsed.ToString("g"));
-                    sw.Reset();
-                    sw.Start();
-
-                    UserDataSerialization(hlod);
-                    
-                    EditorUtility.SetDirty(hlod.gameObject);
                 }
+                
+                UserDataSerialization(hlod);
+                EditorUtility.SetDirty(hlod);
+                EditorUtility.SetDirty(hlod.gameObject);
 
             }
             finally
@@ -277,13 +307,13 @@ namespace Unity.HLODSystem
                 EditorUtility.ClearProgressBar();
                 
             }
+            
         }
 
         public static IEnumerator Destroy(HLOD hlod)
         {
 
-            var controller = hlod.GetComponent<HLODControllerBase>();
-            if (controller == null)
+            if (hlod.GeneratedObjects.Count == 0)
                 yield break;
 
             try
@@ -316,8 +346,6 @@ namespace Unity.HLODSystem
                     EditorUtility.DisplayProgressBar("Destroy HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
                 }
                 generatedObjects.Clear();
-
-                Object.DestroyImmediate(controller);
             }
             finally
             {
@@ -337,15 +365,19 @@ namespace Unity.HLODSystem
                 return;
             
             hlod.AddGeneratedResource(serializer);
-            
-            var controller = hlod.GetComponent<Streaming.HLODControllerBase>();
-            if (controller == null)
+
+            var controllers = hlod.GetHLODControllerBases();
+            if (controllers.Count == 0)
                  return;
 
-            for (int i = 0; i < controller.HighObjectCount; ++i)
+            foreach (var controller in controllers)
             {
-                var obj = controller.GetHighSceneObject(i);
-                serializer.SerializeUserData(i, obj);
+                controller.UserDataserializer = serializer;
+                for (int i = 0; i < controller.HighObjectCount; ++i)
+                {
+                    var obj = controller.GetHighSceneObject(i);
+                    serializer.SerializeUserData(controller, i, obj);
+                }
             }
         }
 

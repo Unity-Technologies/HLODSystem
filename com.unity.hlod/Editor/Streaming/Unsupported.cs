@@ -59,11 +59,13 @@ namespace Unity.HLODSystem.Streaming
 
         private IGeneratedResourceManager m_manager;
         private SerializableDynamicObject m_streamingOptions;
+        private int m_controllerID;
 
-        public Unsupported(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
+        public Unsupported(IGeneratedResourceManager manager, int controllerID, SerializableDynamicObject streamingOptions)
         {
             m_manager = manager;
             m_streamingOptions = streamingOptions;
+            m_controllerID = controllerID;
         }
 
         public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, 
@@ -134,6 +136,9 @@ namespace Unity.HLODSystem.Streaming
             m_manager.AddGeneratedResource(rootData);
        
             var defaultController = root.AddComponent<DefaultHLODController>();
+            defaultController.ControllerID = m_controllerID;
+            m_manager.AddGeneratedResource(defaultController);
+            
             GameObject hlodRoot = new GameObject("HLODRoot");
             hlodRoot.transform.SetParent(root.transform, false);
             m_manager.AddGeneratedResource(hlodRoot);

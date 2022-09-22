@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using Unity.HLODSystem.Serializer;
 using Unity.HLODSystem.SpaceManager;
 using UnityEngine;
 
@@ -217,6 +217,12 @@ namespace Unity.HLODSystem.Streaming
         [SerializeField] private float m_lodDistance;
 
         [SerializeField] private bool m_runtimeDebug = false;
+        
+        [SerializeField]
+        private int m_controllerID;
+
+        [SerializeField] 
+        private UserDataSerializerBase m_userDataSerializer;
 
         public HLODTreeNodeContainer Container
         {
@@ -227,6 +233,25 @@ namespace Unity.HLODSystem.Streaming
             }
             get { return m_treeNodeContainer; }
         }
+
+        public UserDataSerializerBase UserDataserializer
+        {
+            set
+            {
+                m_userDataSerializer = value;
+            }
+            get
+            {
+                return m_userDataSerializer;
+            }
+        }
+
+        public int ControllerID
+        {
+            set { m_controllerID = value;}
+            get { return m_controllerID; }
+        }
+
         public HLODTreeNode Root
         {
             set

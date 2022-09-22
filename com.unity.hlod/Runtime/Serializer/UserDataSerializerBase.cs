@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using Unity.HLODSystem.Streaming;
 using UnityEngine;
 
 namespace Unity.HLODSystem.Serializer
@@ -16,19 +17,20 @@ namespace Unity.HLODSystem.Serializer
         [HideInInspector]
         private List<HLODUserData> m_userDataList = new List<HLODUserData>();
         
-        public void SerializeUserData(int id, GameObject gameObject)
+        public void SerializeUserData(HLODControllerBase controller, int id, GameObject gameObject)
         {
             int index = 0;
-            if (m_idTable.TryGetValue(id, out index) == false)
+            int encodedID = EncodeID(controller.ControllerID, id);
+            if (m_idTable.TryGetValue(encodedID, out index) == false)
             {
                 HLODUserData userData = new HLODUserData();
                 SerializeUserData(gameObject, userData);
 
                 if (userData.HasAnyData())
                 {
-                    m_idList.Add(id);
+                    m_idList.Add(encodedID);
                     m_userDataList.Add(userData);
-                    m_idTable[id] = m_userDataList.Count - 1;
+                    m_idTable[encodedID] = m_userDataList.Count - 1;
                 }
             }
             else
@@ -38,10 +40,11 @@ namespace Unity.HLODSystem.Serializer
             }
         }
 
-        public void DeserializeUserData(int id, GameObject gameObject)
+        public void DeserializeUserData(HLODControllerBase controller, int id, GameObject gameObject)
         {
             int index = 0;
-            if (m_idTable.TryGetValue(id, out index) == false)
+            int encodedID = EncodeID(controller.ControllerID, id);
+            if (m_idTable.TryGetValue(encodedID, out index) == false)
                 return;
             
             DeserializeUserData(gameObject, m_userDataList[index]);
@@ -64,6 +67,11 @@ namespace Unity.HLODSystem.Serializer
             {
                 m_idTable[m_idList[i]] = i;
             }
+        }
+
+        private int EncodeID(int controllerID, int id)
+        {
+            return (controllerID & 0xff) << 24 | id;
         }
     }
 }

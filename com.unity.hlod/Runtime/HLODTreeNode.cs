@@ -155,7 +155,7 @@ namespace Unity.HLODSystem
             m_fsm.RegisterExitedFunction(State.High, OnExitedHigh);
             
             m_controller = controller;
-            m_userDataSerializer = controller.GetComponent<UserDataSerializerBase>();
+            m_userDataSerializer = controller.UserDataserializer;
             m_spaceManager = spaceManager;
             m_parent = parent;
             
@@ -338,7 +338,7 @@ namespace Unity.HLODSystem
                     o.LoadedObject.SetActive(false);
                     if (m_userDataSerializer != null)
                     {
-                        m_userDataSerializer.DeserializeUserData(id, o.LoadedObject);
+                        m_userDataSerializer.DeserializeUserData(m_controller, id, o.LoadedObject);
                     }
                     
                     m_loadedHighObjects.Add(id, o);

@@ -272,12 +272,34 @@ MonoBehaviour:
   m_LODDistance: 0.3
   m_CullDistance: 0.01
   m_MinObjectSize: 0
+  m_SpaceSplitterTypeStr: Unity.HLODSystem.SpaceManager.QuadTreeSpaceSplitter, HLODEditor,
+    Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
   m_BatcherTypeStr: Unity.HLODSystem.MaterialPreservingBatcher, HLODEditor, Version=0.0.0.0,
     Culture=neutral, PublicKeyToken=null
   m_SimplifierTypeStr: Unity.HLODSystem.Simplifier.None, HLODEditor, Version=0.0.0.0,
     Culture=neutral, PublicKeyToken=null
   m_StreamingTypeStr: Unity.HLODSystem.Streaming.Unsupported, HLODEditor, Version=0.0.0.0,
     Culture=neutral, PublicKeyToken=null
+  m_UserDataSerializerTypeStr: Unity.HLODSystem.Serializer.EmptyUserDataSerializer,
+    HLOD, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+  m_SpaceSplitterOptions:
+    m_SerializeItems:
+    - Type: Unity.HLODSystem.SerializableDynamicObject+SerializeItem`1[[System.Boolean,
+        mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]],
+        HLOD, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+      Data: '{"Name":"AutoCalcLooseSize","Data":true}'
+    - Type: Unity.HLODSystem.SerializableDynamicObject+SerializeItem`1[[System.Single,
+        mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]],
+        HLOD, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+      Data: '{"Name":"LooseSize","Data":5.0}'
+    - Type: Unity.HLODSystem.SerializableDynamicObject+SerializeItem`1[[System.Boolean,
+        mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]],
+        HLOD, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+      Data: '{"Name":"UseSubHLODTree","Data":false}'
+    - Type: Unity.HLODSystem.SerializableDynamicObject+SerializeItem`1[[System.Single,
+        mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]],
+        HLOD, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+      Data: '{"Name":"SubHLODTreeSize","Data":100.0}'
   m_SimplifierOptions:
     m_SerializeItems: []
   m_BatcherOptions:

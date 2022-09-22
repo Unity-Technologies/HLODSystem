@@ -18,10 +18,12 @@ namespace Unity.HLODSystem
             public static GUIContent DestroyButtonNotExists = new GUIContent("Destroy", "HLOD must be created before the destroying.");
 
             public static GUIStyle RedTextColor = new GUIStyle();
+            public static GUIStyle BlueTextColor = new GUIStyle();
 
             static Styles()
             {
                 RedTextColor.normal.textColor = Color.red;
+                BlueTextColor.normal.textColor = new Color(0.4f, 0.5f, 1.0f);
             }
 
         }        
@@ -31,6 +33,9 @@ namespace Unity.HLODSystem
         private SerializedProperty m_MinObjectSizeProperty;
 
         private LODSlider m_LODSlider;
+
+        private Type[] m_SpaceSplitterTypes;
+        private string[] m_SpaceSplitterNames;
 
         private Type[] m_BatcherTypes;
         private string[] m_BatcherNames;
@@ -45,6 +50,7 @@ namespace Unity.HLODSystem
         private string[] m_UserDataSerializerNames;
 
         private bool isShowCommon = true;
+        private bool isShowSpaceSplitter = true;
         private bool isShowBatcher = true;
         private bool isShowSimplifier = true;
         private bool isShowStreaming = true;
@@ -52,7 +58,7 @@ namespace Unity.HLODSystem
 
         private bool isFirstOnGUI = true;
         
-        private ISpaceSplitter m_splitter = new QuadTreeSpaceSplitter(5.0f);
+        private ISpaceSplitter m_splitter;
 
         [InitializeOnLoadMethod]
         static void InitTagTagUtils()
@@ -74,6 +80,9 @@ namespace Unity.HLODSystem
             m_LODSlider = new LODSlider(true, "Cull");
             m_LODSlider.InsertRange("High", m_LODDistanceProperty);
             m_LODSlider.InsertRange("Low", m_CullDistanceProperty);
+
+            m_SpaceSplitterTypes = SpaceManager.SpaceSplitterTypes.GetTypes();
+            m_SpaceSplitterNames = m_SpaceSplitterTypes.Select(t => t.Name).ToArray();
 
             m_BatcherTypes = BatcherTypes.GetTypes();
             m_BatcherNames = m_BatcherTypes.Select(t => t.Name).ToArray();
@@ -101,6 +110,10 @@ namespace Unity.HLODSystem
                 EditorGUILayout.LabelField("HLOD is null.");
                 return;
             }
+            if (m_splitter == null)
+            {
+                m_splitter = SpaceSplitterTypes.CreateInstance(hlod);
+            }
 
             isShowCommon = EditorGUILayout.BeginFoldoutHeaderGroup(isShowCommon, "Common");
             if (isShowCommon == true)
@@ -108,24 +121,68 @@ namespace Unity.HLODSystem
                 EditorGUILayout.PropertyField(m_ChunkSizeProperty);
 
                 m_ChunkSizeProperty.floatValue = HLODUtils.GetChunkSizePropertyValue(m_ChunkSizeProperty.floatValue);
-                
-                var bounds = hlod.GetBounds();
-                int depth = m_splitter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
-                
-                EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.");
-                if (depth > 5)
-                {
-                    EditorGUILayout.LabelField($"Node Level Count greater than 5 may cause a frozen Editor.", Styles.RedTextColor);
-                    EditorGUILayout.LabelField($"I recommend keeping the level under 5.", Styles.RedTextColor);
-                    
-                }
 
+                if (m_splitter != null)
+                {
+                    var bounds = hlod.GetBounds();
+                    int depth = m_splitter.CalculateTreeDepth(bounds, m_ChunkSizeProperty.floatValue);
+
+                    EditorGUILayout.LabelField($"The HLOD tree will be created with {depth} levels.", Styles.BlueTextColor);
+                    if (depth > 5)
+                    {
+                        EditorGUILayout.LabelField($"Node Level Count greater than 5 may cause a frozen Editor.",
+                            Styles.RedTextColor);
+                        EditorGUILayout.LabelField($"I recommend keeping the level under 5.", Styles.RedTextColor);
+
+                    }
+                }
 
                 m_LODSlider.Draw();
                 EditorGUILayout.PropertyField(m_MinObjectSizeProperty);
             }
             EditorGUILayout.EndFoldoutHeaderGroup();
 
+            isShowSpaceSplitter = EditorGUILayout.BeginFoldoutHeaderGroup(isShowSpaceSplitter, "SpaceSplitter");
+            if (isShowSpaceSplitter)
+            {
+                EditorGUI.indentLevel += 1;
+                if (m_SpaceSplitterTypes.Length > 0)
+                {
+                    EditorGUI.BeginChangeCheck();
+                    
+                    int spaceSplitterIndex = Math.Max(Array.IndexOf(m_SpaceSplitterTypes, hlod.SpaceSplitterType), 0);
+                    spaceSplitterIndex = EditorGUILayout.Popup("SpaceSplitter", spaceSplitterIndex, m_SpaceSplitterNames);
+                    hlod.SpaceSplitterType = m_SpaceSplitterTypes[spaceSplitterIndex];
+
+                    var info = m_SpaceSplitterTypes[spaceSplitterIndex].GetMethod("OnGUI");
+                    if (info != null)
+                    {
+                        if ( info.IsStatic == true )
+                        {
+                            info.Invoke(null, new object[] { hlod.SpaceSplitterOptions });
+                        }
+                    }
+
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        m_splitter = SpaceSplitterTypes.CreateInstance(hlod);
+                    }
+
+                    if (m_splitter != null)
+                    {
+                        int subTreeCount = m_splitter.CalculateSubTreeCount(hlod.GetBounds());
+                        EditorGUILayout.LabelField($"The HLOD tree will be created with {subTreeCount} sub trees.",
+                            Styles.BlueTextColor);
+                    }
+
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("Cannot find SpaceSplitters.");
+                }
+                EditorGUI.indentLevel -= 1;
+            }
+            EditorGUILayout.EndFoldoutHeaderGroup();
 
             isShowSimplifier = EditorGUILayout.BeginFoldoutHeaderGroup(isShowSimplifier, "Simplifier");
             if (isShowSimplifier == true)
@@ -235,7 +292,7 @@ namespace Unity.HLODSystem
             GUIContent generateButton = Styles.GenerateButtonEnable;
             GUIContent destroyButton = Styles.DestroyButtonNotExists;
 
-            if (hlod.GetComponent<Streaming.HLODControllerBase>() != null)
+            if (hlod.GeneratedObjects.Count > 0 )
             {
                 generateButton = Styles.GenerateButtonExists;
                 destroyButton = Styles.DestroyButtonEnable;
@@ -256,9 +313,15 @@ namespace Unity.HLODSystem
             {
                 CoroutineRunner.RunCoroutine(HLODCreator.Destroy(hlod));
             }
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorUtility.SetDirty(hlod);
+            }
 
             GUI.enabled = true;
 
+            
             serializedObject.ApplyModifiedProperties();
             isFirstOnGUI = false;
         }

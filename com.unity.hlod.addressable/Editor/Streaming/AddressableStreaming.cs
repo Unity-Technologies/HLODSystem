@@ -62,13 +62,15 @@ namespace Unity.HLODSystem.Streaming
         
         private IGeneratedResourceManager m_manager;
         private SerializableDynamicObject m_streamingOptions;
+        private int m_controllerID;
 
         HashSet<string> m_shaderGuids = new HashSet<string>();
         
-        public AddressableStreaming(IGeneratedResourceManager manager, SerializableDynamicObject streamingOptions)
+        public AddressableStreaming(IGeneratedResourceManager manager, int controllerID, SerializableDynamicObject streamingOptions)
         {
             m_manager = manager;
             m_streamingOptions = streamingOptions;
+            m_controllerID = controllerID;
         }
         
         public void Build(SpaceNode rootNode, DisposableList<HLODBuildInfo> infos, GameObject root, 
@@ -178,6 +180,8 @@ namespace Unity.HLODSystem.Streaming
             
 
             var addressableController = root.AddComponent<AddressableHLODController>();
+            addressableController.ControllerID = m_controllerID;
+            m_manager.AddGeneratedResource(addressableController);
 
             for (int i = 0; i < infos.Count; ++i)
             {

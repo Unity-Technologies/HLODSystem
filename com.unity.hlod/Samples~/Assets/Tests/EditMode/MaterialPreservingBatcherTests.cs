@@ -297,15 +297,16 @@ namespace Unity.HLODSystem.EditorTests
         {
             
             List<GameObject> hlodTargets = ObjectUtils.HLODTargets(m_hlodComponent.gameObject);
-            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(0.0f);
-            SpaceNode rootNode = spliter.CreateSpaceTree(m_hlodComponent.GetBounds(), 10.0f, m_hlodComponent.transform.position, hlodTargets, null);
+            ISpaceSplitter spliter = new QuadTreeSpaceSplitter(null);
+            List<SpaceNode> rootNodes = spliter.CreateSpaceTree(m_hlodComponent.GetBounds(), 10.0f, m_hlodComponent.transform, hlodTargets, null);
 
-            return  (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { null, rootNode, 0.0f });
+            Assert.AreEqual(1, rootNodes.Count);
+            return  (DisposableList<HLODBuildInfo>)m_buildInfoFunc.Invoke(null, new object[] { null, rootNodes[0], 0.0f });
         }
         private void DoBatch(DisposableList<HLODBuildInfo> infos)
         {
             IBatcher batcher = (IBatcher)Activator.CreateInstance(m_batcherType, new object[] { m_hlodComponent.BatcherOptions });
-            batcher.Batch(m_hlodComponent.transform.position, infos, null);
+            batcher.Batch(m_hlodComponent.transform, infos, null);
         }
     }
 
