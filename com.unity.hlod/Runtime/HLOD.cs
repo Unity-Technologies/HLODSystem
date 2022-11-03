@@ -148,6 +148,17 @@ namespace Unity.HLODSystem
                 if ( controllerBase != null )
                     controllerBases.Add(controllerBase);
             }
+            
+            //if controller base doesn't exists in the generated objects, it was created from old version.
+            //so adding controller base manually.
+            if (controllerBases.Count == 0)
+            {
+                var controller = GetComponent<Streaming.HLODControllerBase>();
+                if (controller != null)
+                {
+                    controllerBases.Add(controller);
+                }
+            }
             return controllerBases;
         }
 #endif

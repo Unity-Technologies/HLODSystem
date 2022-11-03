@@ -326,6 +326,7 @@ namespace Unity.HLODSystem
                         InteractionMode.AutomatedAction);
                 }
 
+                var controllers = hlod.GetHLODControllerBases();
                 var generatedObjects = hlod.GeneratedObjects;
                 for (int i = 0; i < generatedObjects.Count; ++i)
                 {
@@ -346,6 +347,15 @@ namespace Unity.HLODSystem
                     EditorUtility.DisplayProgressBar("Destroy HLOD", "Destrying HLOD files", (float)i / (float)generatedObjects.Count);
                 }
                 generatedObjects.Clear();
+
+                //If the controller was created in the old version, must manually delete it.
+                for (int i = 0; i < controllers.Count; ++i)
+                {
+                    if (controllers[i] == null)
+                        continue;
+
+                    Object.DestroyImmediate(controllers[i]);
+                }
             }
             finally
             {
