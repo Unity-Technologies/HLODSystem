@@ -1,0 +1,11 @@
+.hlod-debugwindow-header{
+	padding: 0px 0px 0px 0px;
+	margin: 0px 0px 0px 0px;
+}
+
+#LabelHeader{
+	flex-grow: 1;
+}
+#EnableDebugHeader{
+	width: 50px;
+}

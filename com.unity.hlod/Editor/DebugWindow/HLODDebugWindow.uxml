@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.unity.hlod/Editor/DebugWindow/HLODDebugWindow.uss?fileID=7433441132597879392&amp;guid=f8155404e467c0b4caeb33538ea107cf&amp;type=3#HLODDebugWindow" />
+    <ui:VisualElement name="Header" style="flex-direction: row;">
+        <ui:Button text="Label" display-tooltip-when-elided="true" name="LabelHeader" focusable="false" class="hlod-debugwindow-header" />
+        <ui:Button text="Debug" display-tooltip-when-elided="true" name="EnableDebugHeader" focusable="false" class="hlod-debugwindow-header" />
+    </ui:VisualElement>
+    <ui:VisualElement name="HLODItems" />
+</ui:UXML>

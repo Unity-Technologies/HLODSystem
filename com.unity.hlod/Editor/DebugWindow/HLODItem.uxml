@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.unity.hlod/Editor/DebugWindow/HLODItem.uss?fileID=7433441132597879392&amp;guid=ba8f86d258f4dc940b057f8d2e47089b&amp;type=3#HLODItem" />
+    <ui:VisualElement style="flex-direction: row;">
+        <ui:Label text="Label" display-tooltip-when-elided="true" name="Label" />
+        <ui:Toggle label="Toggle" name="EnableDebug" />
+    </ui:VisualElement>
+</ui:UXML>
