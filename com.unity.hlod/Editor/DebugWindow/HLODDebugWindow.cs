@@ -53,7 +53,7 @@ namespace Unity.HLODSystem.DebugWindow
         {
             var controller = m_hlodItemList.itemsSource[i] as HLODControllerBase;
             var item = element as HLODItem;
-            if (item == null)
+            if (item == null || controller == null)
                 return;
             
             item.BindController(controller);

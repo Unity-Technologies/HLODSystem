@@ -1,0 +1,6 @@
+#Foldout > .unity-toggle__label
+{
+    min-width: 0px;
+    width: 0px;
+    visibility: hidden;
+}

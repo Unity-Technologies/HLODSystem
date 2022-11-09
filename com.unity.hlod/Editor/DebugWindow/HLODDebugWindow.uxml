@@ -5,5 +5,5 @@
         <ui:Button text="Debug" display-tooltip-when-elided="true" name="EnableDebugHeader" focusable="false" class="hlod-debugwindow-header" style="width: 50px;" />
         <ui:Button text="Ping" display-tooltip-when-elided="true" name="PingHeader" focusable="false" class="hlod-debugwindow-header" style="width: 70px;" />
     </ui:VisualElement>
-    <ui:ListView focusable="true" name="HLODItemList" virtualization-method="DynamicHeight" show-foldout-header="false" text="Ping" />
+    <ui:ListView name="HLODItemList" virtualization-method="DynamicHeight" show-foldout-header="false" text="Ping" selection-type="None" />
 </ui:UXML>

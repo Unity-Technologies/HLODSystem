@@ -5,5 +5,5 @@
         <ui:Toggle label="Toggle" name="EnableDebug" />
         <ui:Button text="Ping" display-tooltip-when-elided="true" name="Ping" style="width: 50px;" />
     </ui:VisualElement>
-    <ui:ListView focusable="true" name="Hierarchy" />
+    <ui:ListView focusable="true" name="Hierarchy" selection-type="Single" virtualization-method="DynamicHeight" />
 </ui:UXML>
