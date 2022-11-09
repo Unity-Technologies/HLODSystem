@@ -16,6 +16,7 @@ namespace Unity.HLODSystem.Streaming
         //So, explicitly make it available only in the Editor.
         #if UNITY_EDITOR
         public abstract GameObject GetHighSceneObject(int id);
+        public abstract string GetLowObjectName(int id); 
         #endif
         
         public abstract void Install();

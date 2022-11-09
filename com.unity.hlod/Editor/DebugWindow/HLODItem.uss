@@ -3,7 +3,7 @@
 }
 
 #EnableDebug {
-	width: 50px;
+	width: 30px;
 	flex-shrink: 1;
 }
 

@@ -3,9 +3,19 @@
 	margin: 0px 0px 0px 0px;
 }
 
+#Header{
+	flex-direction: row; 
+	flex-shrink: 0;
+}
 #LabelHeader{
 	flex-grow: 1;
 }
 #EnableDebugHeader{
-	width: 50px;
+	width: 70px;
+}
+
+#HLODItemList{
+	height: 100%;
+	padding-left: 5px;
+	padding-bottom: 5px;
 }

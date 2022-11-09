@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using Unity.HLODSystem.Streaming;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -10,12 +12,18 @@ namespace Unity.HLODSystem.DebugWindow
 {
     public class HLODDebugWindow : EditorWindow
     {
+        #region menu item
         [MenuItem("Window/HLOD/DebugWindow", false, 100000)]
         static void ShowWindow()
         {
             var window = GetWindow<HLODDebugWindow>("HLOD Debug window");
             window.Show();
         }
+        #endregion
+
+        private ListView m_hlodItemList;
+        //private VisualElement m_
+        
         private void OnEnable()
         {
             // Each editor window contains a root VisualElement object
@@ -31,6 +39,29 @@ namespace Unity.HLODSystem.DebugWindow
             
             visualTree.CloneTree(root);
             
+            //Initialize variables
+            m_hlodItemList = root.Q<ListView>("HLODItemList");
+            
+            m_hlodItemList.makeItem += HLODItemListMakeItem;
+            m_hlodItemList.bindItem += HLODItemListBindItem;
+
+            m_hlodItemList.itemsSource = HLODManager.Instance.ActiveControllers;
+
+        }
+
+        private void HLODItemListBindItem(VisualElement element, int i)
+        {
+            var controller = m_hlodItemList.itemsSource[i] as HLODControllerBase;
+            var item = element as HLODItem;
+            if (item == null)
+                return;
+            
+            item.BindController(controller);
+        }
+
+        private VisualElement HLODItemListMakeItem()
+        {
+            return new HLODItem();
         }
     }
 

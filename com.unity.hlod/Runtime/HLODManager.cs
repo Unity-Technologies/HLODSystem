@@ -22,24 +22,33 @@ namespace Unity.HLODSystem
                 return s_instance;
             }
         }
-    
+
+        public List<Streaming.HLODControllerBase> ActiveControllers
+        {
+            get
+            {
+                if (m_activeControllers == null)
+                {
+                    m_activeControllers = new List<Streaming.HLODControllerBase>();
+                    if (IsSRP)
+                        RenderPipelineManager.beginCameraRendering += OnPreCull;
+                    else
+                        Camera.onPreCull += OnPreCull;
+                }
+                
+                return m_activeControllers;
+            }
+        }
         public void Register(Streaming.HLODControllerBase controller)
         {
-            if (m_activeControllers == null)
-            {
-                m_activeControllers = new List<Streaming.HLODControllerBase>();
-                if (IsSRP)
-                    RenderPipelineManager.beginCameraRendering += OnPreCull;
-                else
-                    Camera.onPreCull += OnPreCull;
-            }
-            m_activeControllers.Add(controller);
+            ActiveControllers.Add(controller);
         }
         public void Unregister(Streaming.HLODControllerBase controller)
         {
-            if ( m_activeControllers != null)
-                m_activeControllers.Remove(controller);
+            ActiveControllers.Remove(controller);
         }
+        
+        
 
         private List<Streaming.HLODControllerBase> m_activeControllers = null;
 
