@@ -13,12 +13,13 @@ namespace Unity.HLODSystem.DebugWindow
     {
         private static readonly string s_uxmlGuid = "a3d94d4fe01e43d4eb8f2fc24c533851";
 
+        private HLODDebugWindow m_window;
         private HLODControllerBase m_controller;
 
         private Label m_lable;
         private Button m_ping;
         private ListView m_hierarchyView;
-        public HLODItem()
+        public HLODItem(HLODDebugWindow window)
         {
             var uxmlPath = AssetDatabase.GUIDToAssetPath(s_uxmlGuid);
             var template = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(uxmlPath);
@@ -26,16 +27,22 @@ namespace Unity.HLODSystem.DebugWindow
             var root = template.CloneTree();
             Add(root);
 
+            m_window = window;
+            
             m_lable = this.Q<Label>("Label");
             m_ping = this.Q<Button>("Ping");
             m_hierarchyView = this.Q<ListView>("Hierarchy");
 
             m_hierarchyView.makeItem += HierarchyMakeItem;
             m_hierarchyView.bindItem += HierarchyBindItem;
-
             
+            m_hierarchyView.onSelectionChange += HierarchyViewOnSelectionChange;
+
             m_ping.clickable.clicked += PingOnclicked;
         }
+
+        
+
         public void BindController(HLODControllerBase controller)
         {
             m_controller = controller;
@@ -86,6 +93,16 @@ namespace Unity.HLODSystem.DebugWindow
             data.Item = item;
             
             item.BindTreeNode(data);
+        }
+        private void HierarchyViewOnSelectionChange(IEnumerable<object> selectedItems)
+        {
+            m_window.ClearSelectTreeNodes();
+            //foreach(var item in m_hierarchyView.itemsSource)
+            foreach (var selectedItem in selectedItems)
+            {
+                var data = selectedItem as HierarchyItemData;
+                m_window.AddSelectTreeNode(data.TreeNode);
+            }
         }
         
         private void PingOnclicked()

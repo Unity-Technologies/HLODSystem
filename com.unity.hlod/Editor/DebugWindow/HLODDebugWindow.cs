@@ -61,8 +61,23 @@ namespace Unity.HLODSystem.DebugWindow
 
         private VisualElement HLODItemListMakeItem()
         {
-            return new HLODItem();
+            return new HLODItem(this);
         }
+
+        #region Debug rendering
+
+        private List<HLODTreeNode> m_selectTreeNodes = new List<HLODTreeNode>();
+        public void AddSelectTreeNode(HLODTreeNode node)
+        {
+            m_selectTreeNodes.Add(node);
+        }
+
+        public void ClearSelectTreeNodes()
+        {
+            m_selectTreeNodes.Clear();
+        }
+        
+        #endregion
     }
 
 }

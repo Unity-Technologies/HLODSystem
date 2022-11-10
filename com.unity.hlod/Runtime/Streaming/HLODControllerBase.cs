@@ -67,13 +67,6 @@ namespace Unity.HLODSystem.Streaming
             m_spaceManager = null;
             m_root = null;
         }
-        public void OnRenderObject()
-        {
-            if (m_runtimeDebug == false)
-                return;
-
-            m_root.RenderBounds(transform);
-        }
         #endregion
 
         #region Method
@@ -216,8 +209,6 @@ namespace Unity.HLODSystem.Streaming
 
         [SerializeField] private float m_cullDistance;
         [SerializeField] private float m_lodDistance;
-
-        [SerializeField] private bool m_runtimeDebug = false;
         
         [SerializeField]
         private int m_controllerID;
