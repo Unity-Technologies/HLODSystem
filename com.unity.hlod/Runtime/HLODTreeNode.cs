@@ -55,12 +55,17 @@ namespace Unity.HLODSystem
             get { return m_lowObjectIds; }
         }
 
-        private State ExprectedState
+        public State ExprectedState
         {
             get { return m_expectedState; }
         }
 
-        enum State
+        public State CurrentState
+        {
+            get { return m_fsm.CurrentState; }
+        }
+
+        public enum State
         {
             Release,
             Low,

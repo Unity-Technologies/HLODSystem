@@ -1,9 +1,15 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <Style src="project://database/Packages/com.unity.hlod/Editor/DebugWindow/HLODDebugWindow.uss?fileID=7433441132597879392&amp;guid=f8155404e467c0b4caeb33538ea107cf&amp;type=3#HLODDebugWindow" />
-    <ui:VisualElement name="Header">
-        <ui:Button text="Label" display-tooltip-when-elided="true" name="LabelHeader" focusable="false" class="hlod-debugwindow-header" />
-        <ui:Button text="Debug" display-tooltip-when-elided="true" name="EnableDebugHeader" focusable="false" class="hlod-debugwindow-header" style="width: 50px;" />
-        <ui:Button text="Ping" display-tooltip-when-elided="true" name="PingHeader" focusable="false" class="hlod-debugwindow-header" style="width: 70px;" />
+    <ui:VisualElement>
+        <ui:Toggle label="Draw selected " value="true" binding-path="m_drawSelected" name="DrawSelected" />
+        <ui:RadioButtonGroup label="Draw Mode" value="-1" name="DrawMode" binding-path="m_drawMode" />
     </ui:VisualElement>
-    <ui:ListView name="HLODItemList" virtualization-method="DynamicHeight" show-foldout-header="false" text="Ping" selection-type="None" />
+    <ui:VisualElement style="flex-grow: 1; flex-shrink: 0;">
+        <ui:VisualElement name="Header">
+            <ui:Button text="Label" display-tooltip-when-elided="true" name="LabelHeader" focusable="false" class="hlod-debugwindow-header" />
+            <ui:Button text="Debug" display-tooltip-when-elided="true" name="EnableDebugHeader" focusable="false" class="hlod-debugwindow-header" style="width: 50px;" />
+            <ui:Button text="Ping" display-tooltip-when-elided="true" name="PingHeader" focusable="false" class="hlod-debugwindow-header" style="width: 70px;" />
+        </ui:VisualElement>
+        <ui:ListView name="HLODItemList" virtualization-method="DynamicHeight" show-foldout-header="false" text="Ping" selection-type="None" />
+    </ui:VisualElement>
 </ui:UXML>

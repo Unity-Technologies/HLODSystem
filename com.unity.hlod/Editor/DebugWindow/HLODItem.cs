@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using Unity.HLODSystem.Streaming;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -19,6 +18,8 @@ namespace Unity.HLODSystem.DebugWindow
         private Label m_lable;
         private Button m_ping;
         private ListView m_hierarchyView;
+
+        private List<HLODTreeNode> m_nodes = new List<HLODTreeNode>();
         public HLODItem(HLODDebugWindow window)
         {
             var uxmlPath = AssetDatabase.GUIDToAssetPath(s_uxmlGuid);
@@ -67,6 +68,8 @@ namespace Unity.HLODSystem.DebugWindow
                     TreeNode = node,
                     Label = label,
                 });
+                m_nodes.Add(node);
+                m_window.AddDebugTreeNode(node);
                 
                 for (int i = node.GetChildTreeNodeCount() - 1; i >= 0; --i)
                 {
@@ -76,6 +79,15 @@ namespace Unity.HLODSystem.DebugWindow
             }
 
             m_hierarchyView.itemsSource = itemDatas;
+        }
+
+        public void UnbindController()
+        {
+            for (int i = 0; i < m_nodes.Count; ++i)
+            {
+                m_window.RemoveDebugTreeNode(m_nodes[i]);
+            }
+            m_nodes.Clear();
         }
 
         private VisualElement HierarchyMakeItem()
