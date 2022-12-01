@@ -92,7 +92,7 @@ namespace Unity.HLODSystem.DebugWindow
 
         private VisualElement HierarchyMakeItem()
         {
-            return new HierarchyItem(m_controller, m_hierarchyView);
+            return new HierarchyItem(m_window, m_hierarchyView);
         }
         private void HierarchyBindItem(VisualElement element, int i)
         {

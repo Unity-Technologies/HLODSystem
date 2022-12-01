@@ -30,13 +30,16 @@ namespace Unity.HLODSystem.DebugWindow
         private ListView m_hlodItemList;
 
         private RadioButtonGroup m_drawModeUI;
-        private Toggle m_drawSelectedUI;
 
         [SerializeField]
         private bool m_drawSelected = true;
+        [SerializeField] 
+        private bool m_highlightSelected = true;
 
         [SerializeField]
         private DrawMode m_drawMode = DrawMode.None;
+        
+        public bool HighlightSelected => m_highlightSelected;
         
         private void OnEnable()
         {
@@ -65,9 +68,11 @@ namespace Unity.HLODSystem.DebugWindow
             m_hlodItemList.Rebuild();
             
             var serializedObject = new SerializedObject(this);
-            m_drawSelectedUI = root.Q<Toggle>("DrawSelected");
-            m_drawSelectedUI.Bind(serializedObject);
-            
+            var drawSelectedUI = root.Q<Toggle>("DrawSelected");
+            drawSelectedUI.Bind(serializedObject);
+
+            var highlightSelectedUI = root.Q<Toggle>("HighlightSelected");
+            highlightSelectedUI.Bind(serializedObject);
             
             m_drawModeUI = root.Q<RadioButtonGroup>("DrawMode");
             m_drawModeUI.choices = new[]

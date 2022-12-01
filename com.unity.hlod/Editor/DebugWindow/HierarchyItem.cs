@@ -12,33 +12,54 @@ namespace Unity.HLODSystem.DebugWindow
 
 
         private HierarchyItemData m_data;
-        private HLODControllerBase m_controller;
-        
+
+        private HLODDebugWindow m_window;
         private ListView m_hierarchyView;
         
         private UQueryBuilder<VisualElement> m_treeOffset;
         private Toggle m_foldoutToggle;
         private Label m_name;
+        private VisualElement m_root;
         
-        public HierarchyItem(HLODControllerBase controller, ListView hierarchyView)
+        public HierarchyItem(HLODDebugWindow window, ListView hierarchyView)
         {
-            m_controller = controller;
+            m_window = window;
             m_hierarchyView = hierarchyView;
             
             var uxmlPath = AssetDatabase.GUIDToAssetPath(s_uxmlGuid);
             var template = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(uxmlPath);
 
-            var root = template.CloneTree();
-            Add(root);
+            m_root = template.CloneTree();
+            Add(m_root);
 
-            m_treeOffset = root.Query<VisualElement>("TreeOffset");
-            m_name = root.Q<Label>("Name");
-            m_foldoutToggle = root.Q<Toggle>("Foldout");
+            m_treeOffset = m_root.Query<VisualElement>("TreeOffset");
+            m_name = m_root.Q<Label>("Name");
+            m_foldoutToggle = m_root.Q<Toggle>("Foldout");
             m_foldoutToggle.RegisterValueChangedCallback(FoldoutValueChanged);
-
+            
+            EditorApplication.update += Update;
         }
 
-        
+        private void Update()
+        {
+            var node = m_data.TreeNode;
+            var isRendered = false;
+
+            if (m_window.HighlightSelected)
+            {
+                isRendered = node.CurrentState == HLODTreeNode.State.Low ||
+                             (node.CurrentState == HLODTreeNode.State.High && node.GetChildTreeNodeCount() == 0);
+            }
+
+            if (isRendered)
+            {
+                m_root.AddToClassList("HLODTreeNode_rendered");
+            }
+            else
+            {
+                m_root.RemoveFromClassList("HLODTreeNode_rendered");
+            }
+        }
 
         public void BindTreeNode(HierarchyItemData data)
         {
