@@ -15,11 +15,12 @@ namespace Unity.HLODSystem.DebugWindow
         private HLODDebugWindow m_window;
         private HLODControllerBase m_controller;
 
-        private Label m_lable;
-        private Button m_ping;
         private ListView m_hierarchyView;
 
         private List<HLODTreeNode> m_nodes = new List<HLODTreeNode>();
+
+        private bool m_enableDebug;
+        
         public HLODItem(HLODDebugWindow window)
         {
             var uxmlPath = AssetDatabase.GUIDToAssetPath(s_uxmlGuid);
@@ -30,26 +31,35 @@ namespace Unity.HLODSystem.DebugWindow
 
             m_window = window;
             
-            m_lable = this.Q<Label>("Label");
-            m_ping = this.Q<Button>("Ping");
+            
+            var ping = this.Q<Button>("Ping");
+            ping.clickable.clicked += PingOnclicked;
+
+            var enableDebugUI = this.Q<Toggle>("EnableDebug");
+            enableDebugUI.RegisterValueChangedCallback(EnableDebugValueChanged);
+            
             m_hierarchyView = this.Q<ListView>("Hierarchy");
 
             m_hierarchyView.makeItem += HierarchyMakeItem;
             m_hierarchyView.bindItem += HierarchyBindItem;
             
             m_hierarchyView.onSelectionChange += HierarchyViewOnSelectionChange;
-
-            m_ping.clickable.clicked += PingOnclicked;
         }
 
-        
+        private void EnableDebugValueChanged(ChangeEvent<bool> evt)
+        {
+            m_enableDebug = evt.newValue;
+        }
+
 
         public void BindController(HLODControllerBase controller)
         {
             m_controller = controller;
             
+            var lable = this.Q<Label>("Label");
+            
             this.Bind(new SerializedObject(controller));
-            m_lable.Bind(new SerializedObject(controller.gameObject));
+            lable.Bind(new SerializedObject(controller.gameObject));
 
             List<HierarchyItemData> itemDatas = new List<HierarchyItemData>();
             Stack<HLODTreeNode> treeNodeTravelStack = new Stack<HLODTreeNode>();
@@ -69,7 +79,6 @@ namespace Unity.HLODSystem.DebugWindow
                     Label = label,
                 });
                 m_nodes.Add(node);
-                m_window.AddDebugTreeNode(node);
                 
                 for (int i = node.GetChildTreeNodeCount() - 1; i >= 0; --i)
                 {
@@ -83,11 +92,26 @@ namespace Unity.HLODSystem.DebugWindow
 
         public void UnbindController()
         {
-            for (int i = 0; i < m_nodes.Count; ++i)
-            {
-                m_window.RemoveDebugTreeNode(m_nodes[i]);
-            }
             m_nodes.Clear();
+        }
+
+        public void Render(DrawMode drawMode)
+        {
+            if (m_enableDebug == false)
+                return;
+            
+            foreach (var node in m_nodes)
+            {
+                if (node.CurrentState == HLODTreeNode.State.Low ||
+                    (node.CurrentState == HLODTreeNode.State.High && node.GetChildTreeNodeCount() == 0))
+                {
+                    HLODTreeNodeRenderer.Instance.Render(node, Color.green, 2.0f);
+                }
+                else if (drawMode == DrawMode.All)
+                {
+                    HLODTreeNodeRenderer.Instance.Render(node, Color.yellow, 1.0f);
+                }
+            }
         }
 
         private VisualElement HierarchyMakeItem()
@@ -109,7 +133,7 @@ namespace Unity.HLODSystem.DebugWindow
         private void HierarchyViewOnSelectionChange(IEnumerable<object> selectedItems)
         {
             m_window.ClearSelectTreeNodes();
-            //foreach(var item in m_hierarchyView.itemsSource)
+            
             foreach (var selectedItem in selectedItems)
             {
                 var data = selectedItem as HierarchyItemData;

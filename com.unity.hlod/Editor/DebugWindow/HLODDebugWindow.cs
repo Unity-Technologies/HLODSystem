@@ -12,12 +12,7 @@ namespace Unity.HLODSystem.DebugWindow
 {
     public class HLODDebugWindow : EditorWindow
     {
-        enum DrawMode
-        {
-            None,
-            RenderOnly,
-            All,
-        }
+        
         #region menu item
         [MenuItem("Window/HLOD/DebugWindow", false, 100000)]
         static void ShowWindow()
@@ -28,6 +23,7 @@ namespace Unity.HLODSystem.DebugWindow
         #endregion
 
         private ListView m_hlodItemList;
+        private List<HLODItem> m_hlodItems = new List<HLODItem>();
 
         private RadioButtonGroup m_drawModeUI;
 
@@ -60,6 +56,7 @@ namespace Unity.HLODSystem.DebugWindow
             m_hlodItemList = root.Q<ListView>("HLODItemList");
            
             m_hlodItemList.makeItem += HLODItemListMakeItem;
+            m_hlodItemList.destroyItem += HLODItemListDestroyItem;
             m_hlodItemList.bindItem += HLODItemListBindItem;
             m_hlodItemList.unbindItem += HLODItemListUnbindItem;
             
@@ -83,14 +80,19 @@ namespace Unity.HLODSystem.DebugWindow
             };
             m_drawModeUI.Bind(serializedObject);
             
-            Camera.onPostRender += OnPostRender;
+            //Camera.onPostRender += OnPostRender;
             EditorApplication.playModeStateChanged += OnplayModeStateChanged;
+            SceneView.duringSceneGui += SceneViewOnduringSceneGui;
         }
+
+
+
 
         private void OnDisable()
         {
-            Camera.onPostRender -= OnPostRender;
+            //Camera.onPostRender -= OnPostRender;
             EditorApplication.playModeStateChanged -= OnplayModeStateChanged;
+            SceneView.duringSceneGui -= SceneViewOnduringSceneGui;
         }
 
         private void HLODItemListBindItem(VisualElement element, int i)
@@ -113,7 +115,18 @@ namespace Unity.HLODSystem.DebugWindow
         }
         private VisualElement HLODItemListMakeItem()
         {
-            return new HLODItem(this);
+            var item = new HLODItem(this);
+            m_hlodItems.Add(item);
+            return item;
+        }
+
+        private void HLODItemListDestroyItem(VisualElement element)
+        {
+            var item = element as HLODItem;
+            if (item == null)
+                return;
+
+            m_hlodItems.Remove(item);
         }
         
         private void OnplayModeStateChanged(PlayModeStateChange state)
@@ -124,26 +137,16 @@ namespace Unity.HLODSystem.DebugWindow
         }
 
         #region Debug rendering
-
-        private List<HLODTreeNode> m_treeNodes = new List<HLODTreeNode>();
         private List<HLODTreeNode> m_selectTreeNodes = new List<HLODTreeNode>();
-
         
-        private void OnPostRender(Camera cam)
+        
+        private void SceneViewOnduringSceneGui(SceneView obj)
         {
             if (m_drawMode != DrawMode.None)
             {
-                foreach (var node in m_treeNodes)
+                foreach (var item in m_hlodItems)
                 {
-                    if (node.CurrentState == HLODTreeNode.State.Low ||
-                        ( node.CurrentState == HLODTreeNode.State.High && node.GetChildTreeNodeCount() == 0 ))
-                    {
-                        HLODTreeNodeRenderer.Instance.Render(node, Color.green, 2.0f);    
-                    }
-                    else if (m_drawMode == DrawMode.All)
-                    {
-                        HLODTreeNodeRenderer.Instance.Render(node, Color.yellow, 1.0f);
-                    }
+                    item.Render(m_drawMode);
                 }
             }
             if (m_drawSelected)
@@ -153,21 +156,6 @@ namespace Unity.HLODSystem.DebugWindow
                     HLODTreeNodeRenderer.Instance.Render(node, Color.red, 2.0f);
                 }
             }
-        }
-
-        public void AddDebugTreeNode(HLODTreeNode node)
-        {
-            m_treeNodes.Add(node);
-        }
-
-        public void RemoveDebugTreeNode(HLODTreeNode node)
-        {
-            m_treeNodes.Remove(node);
-        }
-
-        public void ClearDebugTreeNodes()
-        {
-            m_treeNodes.Clear();
         }
 
         public void AddSelectTreeNode(HLODTreeNode node)
