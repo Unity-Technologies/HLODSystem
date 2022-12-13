@@ -11,20 +11,29 @@ namespace Unity.HLODSystem.DebugWindow
         private static readonly string s_uxmlGuid = "7b9b7a1f48292534bb048103f56e3404";
 
 
+        private HLODItemData m_hlodData;
         private HierarchyItemData m_data;
 
         private HLODDebugWindow m_window;
-        private ListView m_hierarchyView;
-        
+        private HLODItem m_hlodItem;
+
         private UQueryBuilder<VisualElement> m_treeOffset;
         private Toggle m_foldoutToggle;
-        private Label m_name;
         private VisualElement m_root;
+
+        public HierarchyItemData Data
+        {
+            get
+            {
+                return m_data;
+            }
+        }
         
-        public HierarchyItem(HLODDebugWindow window, ListView hierarchyView)
+        public HierarchyItem(HLODDebugWindow window, HLODItem hlodItem, HLODItemData hlodData)
         {
             m_window = window;
-            m_hierarchyView = hierarchyView;
+            m_hlodItem = hlodItem;
+            m_hlodData = hlodData;
             
             var uxmlPath = AssetDatabase.GUIDToAssetPath(s_uxmlGuid);
             var template = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(uxmlPath);
@@ -33,15 +42,26 @@ namespace Unity.HLODSystem.DebugWindow
             Add(m_root);
 
             m_treeOffset = m_root.Query<VisualElement>("TreeOffset");
-            m_name = m_root.Q<Label>("Name");
+            
             m_foldoutToggle = m_root.Q<Toggle>("Foldout");
             m_foldoutToggle.RegisterValueChangedCallback(FoldoutValueChanged);
+            m_foldoutToggle.RegisterCallback<ClickEvent>(FoldoutClick);
+            
+            RegisterCallback<ClickEvent>(ItemClick);
             
             EditorApplication.update += Update;
         }
 
+        private void ItemClick(ClickEvent evt)
+        {
+            m_window.SetSelectItem(this);
+        }
+
         private void Update()
         {
+            if (m_data == null)
+                return;
+            
             var node = m_data.TreeNode;
             var isRendered = false;
 
@@ -65,7 +85,16 @@ namespace Unity.HLODSystem.DebugWindow
         {
             m_data = data;
 
-            m_name.text = data.Label;
+            if (m_data.TreeNode.GetChildTreeNodeCount() == 0)
+            {
+                m_foldoutToggle.visible = false;
+            }
+            else
+            {
+                m_foldoutToggle.visible = true;
+            }
+
+            this.Bind(new SerializedObject(m_data));
             
             //setup offset
             m_treeOffset.ForEach(element =>
@@ -73,29 +102,22 @@ namespace Unity.HLODSystem.DebugWindow
                 element.style.width = data.TreeNode.Level * 30;
             });
         }
+
+        public void SelectItem()
+        {
+            AddToClassList("unity-collection-view__item--selected");
+        }
+        public void UnselectItem()
+        {
+            RemoveFromClassList("unity-collection-view__item--selected");
+        }
+        private void FoldoutClick(ClickEvent evt)
+        {
+            m_hlodItem.UpdateList();
+        }
         private void FoldoutValueChanged(ChangeEvent<bool> evt)
         {
-            for (int i = m_data.Index + 1; i < m_hierarchyView.itemsSource.Count; ++i)
-            {
-                var data = m_hierarchyView.itemsSource[i] as HierarchyItemData;
-                if (m_data.TreeNode.Level >= data.TreeNode.Level)
-                    break;
-
-                data.Item.SetVisible(evt.newValue);
-            }
-        }
-        public void SetVisible(bool visible)
-        {
-            if (visible)
-            {
-                this.style.height = new StyleLength(StyleKeyword.Auto);
-                this.style.visibility = Visibility.Visible;
-            }
-            else
-            {
-                this.style.height = 0;
-                this.style.visibility = Visibility.Hidden;
-            }
+            m_data.IsOpen = evt.newValue;
         }
     }
 }

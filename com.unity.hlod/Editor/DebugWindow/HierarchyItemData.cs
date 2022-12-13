@@ -4,12 +4,12 @@ using UnityEngine;
 
 namespace Unity.HLODSystem.DebugWindow
 {
-    public class HierarchyItemData
+    public class HierarchyItemData: ScriptableObject
     {
         public int Index;
         public HLODTreeNode TreeNode;
-        public HierarchyItem Item;
         public string Label;
+        public bool IsOpen;
     }
 
 }

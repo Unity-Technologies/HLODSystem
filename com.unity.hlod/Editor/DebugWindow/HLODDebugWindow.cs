@@ -1,12 +1,11 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using Unity.HLODSystem.Streaming;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Toggle = UnityEngine.UIElements.Toggle;
 
 namespace Unity.HLODSystem.DebugWindow
 {
@@ -24,6 +23,8 @@ namespace Unity.HLODSystem.DebugWindow
 
         private ListView m_hlodItemList;
         private List<HLODItem> m_hlodItems = new List<HLODItem>();
+        private List<HLODItemData> m_hlodItemDatas = new List<HLODItemData>();
+        private HierarchyItem m_selectedItem;
 
         private RadioButtonGroup m_drawModeUI;
 
@@ -54,16 +55,10 @@ namespace Unity.HLODSystem.DebugWindow
             
             //Initialize variables
             m_hlodItemList = root.Q<ListView>("HLODItemList");
-           
-            m_hlodItemList.makeItem += HLODItemListMakeItem;
-            m_hlodItemList.destroyItem += HLODItemListDestroyItem;
-            m_hlodItemList.bindItem += HLODItemListBindItem;
-            m_hlodItemList.unbindItem += HLODItemListUnbindItem;
             
-            m_hlodItemList.itemsSource = HLODManager.Instance.ActiveControllers;
-            
-            m_hlodItemList.Rebuild();
-            
+            UpdateDataList();
+
+
             var serializedObject = new SerializedObject(this);
             var drawSelectedUI = root.Q<Toggle>("DrawSelected");
             drawSelectedUI.Bind(serializedObject);
@@ -84,10 +79,6 @@ namespace Unity.HLODSystem.DebugWindow
             EditorApplication.playModeStateChanged += OnplayModeStateChanged;
             SceneView.duringSceneGui += SceneViewOnduringSceneGui;
         }
-
-
-
-
         private void OnDisable()
         {
             //Camera.onPostRender -= OnPostRender;
@@ -95,78 +86,94 @@ namespace Unity.HLODSystem.DebugWindow
             SceneView.duringSceneGui -= SceneViewOnduringSceneGui;
         }
 
-        private void HLODItemListBindItem(VisualElement element, int i)
+     
+
+        private void Update()
         {
-            var controller = m_hlodItemList.itemsSource[i] as HLODControllerBase;
-            var item = element as HLODItem;
-            if (item == null || controller == null)
-                return;
-            
-            item.BindController(controller);
-        }
-        
-        private void HLODItemListUnbindItem(VisualElement element, int i)
-        {
-            var item = element as HLODItem;
-            if (item == null)
-                return;
-            
-            item.UnbindController();
-        }
-        private VisualElement HLODItemListMakeItem()
-        {
-            var item = new HLODItem(this);
-            m_hlodItems.Add(item);
-            return item;
+            if (HLODManager.Instance.ActiveControllers.Count != m_hlodItemDatas.Count)
+            {
+                UpdateDataList();
+            }
         }
 
-        private void HLODItemListDestroyItem(VisualElement element)
+        private void UpdateDataList()
         {
-            var item = element as HLODItem;
-            if (item == null)
-                return;
+            m_hlodItemDatas.Clear();
+            m_hlodItemList.Clear();
 
-            m_hlodItems.Remove(item);
+            foreach (var controller in HLODManager.Instance.ActiveControllers)
+            {
+                var data = new HLODItemData();
+                data.Initialize(controller);
+                m_hlodItemDatas.Add(data);
+            }
+
+            var view = m_hlodItemList.hierarchy[0] as ScrollView;
+            view.Clear();
+            foreach (var data in m_hlodItemDatas)
+            {
+                var item = new HLODItem(this);
+                item.BindData(data);
+                view.Add(item);
+                
+                m_hlodItems.Add(item);
+                
+            }
         }
-        
+
+   
         private void OnplayModeStateChanged(PlayModeStateChange state)
         {
-            //
-            m_hlodItemList.Rebuild();
-            ClearSelectTreeNodes();
+            UpdateDataList();
+            m_selectedItem = null;
         }
 
+    
+
+        #region Hierarchy item
+
+        private List<HierarchyItem> m_hierarchyItems = new List<HierarchyItem>();
+        public void AddHierarchyItem(HierarchyItem item)
+        {
+            m_hierarchyItems.Add(item);
+        }
+
+        public void RemoveHierarchyItem(HierarchyItem item)
+        {
+            m_hierarchyItems.Remove(item);
+        }
+
+        #endregion
+
         #region Debug rendering
-        private List<HLODTreeNode> m_selectTreeNodes = new List<HLODTreeNode>();
-        
-        
         private void SceneViewOnduringSceneGui(SceneView obj)
         {
             if (m_drawMode != DrawMode.None)
             {
-                foreach (var item in m_hlodItems)
+                foreach (var itemData in m_hlodItemDatas)
                 {
-                    item.Render(m_drawMode);
+                    itemData.Render(m_drawMode);
                 }
             }
             if (m_drawSelected)
             {
-                foreach (var node in m_selectTreeNodes)
+                if ( m_selectedItem != null)
                 {
-                    HLODTreeNodeRenderer.Instance.Render(node, Color.red, 2.0f);
+                    HLODTreeNodeRenderer.Instance.Render(m_selectedItem.Data.TreeNode, Color.red, 2.0f);
                 }
             }
         }
 
-        public void AddSelectTreeNode(HLODTreeNode node)
+        public void SetSelectItem(HierarchyItem item)
         {
-            m_selectTreeNodes.Add(node);
+            if ( m_selectedItem != null)
+                m_selectedItem.UnselectItem();
+            
+            m_selectedItem = item;
+            if ( m_selectedItem != null)
+                m_selectedItem.SelectItem();
         }
         
-        public void ClearSelectTreeNodes()
-        {
-            m_selectTreeNodes.Clear();
-        }
         
         #endregion
     }

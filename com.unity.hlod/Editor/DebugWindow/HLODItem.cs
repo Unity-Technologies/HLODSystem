@@ -1,9 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.HLODSystem.Streaming;
 using UnityEditor;
+using UnityEditor.PackageManager.UI;
 using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.PlayerLoop;
 using UnityEngine.UIElements;
 
 namespace Unity.HLODSystem.DebugWindow
@@ -13,12 +16,11 @@ namespace Unity.HLODSystem.DebugWindow
         private static readonly string s_uxmlGuid = "a3d94d4fe01e43d4eb8f2fc24c533851";
 
         private HLODDebugWindow m_window;
-        private HLODControllerBase m_controller;
+        private HLODItemData m_data;
 
         private ListView m_hierarchyView;
-
-        private List<HLODTreeNode> m_nodes = new List<HLODTreeNode>();
-
+        private List<HierarchyItem> m_hierarchyItems = new List<HierarchyItem>();
+        
         private bool m_enableDebug;
         
         public HLODItem(HLODDebugWindow window)
@@ -34,116 +36,61 @@ namespace Unity.HLODSystem.DebugWindow
             
             var ping = this.Q<Button>("Ping");
             ping.clickable.clicked += PingOnclicked;
-
-            var enableDebugUI = this.Q<Toggle>("EnableDebug");
-            enableDebugUI.RegisterValueChangedCallback(EnableDebugValueChanged);
             
             m_hierarchyView = this.Q<ListView>("Hierarchy");
-
-            m_hierarchyView.makeItem += HierarchyMakeItem;
-            m_hierarchyView.bindItem += HierarchyBindItem;
-            
-            m_hierarchyView.onSelectionChange += HierarchyViewOnSelectionChange;
         }
 
-        private void EnableDebugValueChanged(ChangeEvent<bool> evt)
+        
+
+
+        public void BindData(HLODItemData data)
         {
-            m_enableDebug = evt.newValue;
-        }
+            m_data = data;
+            this.Bind(new SerializedObject(data));
 
-
-        public void BindController(HLODControllerBase controller)
-        {
-            m_controller = controller;
-            
-            var lable = this.Q<Label>("Label");
-            
-            this.Bind(new SerializedObject(controller));
-            lable.Bind(new SerializedObject(controller.gameObject));
-
-            List<HierarchyItemData> itemDatas = new List<HierarchyItemData>();
-            Stack<HLODTreeNode> treeNodeTravelStack = new Stack<HLODTreeNode>();
-            Stack<string> labelStack = new Stack<string>();
-            
-            treeNodeTravelStack.Push(m_controller.Root);
-            labelStack.Push("");
-
-            while (treeNodeTravelStack.Count > 0)
+            foreach (var hierarchyData in data.HierarchyItemDatas)
             {
-                var node = treeNodeTravelStack.Pop();
-                var label = labelStack.Pop();
-                itemDatas.Add(new HierarchyItemData()
-                {
-                    Index = itemDatas.Count,
-                    TreeNode = node,
-                    Label = label,
-                });
-                m_nodes.Add(node);
+                var item = new HierarchyItem(m_window, this, m_data);
+                item.BindTreeNode(hierarchyData);
+                m_hierarchyItems.Add(item);
                 
-                for (int i = node.GetChildTreeNodeCount() - 1; i >= 0; --i)
-                {
-                    treeNodeTravelStack.Push(node.GetChildTreeNode(i));
-                    labelStack.Push($"{label}_{i+1}");
-                }
             }
-
-            m_hierarchyView.itemsSource = itemDatas;
-        }
-
-        public void UnbindController()
-        {
-            m_nodes.Clear();
-        }
-
-        public void Render(DrawMode drawMode)
-        {
-            if (m_enableDebug == false)
-                return;
             
-            foreach (var node in m_nodes)
-            {
-                if (node.CurrentState == HLODTreeNode.State.Low ||
-                    (node.CurrentState == HLODTreeNode.State.High && node.GetChildTreeNodeCount() == 0))
-                {
-                    HLODTreeNodeRenderer.Instance.Render(node, Color.green, 2.0f);
-                }
-                else if (drawMode == DrawMode.All)
-                {
-                    HLODTreeNodeRenderer.Instance.Render(node, Color.yellow, 1.0f);
-                }
-            }
-        }
-
-        private VisualElement HierarchyMakeItem()
-        {
-            return new HierarchyItem(m_window, m_hierarchyView);
-        }
-        private void HierarchyBindItem(VisualElement element, int i)
-        {
-            var data = m_hierarchyView.itemsSource[i] as HierarchyItemData;
-            var item = element as HierarchyItem;
-
-            if (item == null || data == null)
-                return;
-
-            data.Item = item;
-            
-            item.BindTreeNode(data);
-        }
-        private void HierarchyViewOnSelectionChange(IEnumerable<object> selectedItems)
-        {
-            m_window.ClearSelectTreeNodes();
-            
-            foreach (var selectedItem in selectedItems)
-            {
-                var data = selectedItem as HierarchyItemData;
-                m_window.AddSelectTreeNode(data.TreeNode);
-            }
+            UpdateList();
         }
         
         private void PingOnclicked()
         {
-            EditorGUIUtility.PingObject(m_controller);
+            if (m_data == null)
+                return;
+            
+            EditorGUIUtility.PingObject(m_data.Controller);
+        }
+
+        public void UpdateList()
+        {
+            var view = m_hierarchyView.hierarchy[0] as ScrollView;
+            view.Clear();
+
+            for ( int i = 0; i < m_hierarchyItems.Count;)
+            {
+                var item = m_hierarchyItems[i];
+                view.Add(item);
+                if (item.Data.IsOpen)
+                {
+                    
+                    ++i;
+                }
+                else
+                {
+                    for (i = i+1; i < m_hierarchyItems.Count; ++i)
+                    {
+                        var nextItem = m_hierarchyItems[i];
+                        if (item.Data.TreeNode.Level >= nextItem.Data.TreeNode.Level)
+                            break;
+                    }
+                }
+            }
         }
     }
 
