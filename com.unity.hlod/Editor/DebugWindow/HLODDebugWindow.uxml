@@ -1,9 +1,9 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <Style src="project://database/Packages/com.unity.hlod/Editor/DebugWindow/HLODDebugWindow.uss?fileID=7433441132597879392&amp;guid=f8155404e467c0b4caeb33538ea107cf&amp;type=3#HLODDebugWindow" />
     <ui:VisualElement style="flex-shrink: 0;">
-        <ui:Toggle label="Highlight Selected" value="true" binding-path="m_highlightSelected" name="HighlightSelected" />
-        <ui:Toggle label="Draw selected " value="true" binding-path="m_drawSelected" name="DrawSelected" />
+        <ui:Toggle label="Draw Selected " value="true" binding-path="m_drawSelected" name="DrawSelected" />
         <ui:RadioButtonGroup label="Draw Mode" value="-1" name="DrawMode" binding-path="m_drawMode" />
+        <ui:Toggle label="Highlight Rendered" value="true" binding-path="m_highlightRendered" name="HighlightRendered" />
     </ui:VisualElement>
     <ui:VisualElement style="flex-grow: 1; flex-shrink: 0;">
         <ui:VisualElement name="Header">

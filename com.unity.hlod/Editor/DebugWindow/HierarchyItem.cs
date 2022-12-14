@@ -65,7 +65,7 @@ namespace Unity.HLODSystem.DebugWindow
             var node = m_data.TreeNode;
             var isRendered = false;
 
-            if (m_window.HighlightSelected)
+            if (m_window.HighlightRendered)
             {
                 isRendered = node.CurrentState == HLODTreeNode.State.Low ||
                              (node.CurrentState == HLODTreeNode.State.High && node.GetChildTreeNodeCount() == 0);

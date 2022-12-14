@@ -31,12 +31,12 @@ namespace Unity.HLODSystem.DebugWindow
         [SerializeField]
         private bool m_drawSelected = true;
         [SerializeField] 
-        private bool m_highlightSelected = true;
+        private bool m_highlightRendered = true;
 
         [SerializeField]
-        private DrawMode m_drawMode = DrawMode.None;
+        private DrawMode m_drawMode = DrawMode.RenderOnly;
         
-        public bool HighlightSelected => m_highlightSelected;
+        public bool HighlightRendered => m_highlightRendered;
         
         private void OnEnable()
         {
@@ -63,8 +63,8 @@ namespace Unity.HLODSystem.DebugWindow
             var drawSelectedUI = root.Q<Toggle>("DrawSelected");
             drawSelectedUI.Bind(serializedObject);
 
-            var highlightSelectedUI = root.Q<Toggle>("HighlightSelected");
-            highlightSelectedUI.Bind(serializedObject);
+            var highlightRenderedUI = root.Q<Toggle>("HighlightRendered");
+            highlightRenderedUI.Bind(serializedObject);
             
             m_drawModeUI = root.Q<RadioButtonGroup>("DrawMode");
             m_drawModeUI.choices = new[]
