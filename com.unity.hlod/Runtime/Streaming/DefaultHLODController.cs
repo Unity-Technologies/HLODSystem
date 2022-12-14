@@ -34,11 +34,6 @@ namespace Unity.HLODSystem.Streaming
         {
             return m_gameObjectList[id];
         }
-
-        public override string GetLowObjectName(int id)
-        {
-            return m_lowGameObjects[id].name;
-        }
         #endif
         public override void OnStart()
         {
