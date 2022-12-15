@@ -179,8 +179,10 @@ namespace Unity.HLODSystem.Streaming
 
             m_spaceManager.UpdateCamera(this.transform, camera);
 
-            m_root.Cull(m_spaceManager.IsCull(m_cullDistance, m_root.Bounds));
-            m_root.Update(m_lodDistance);
+            //It can be culled when it is not manual level.
+            if ( m_manualLevel < 0)
+                m_root.Cull(m_spaceManager.IsCull(m_cullDistance, m_root.Bounds));
+            m_root.Update(m_manualLevel, m_lodDistance);
         }
 
         public bool IsLoadDone()
@@ -203,6 +205,16 @@ namespace Unity.HLODSystem.Streaming
 
             return count;
         }
+
+        public void SetManualLevel(int level)
+        {
+            m_manualLevel = level;
+        }
+
+        public void ResetManualLevel()
+        {
+            m_manualLevel = -1;
+        }
         #endregion
 
         #region variables
@@ -223,6 +235,9 @@ namespace Unity.HLODSystem.Streaming
 
         [SerializeField] 
         private UserDataSerializerBase m_userDataSerializer;
+        
+        [SerializeField]
+        private int m_manualLevel = -1;
 
         public HLODTreeNodeContainer Container
         {

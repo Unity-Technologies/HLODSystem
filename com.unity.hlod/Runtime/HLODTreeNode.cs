@@ -400,21 +400,43 @@ namespace Unity.HLODSystem
         #endregion
         
 
-        public void Update(float lodDistance)
+        public void Update(int manualLevel, float lodDistance)
         {
             m_distance = m_spaceManager.GetDistanceSqure(m_bounds) - m_boundsLength;
 
-            //Change state if a change to another state is needed immediately after changing the state.
             var beforeState = m_fsm.CurrentState;
-            m_expectedState = m_spaceManager.IsHigh(lodDistance, m_bounds) ? State.High : State.Low;
-
-            if ( m_parent != null)
+            
+            if (manualLevel >= 0)
             {
-                if ( m_parent.ExprectedState == State.Release || m_parent.ExprectedState == State.Low)
+                //Tree nodes suitable for the manual level must be calculated and displayed.
+                if (m_level < manualLevel)
+                {
+                    m_expectedState = State.High;
+                }
+                else if (m_level == manualLevel)
+                {
+                    m_expectedState = State.Low;
+                }
+                else
                 {
                     m_expectedState = State.Release;
                 }
+
             }
+            else
+            {
+                //Change state if a change to another state is needed immediately after changing the state.
+                m_expectedState = m_spaceManager.IsHigh(lodDistance, m_bounds) ? State.High : State.Low;
+
+                if (m_parent != null)
+                {
+                    if (m_parent.ExprectedState == State.Release || m_parent.ExprectedState == State.Low)
+                    {
+                        m_expectedState = State.Release;
+                    }
+                }
+            }
+
 
             do
             {
@@ -445,7 +467,7 @@ namespace Unity.HLODSystem
             for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
                 var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
-                childTreeNode.Update(lodDistance);
+                childTreeNode.Update(manualLevel, lodDistance);
             }
         }
 
