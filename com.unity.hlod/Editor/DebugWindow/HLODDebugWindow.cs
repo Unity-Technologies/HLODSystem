@@ -75,15 +75,13 @@ namespace Unity.HLODSystem.DebugWindow
             };
             m_drawModeUI.Bind(serializedObject);
             
-            //Camera.onPostRender += OnPostRender;
-            EditorApplication.playModeStateChanged += OnplayModeStateChanged;
-            SceneView.duringSceneGui += SceneViewOnduringSceneGui;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            SceneView.duringSceneGui += SceneViewOnDuringSceneGui;
         }
         private void OnDisable()
         {
-            //Camera.onPostRender -= OnPostRender;
-            EditorApplication.playModeStateChanged -= OnplayModeStateChanged;
-            SceneView.duringSceneGui -= SceneViewOnduringSceneGui;
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            SceneView.duringSceneGui -= SceneViewOnDuringSceneGui;
         }
 
      
@@ -122,7 +120,7 @@ namespace Unity.HLODSystem.DebugWindow
         }
 
    
-        private void OnplayModeStateChanged(PlayModeStateChange state)
+        private void OnPlayModeStateChanged(PlayModeStateChange state)
         {
             UpdateDataList();
             m_selectedItem = null;
@@ -146,7 +144,7 @@ namespace Unity.HLODSystem.DebugWindow
         #endregion
 
         #region Debug rendering
-        private void SceneViewOnduringSceneGui(SceneView obj)
+        private void SceneViewOnDuringSceneGui(SceneView obj)
         {
             if (m_drawMode != DrawMode.None)
             {
