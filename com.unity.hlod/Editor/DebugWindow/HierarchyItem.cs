@@ -1,3 +1,4 @@
+using System;
 using Unity.HLODSystem.Streaming;
 using UnityEditor;
 using UnityEngine;
@@ -6,7 +7,7 @@ using UnityEditor.UIElements;
 
 namespace Unity.HLODSystem.DebugWindow
 {
-    public class HierarchyItem : VisualElement
+    public class HierarchyItem : VisualElement, IDisposable
     {
         private static readonly string s_uxmlGuid = "7b9b7a1f48292534bb048103f56e3404";
 
@@ -51,6 +52,19 @@ namespace Unity.HLODSystem.DebugWindow
             
             EditorApplication.update += Update;
         }
+        
+        public void Dispose()
+        {
+            this.Unbind();
+            
+            if (m_foldoutToggle != null)
+            {
+                m_foldoutToggle.UnregisterValueChangedCallback(FoldoutValueChanged);
+                m_foldoutToggle.UnregisterCallback<ClickEvent>(FoldoutClick);
+            }
+            EditorApplication.update -= Update;
+        }
+        
 
         private void ItemClick(ClickEvent evt)
         {
@@ -119,5 +133,7 @@ namespace Unity.HLODSystem.DebugWindow
         {
             m_data.IsOpen = evt.newValue;
         }
+
+        
     }
 }

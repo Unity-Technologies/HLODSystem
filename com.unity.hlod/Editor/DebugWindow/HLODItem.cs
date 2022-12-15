@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,7 @@ using UnityEngine.UIElements;
 
 namespace Unity.HLODSystem.DebugWindow
 {
-    public class HLODItem : VisualElement
+    public class HLODItem : VisualElement, IDisposable
     {
         private static readonly string s_uxmlGuid = "a3d94d4fe01e43d4eb8f2fc24c533851";
 
@@ -39,7 +40,19 @@ namespace Unity.HLODSystem.DebugWindow
             
             m_hierarchyView = this.Q<ListView>("Hierarchy");
         }
+        public void Dispose()
+        {
+            this.Unbind();
+            
+            var ping = this.Q<Button>("Ping");
+            ping.clickable.clicked -= PingOnclicked;
 
+            foreach (var item in m_hierarchyItems)
+            {
+                item.Dispose();
+            }
+            m_hierarchyItems.Clear();
+        }
         
 
 
@@ -58,6 +71,8 @@ namespace Unity.HLODSystem.DebugWindow
             
             UpdateList();
         }
+        
+        
         
         private void PingOnclicked()
         {
@@ -92,6 +107,7 @@ namespace Unity.HLODSystem.DebugWindow
                 }
             }
         }
+
     }
 
 }

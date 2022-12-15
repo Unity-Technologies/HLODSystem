@@ -96,8 +96,14 @@ namespace Unity.HLODSystem.DebugWindow
 
         private void UpdateDataList()
         {
+            foreach (var hlodItem in m_hlodItems)
+            {
+                hlodItem.Dispose();
+            }
+            
             m_hlodItemDatas.Clear();
             m_hlodItemList.Clear();
+            m_hlodItems.Clear();
 
             foreach (var controller in HLODManager.Instance.ActiveControllers)
             {
@@ -125,23 +131,6 @@ namespace Unity.HLODSystem.DebugWindow
             UpdateDataList();
             m_selectedItem = null;
         }
-
-    
-
-        #region Hierarchy item
-
-        private List<HierarchyItem> m_hierarchyItems = new List<HierarchyItem>();
-        public void AddHierarchyItem(HierarchyItem item)
-        {
-            m_hierarchyItems.Add(item);
-        }
-
-        public void RemoveHierarchyItem(HierarchyItem item)
-        {
-            m_hierarchyItems.Remove(item);
-        }
-
-        #endregion
 
         #region Debug rendering
         private void SceneViewOnDuringSceneGui(SceneView obj)
