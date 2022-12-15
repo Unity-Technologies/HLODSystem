@@ -244,6 +244,7 @@ namespace Unity.HLODSystem.Streaming
         [SerializeField]
         private Mode m_mode = Mode.AutoControl;
         [SerializeField]
+        [Range(-1, 10)] //< TODO: It should input suitable value, max level, to maximum range.
         private int m_manualLevel = 0;
 
         public enum Mode
