@@ -22,7 +22,7 @@ namespace Unity.HLODSystem
             }
         }
         #endregion
-        
+        private Vector3[] m_allocedVertices = new Vector3[8];
         #region public
         public void Render(HLODTreeNode node, Color color, float width)
         {
@@ -32,38 +32,38 @@ namespace Unity.HLODSystem
             Vector3 min = node.Bounds.min;
             Vector3 max = node.Bounds.max;
 
-            Vector3[] vertices = new Vector3[8];
-            vertices[0] = new Vector3(min.x, min.y, min.z);
-            vertices[1] = new Vector3(min.x, min.y, max.z);
-            vertices[2] = new Vector3(max.x, min.y, max.z);
-            vertices[3] = new Vector3(max.x, min.y, min.z);
+            
+            m_allocedVertices[0] = new Vector3(min.x, min.y, min.z);
+            m_allocedVertices[1] = new Vector3(min.x, min.y, max.z);
+            m_allocedVertices[2] = new Vector3(max.x, min.y, max.z);
+            m_allocedVertices[3] = new Vector3(max.x, min.y, min.z);
 
-            vertices[4] = new Vector3(min.x, max.y, min.z);
-            vertices[5] = new Vector3(min.x, max.y, max.z);
-            vertices[6] = new Vector3(max.x, max.y, max.z);
-            vertices[7] = new Vector3(max.x, max.y, min.z);
+            m_allocedVertices[4] = new Vector3(min.x, max.y, min.z);
+            m_allocedVertices[5] = new Vector3(min.x, max.y, max.z);
+            m_allocedVertices[6] = new Vector3(max.x, max.y, max.z);
+            m_allocedVertices[7] = new Vector3(max.x, max.y, min.z);
 
-            for (int i = 0; i < vertices.Length; ++i)
+            for (int i = 0; i < m_allocedVertices.Length; ++i)
             {
-                vertices[i] = node.Controller.transform.localToWorldMatrix.MultiplyPoint(vertices[i]);
+                m_allocedVertices[i] = node.Controller.transform.localToWorldMatrix.MultiplyPoint(m_allocedVertices[i]);
             }
             
             Handles.color = color;
 
-            Handles.DrawLine(vertices[0], vertices[1], width);
-            Handles.DrawLine(vertices[1], vertices[2], width);
-            Handles.DrawLine(vertices[2], vertices[3], width);
-            Handles.DrawLine(vertices[3], vertices[0], width);
+            Handles.DrawLine(m_allocedVertices[0], m_allocedVertices[1], width);
+            Handles.DrawLine(m_allocedVertices[1], m_allocedVertices[2], width);
+            Handles.DrawLine(m_allocedVertices[2], m_allocedVertices[3], width);
+            Handles.DrawLine(m_allocedVertices[3], m_allocedVertices[0], width);
 
-            Handles.DrawLine(vertices[0], vertices[4], width);
-            Handles.DrawLine(vertices[1], vertices[5], width);
-            Handles.DrawLine(vertices[2], vertices[6], width);
-            Handles.DrawLine(vertices[3], vertices[7], width);
+            Handles.DrawLine(m_allocedVertices[0], m_allocedVertices[4], width);
+            Handles.DrawLine(m_allocedVertices[1], m_allocedVertices[5], width);
+            Handles.DrawLine(m_allocedVertices[2], m_allocedVertices[6], width);
+            Handles.DrawLine(m_allocedVertices[3], m_allocedVertices[7], width);
 
-            Handles.DrawLine(vertices[4], vertices[5], width);
-            Handles.DrawLine(vertices[5], vertices[6], width);
-            Handles.DrawLine(vertices[6], vertices[7], width);
-            Handles.DrawLine(vertices[7], vertices[4], width);
+            Handles.DrawLine(m_allocedVertices[4], m_allocedVertices[5], width);
+            Handles.DrawLine(m_allocedVertices[5], m_allocedVertices[6], width);
+            Handles.DrawLine(m_allocedVertices[6], m_allocedVertices[7], width);
+            Handles.DrawLine(m_allocedVertices[7], m_allocedVertices[4], width);
         }
 
         #endregion
