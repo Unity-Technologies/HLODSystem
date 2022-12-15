@@ -400,16 +400,21 @@ namespace Unity.HLODSystem
         #endregion
         
 
-        public void Update(int manualLevel, float lodDistance)
+        public void Update(HLODControllerBase.Mode mode, int manualLevel, float lodDistance)
         {
             m_distance = m_spaceManager.GetDistanceSqure(m_bounds) - m_boundsLength;
 
             var beforeState = m_fsm.CurrentState;
-            
-            if (manualLevel >= 0)
+
+            if (mode == HLODControllerBase.Mode.DisableHLOD)
+            {
+                m_expectedState = State.High;
+            }
+            else if (mode == HLODControllerBase.Mode.ManualControl)
             {
                 //Tree nodes suitable for the manual level must be calculated and displayed.
-                if (m_level < manualLevel)
+                m_expectedState = State.Release;
+                if (manualLevel >= 0 && m_level < manualLevel)
                 {
                     m_expectedState = State.High;
                 }
@@ -417,11 +422,6 @@ namespace Unity.HLODSystem
                 {
                     m_expectedState = State.Low;
                 }
-                else
-                {
-                    m_expectedState = State.Release;
-                }
-
             }
             else
             {
@@ -467,7 +467,7 @@ namespace Unity.HLODSystem
             for (int i = 0; i < m_childTreeNodeIds.Count; ++i)
             {
                 var childTreeNode = m_container.Get(m_childTreeNodeIds[i]);
-                childTreeNode.Update(manualLevel, lodDistance);
+                childTreeNode.Update(mode, manualLevel, lodDistance);
             }
         }
 
