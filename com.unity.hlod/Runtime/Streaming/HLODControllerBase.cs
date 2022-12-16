@@ -172,8 +172,14 @@ namespace Unity.HLODSystem.Streaming
 
             m_spaceManager.UpdateCamera(this.transform, camera);
 
-            m_root.Cull(m_spaceManager.IsCull(m_cullDistance, m_root.Bounds));
-            m_root.Update(m_lodDistance);
+            if ( m_controlMode == Mode.AutoControl)
+                m_root.Cull(m_spaceManager.IsCull(m_cullDistance, m_root.Bounds));
+            else if (m_controlMode == Mode.ManualControl && m_manualLevel < 0 )
+                m_root.Cull(true);
+            else
+                m_root.Cull(false);
+            
+            m_root.Update(m_controlMode, m_manualLevel, m_lodDistance);
         }
 
         public bool IsLoadDone()
@@ -196,6 +202,17 @@ namespace Unity.HLODSystem.Streaming
 
             return count;
         }
+
+        public void SetManualLevel(int level)
+        {
+            m_manualLevel = level;
+        }
+
+        public void SetControlMode(Mode mode)
+        {
+            m_controlMode = mode;
+        }
+
         #endregion
 
         #region variables
@@ -214,6 +231,20 @@ namespace Unity.HLODSystem.Streaming
 
         [SerializeField] 
         private UserDataSerializerBase m_userDataSerializer;
+
+        [SerializeField]
+        private Mode m_controlMode = Mode.AutoControl;
+        [SerializeField]
+        [Range(-1, 10)] //< TODO: It should input suitable value, max level, to maximum range.
+        private int m_manualLevel = 0;
+
+        public enum Mode
+        {
+            DisableHLOD,
+            ManualControl,
+            AutoControl,
+            
+        }
 
         public HLODTreeNodeContainer Container
         {
