@@ -179,14 +179,14 @@ namespace Unity.HLODSystem.Streaming
 
             m_spaceManager.UpdateCamera(this.transform, camera);
 
-            if ( m_mode == Mode.AutoControl)
+            if ( m_controlMode == Mode.AutoControl)
                 m_root.Cull(m_spaceManager.IsCull(m_cullDistance, m_root.Bounds));
-            else if (m_mode == Mode.ManualControl && m_manualLevel < 0 )
+            else if (m_controlMode == Mode.ManualControl && m_manualLevel < 0 )
                 m_root.Cull(true);
             else
                 m_root.Cull(false);
             
-            m_root.Update(m_mode, m_manualLevel, m_lodDistance);
+            m_root.Update(m_controlMode, m_manualLevel, m_lodDistance);
         }
 
         public bool IsLoadDone()
@@ -215,9 +215,9 @@ namespace Unity.HLODSystem.Streaming
             m_manualLevel = level;
         }
 
-        public void SetMode(Mode mode)
+        public void SetControlMode(Mode mode)
         {
-            m_mode = mode;
+            m_controlMode = mode;
         }
 
         #endregion
@@ -242,7 +242,7 @@ namespace Unity.HLODSystem.Streaming
         private UserDataSerializerBase m_userDataSerializer;
 
         [SerializeField]
-        private Mode m_mode = Mode.AutoControl;
+        private Mode m_controlMode = Mode.AutoControl;
         [SerializeField]
         [Range(-1, 10)] //< TODO: It should input suitable value, max level, to maximum range.
         private int m_manualLevel = 0;
