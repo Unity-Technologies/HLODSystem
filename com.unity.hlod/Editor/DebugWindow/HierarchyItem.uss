@@ -1,0 +1,9 @@
+#Foldout > .unity-toggle__label {
+    min-width: 0;
+    width: 0;
+    visibility: hidden;
+}
+
+.HLODTreeNode_rendered {
+    background-color: rgba(0, 128, 0, 0.25);
+}

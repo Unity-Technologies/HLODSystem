@@ -1,0 +1,14 @@
+#Label {
+	flex-grow: 1;
+}
+
+#EnableDebug {
+	width: 30px;
+	flex-shrink: 1;
+}
+
+#EnableDebug > .unity-toggle__label {
+	min-width: 0px;
+	width: 0px;
+    visibility: hidden;
+}

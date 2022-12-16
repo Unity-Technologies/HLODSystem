@@ -55,12 +55,17 @@ namespace Unity.HLODSystem
             get { return m_lowObjectIds; }
         }
 
-        private State ExprectedState
+        public State ExprectedState
         {
             get { return m_expectedState; }
         }
 
-        enum State
+        public State CurrentState
+        {
+            get { return m_fsm.CurrentState; }
+        }
+
+        public enum State
         {
             Release,
             Low,
@@ -80,6 +85,15 @@ namespace Unity.HLODSystem
         
         private bool m_isVisible;
         private bool m_isVisibleHierarchy;
+
+        public HLODControllerBase Controller
+        {
+            get
+            {
+                return m_controller;
+            }
+        }
+        
 
         public HLODTreeNode()
         {
@@ -449,29 +463,7 @@ namespace Unity.HLODSystem
             }
         }
 
-        static Material lineMaterial;
-        static void CreateLineMaterial()
-        {
-            if (!lineMaterial)
-            {
-                // Unity has a built-in shader that is useful for drawing
-                // simple colored things.
-                Shader shader = Shader.Find("Hidden/Internal-Colored");
-                lineMaterial = new Material(shader);
-                lineMaterial.hideFlags = HideFlags.HideAndDontSave;
-                // Turn on alpha blending
-                lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                // Turn backface culling off
-                lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
-                // Turn off depth writes
-                lineMaterial.SetInt("_ZWrite", 0);
-            }
-        }
-
-
-
-        public void RenderBounds(Transform transform)
+        /*public void RenderBounds(Transform transform)
         {
             if (m_fsm.CurrentState == State.Release)
                 return;
@@ -484,63 +476,9 @@ namespace Unity.HLODSystem
             //if this node has a child node, skipping render.
             if (m_fsm.CurrentState == State.High && m_childTreeNodeIds.Count > 0)
                 return;
-
-            Color color = Color.white;
-
-            if (m_fsm.CurrentState == State.Low)
-                color = Color.yellow;
-            else
-                color = Color.green;
-
-            Vector3 min = m_bounds.min;
-            Vector3 max = m_bounds.max;
-
-            Vector3[] vertices = new Vector3[8];
-            vertices[0] = new Vector3(min.x, min.y, min.z);
-            vertices[1] = new Vector3(min.x, min.y, max.z);
-            vertices[2] = new Vector3(max.x, min.y, max.z);
-            vertices[3] = new Vector3(max.x, min.y, min.z);
             
-            vertices[4] = new Vector3(min.x, max.y, min.z);
-            vertices[5] = new Vector3(min.x, max.y, max.z);
-            vertices[6] = new Vector3(max.x, max.y, max.z);
-            vertices[7] = new Vector3(max.x, max.y, min.z);
-
-            for (int i = 0; i < vertices.Length; ++i)
-            {
-                vertices[i] = transform.localToWorldMatrix.MultiplyPoint(vertices[i]);
-            }
-
-            CreateLineMaterial();
-            // Apply the line material
-            lineMaterial.SetPass(0);
-
-            GL.PushMatrix();
-            GL.Begin(GL.LINES);
-
-            GL.Color(color);
-
-            //bottom
-            GL.Vertex(vertices[0]); GL.Vertex(vertices[1]);
-            GL.Vertex(vertices[1]); GL.Vertex(vertices[2]);
-            GL.Vertex(vertices[2]); GL.Vertex(vertices[3]);
-            GL.Vertex(vertices[3]); GL.Vertex(vertices[0]);
-
-            //center
-            GL.Vertex(vertices[0]); GL.Vertex(vertices[4]);
-            GL.Vertex(vertices[1]); GL.Vertex(vertices[5]);
-            GL.Vertex(vertices[2]); GL.Vertex(vertices[6]);
-            GL.Vertex(vertices[3]); GL.Vertex(vertices[7]);
-
-            //top
-            GL.Vertex(vertices[4]); GL.Vertex(vertices[5]);
-            GL.Vertex(vertices[5]); GL.Vertex(vertices[6]);
-            GL.Vertex(vertices[6]); GL.Vertex(vertices[7]);
-            GL.Vertex(vertices[7]); GL.Vertex(vertices[4]);
-
-            GL.End();
-            GL.PopMatrix();
-        }        
+            HLODTreeNodeRenderer.Instance.Render(this, transform, Color.yellow, 3.0f);
+        }*/        
 
         private void UpdateVisible()
         {

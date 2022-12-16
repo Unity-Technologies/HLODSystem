@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.unity.hlod/Editor/DebugWindow/HierarchyItem.uss?fileID=7433441132597879392&amp;guid=194f82432beded84f9f210e9a7acd8e3&amp;type=3#HierarchyItem" />
+    <ui:VisualElement style="flex-direction: row;">
+        <ui:VisualElement name="TreeOffset" />
+        <ui:Toggle label="Toggle" name="Foldout" value="true" binding-path="IsOpen" class="unity-foldout__toggle" />
+        <ui:Label text="TreeNodeName" name="Name" focusable="false" binding-path="Label" />
+    </ui:VisualElement>
+</ui:UXML>

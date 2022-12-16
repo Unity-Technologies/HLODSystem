@@ -1,15 +1,19 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Unity.HLODSystem.Streaming;
+using UnityEngine;
+using UnityEngine.Rendering;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-using UnityEngine;
-using UnityEngine.Rendering;
+
 
 namespace Unity.HLODSystem
 {
     public class HLODManager
     {
+        #region Singleton
+
         private static HLODManager s_instance = null;
         private bool IsSRP => GraphicsSettings.renderPipelineAsset != null || QualitySettings.renderPipeline != null;
 
@@ -17,31 +21,43 @@ namespace Unity.HLODSystem
         {
             get
             {
-                if ( s_instance == null )
+                if (s_instance == null)
                     s_instance = new HLODManager();
                 return s_instance;
             }
         }
-    
-        public void Register(Streaming.HLODControllerBase controller)
-        {
-            if (m_activeControllers == null)
-            {
-                m_activeControllers = new List<Streaming.HLODControllerBase>();
-                if (IsSRP)
-                    RenderPipelineManager.beginCameraRendering += OnPreCull;
-                else
-                    Camera.onPreCull += OnPreCull;
-            }
-            m_activeControllers.Add(controller);
-        }
-        public void Unregister(Streaming.HLODControllerBase controller)
-        {
-            if ( m_activeControllers != null)
-                m_activeControllers.Remove(controller);
-        }
 
-        private List<Streaming.HLODControllerBase> m_activeControllers = null;
+        #endregion
+        
+       
+        public List<HLODControllerBase> ActiveControllers
+        {
+            get
+            {
+                if (m_activeControllers == null)
+                {
+                    m_activeControllers = new List<HLODControllerBase>();
+                    if (IsSRP)
+                        RenderPipelineManager.beginCameraRendering += OnPreCull;
+                    else
+                        Camera.onPreCull += OnPreCull;
+                }
+                
+                return m_activeControllers;
+            }
+        }
+        public void Register(HLODControllerBase controller)
+        {
+            ActiveControllers.Add(controller);
+        }
+        public void Unregister(HLODControllerBase controller)
+        {
+            ActiveControllers.Remove(controller);
+        }
+        
+        
+
+        private List<HLODControllerBase> m_activeControllers = null;
 
         private void OnPreCull(ScriptableRenderContext context, Camera cam)
         {
