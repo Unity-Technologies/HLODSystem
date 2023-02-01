@@ -212,15 +212,7 @@ namespace Unity.HLODSystem.Streaming
         {
             return m_manualLevel.value;
         }
-
-        #if UNITY_EDITOR
-        //In Runtime, the max value does not need to be changed.
-        //So, it can edit only in the case of Editor.
-        public void SetMaxManualLevel(int level)
-        {
-            m_manualLevel.maxValue = level;
-        }
-        #endif
+        
         public int GetMaxManualLevel()
         {
             return m_manualLevel.maxValue;
@@ -229,6 +221,17 @@ namespace Unity.HLODSystem.Streaming
         public void SetControlMode(Mode mode)
         {
             m_controlMode = mode;
+        }
+
+        public void UpdateMaxManualLevel()
+        {
+            int maxLevel = 0;
+            for (int i = 0; i < m_treeNodeContainer.Count; ++i)
+            {
+                maxLevel = Mathf.Max(maxLevel, m_treeNodeContainer.Get(i).Level);
+            }
+
+            m_manualLevel.maxValue = maxLevel;
         }
 
         #endregion
