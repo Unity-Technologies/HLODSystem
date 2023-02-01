@@ -73,9 +73,10 @@ namespace Unity.HLODSystem.Streaming
         {
             dynamic options = m_streamingOptions;
             string path = options.OutputDirectory;
+            int maxLevel = 0;
 
             HLODTreeNodeContainer container = new HLODTreeNodeContainer();
-            HLODTreeNode convertedRootNode = ConvertNode(container, rootNode);
+            HLODTreeNode convertedRootNode = ConvertNode(container, rootNode, out maxLevel);
 
             if (onProgress != null)
                 onProgress(0.0f);
@@ -203,6 +204,8 @@ namespace Unity.HLODSystem.Streaming
             defaultController.Root = convertedRootNode;
             defaultController.CullDistance = cullDistance;
             defaultController.LODDistance = lodDistance;
+            
+            defaultController.SetMaxManualLevel(maxLevel);
         }
 
         private void ExtractMaterial(HLODData hlodData, string filenamePrefix)
@@ -285,7 +288,7 @@ namespace Unity.HLODSystem.Streaming
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
 
-        private HLODTreeNode ConvertNode(HLODTreeNodeContainer container, SpaceNode rootNode)
+        private HLODTreeNode ConvertNode(HLODTreeNodeContainer container, SpaceNode rootNode, out int maxLevel )
         {
             HLODTreeNode root = new HLODTreeNode();
             root.SetContainer(container);
@@ -293,6 +296,8 @@ namespace Unity.HLODSystem.Streaming
             Queue<HLODTreeNode> hlodTreeNodes = new Queue<HLODTreeNode>();
             Queue<SpaceNode> spaceNodes = new Queue<SpaceNode>();
             Queue<int> levels = new Queue<int>();
+
+            maxLevel = 0;
 
             hlodTreeNodes.Enqueue(root);
             spaceNodes.Enqueue(rootNode);
@@ -303,6 +308,8 @@ namespace Unity.HLODSystem.Streaming
                 var hlodTreeNode = hlodTreeNodes.Dequeue();
                 var spaceNode = spaceNodes.Dequeue();
                 int level = levels.Dequeue();
+
+                maxLevel = Mathf.Max(maxLevel, level);
 
                 convertedTable[spaceNode] = hlodTreeNode;
 
