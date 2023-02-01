@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Unity.HLODSystem.Serializer;
 using Unity.HLODSystem.SpaceManager;
@@ -174,12 +174,12 @@ namespace Unity.HLODSystem.Streaming
 
             if ( m_controlMode == Mode.AutoControl)
                 m_root.Cull(m_spaceManager.IsCull(m_cullDistance, m_root.Bounds));
-            else if (m_controlMode == Mode.ManualControl && m_manualLevel < 0 )
+            else if (m_controlMode == Mode.ManualControl && m_manualLevel.value < 0 )
                 m_root.Cull(true);
             else
                 m_root.Cull(false);
             
-            m_root.Update(m_controlMode, m_manualLevel, m_lodDistance);
+            m_root.Update(m_controlMode, m_manualLevel.value, m_lodDistance);
         }
 
         public bool IsLoadDone()
@@ -205,7 +205,25 @@ namespace Unity.HLODSystem.Streaming
 
         public void SetManualLevel(int level)
         {
-            m_manualLevel = level;
+            m_manualLevel.value = level;
+        }
+
+        public int GetManualLevel()
+        {
+            return m_manualLevel.value;
+        }
+
+        #if UNITY_EDITOR
+        //In Runtime, the max value does not need to be changed.
+        //So, it can edit only in the case of Editor.
+        public void SetMaxManualLevel(int level)
+        {
+            m_manualLevel.maxValue = level;
+        }
+        #endif
+        public int GetMaxManualLevel()
+        {
+            return m_manualLevel.maxValue;
         }
 
         public void SetControlMode(Mode mode)
@@ -235,8 +253,8 @@ namespace Unity.HLODSystem.Streaming
         [SerializeField]
         private Mode m_controlMode = Mode.AutoControl;
         [SerializeField]
-        [Range(-1, 10)] //< TODO: It should input suitable value, max level, to maximum range.
-        private int m_manualLevel = 0;
+        
+        private Utils.RangeInt m_manualLevel = new Utils.RangeInt(-1, 10, 0);
 
         public enum Mode
         {
