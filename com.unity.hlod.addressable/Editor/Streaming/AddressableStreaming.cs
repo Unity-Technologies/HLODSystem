@@ -265,6 +265,8 @@ namespace Unity.HLODSystem.Streaming
             addressableController.Root = convertedRootNode;
             addressableController.CullDistance = cullDistance;
             addressableController.LODDistance = lodDistance;
+            
+            addressableController.UpdateMaxManualLevel();
         }
 
         private void ExtractMaterial(Dictionary<int, HLODData> hlodDatas, string filenamePrefix)
