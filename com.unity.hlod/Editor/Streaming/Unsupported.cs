@@ -203,6 +203,8 @@ namespace Unity.HLODSystem.Streaming
             defaultController.Root = convertedRootNode;
             defaultController.CullDistance = cullDistance;
             defaultController.LODDistance = lodDistance;
+            
+            defaultController.UpdateMaxManualLevel();
         }
 
         private void ExtractMaterial(HLODData hlodData, string filenamePrefix)
@@ -285,7 +287,7 @@ namespace Unity.HLODSystem.Streaming
 
         Dictionary<SpaceNode, HLODTreeNode> convertedTable = new Dictionary<SpaceNode, HLODTreeNode>();
 
-        private HLODTreeNode ConvertNode(HLODTreeNodeContainer container, SpaceNode rootNode)
+        private HLODTreeNode ConvertNode(HLODTreeNodeContainer container, SpaceNode rootNode )
         {
             HLODTreeNode root = new HLODTreeNode();
             root.SetContainer(container);
