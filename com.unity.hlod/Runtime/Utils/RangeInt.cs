@@ -42,6 +42,11 @@ namespace Unity.HLODSystem.Utils
             set
             {
                 m_value = value;
+                if (m_value < m_minValue)
+                    m_value = m_minValue;
+                if (m_value > m_maxValue)
+                    m_value = m_maxValue;
+
             }
             get
             {
