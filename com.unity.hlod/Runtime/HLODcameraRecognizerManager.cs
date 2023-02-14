@@ -26,19 +26,18 @@ namespace Unity.HLODSystem
                     instance.ActiveHighestPriority();
                 }
 
-                return Instance.m_activeRecognizer;
+                return instance.m_activeRecognizer;
             }
         }
         public static Camera ActiveCamera
         {
             get
             {
-                var instance = Instance;
-                var regocnizer = ActiveRecognizer;
-                if (regocnizer == null)
+                var recognizer = ActiveRecognizer;
+                if (recognizer == null)
                     return null;
 
-                return ActiveRecognizer.RecognizedCamera;
+                return recognizer.RecognizedCamera;
             }
         }
 

@@ -17,7 +17,7 @@ namespace Unity.HLODSystem
                 GUIStyle style = new GUIStyle();
                 style.fontSize = 15;
                 style.normal.textColor = Color.blue;
-                EditorGUILayout.LabelField("Actived HLODCameraRecognizer.", style);
+                EditorGUILayout.LabelField("Activated HLODCameraRecognizer.", style);
             }
 
             if (GUILayout.Button("Active"))
