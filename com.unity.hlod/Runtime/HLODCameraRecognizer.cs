@@ -5,24 +5,57 @@ namespace Unity.HLODSystem
 {
     public class HLODCameraRecognizer : MonoBehaviour
     {
-        private static HLODCameraRecognizer s_instance;
-        private static Camera s_recognizedCamera;
-        public static HLODCameraRecognizer Instance => s_instance;
-        public static Camera RecognizedCamera => s_recognizedCamera;
+        private Camera m_recognizedCamera;
+        public Camera RecognizedCamera => m_recognizedCamera;
+
+        [SerializeField]
+        private int m_id;
+        [SerializeField]
+        private int m_priority;
+
+
+        public int ID
+        {
+            get
+            {
+                return m_id;
+            }
+        }
+
+        public int Priority
+        {
+            get
+            {
+                return m_priority;
+            }
+        }
+        
+        
 
         private void Awake()
         {
-            s_instance = this;
-            s_recognizedCamera = GetComponent<Camera>();
+            
+            m_recognizedCamera = GetComponent<Camera>();
+        }
+        private void OnEnable()
+        {
+            HLODCameraRecognizerManager.Instance.RegisterRecognizer(this);
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
-            if (s_instance == this)
+            HLODCameraRecognizerManager.Instance.UnregisterRecognizer(this);            
+        }
+        
+        public void Active()
+        {
+            if (enabled == false)
             {
-                s_instance = null;
-                s_recognizedCamera = null;
+                Debug.LogError("Failed to active HLODCameraRecognizer. It is not Enabled.");
+                return;
             }
+
+            HLODCameraRecognizerManager.Instance.Active(this);
         }
     }
 }
